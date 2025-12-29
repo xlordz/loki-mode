@@ -15,6 +15,19 @@
 #   LOKI_SKIP_PREREQS   - Skip prerequisite checks (default: false)
 #   LOKI_DASHBOARD      - Enable web dashboard (default: true)
 #   LOKI_DASHBOARD_PORT - Dashboard port (default: 57374)
+#
+# SDLC Phase Controls (all enabled by default, set to 'false' to skip):
+#   LOKI_PHASE_UNIT_TESTS      - Run unit tests (default: true)
+#   LOKI_PHASE_API_TESTS       - Functional API testing (default: true)
+#   LOKI_PHASE_E2E_TESTS       - E2E/UI testing with Playwright (default: true)
+#   LOKI_PHASE_SECURITY        - Security scanning OWASP/auth (default: true)
+#   LOKI_PHASE_INTEGRATION     - Integration tests SAML/OIDC/SSO (default: true)
+#   LOKI_PHASE_CODE_REVIEW     - 3-reviewer parallel code review (default: true)
+#   LOKI_PHASE_WEB_RESEARCH    - Competitor/feature gap research (default: true)
+#   LOKI_PHASE_PERFORMANCE     - Load/performance testing (default: true)
+#   LOKI_PHASE_ACCESSIBILITY   - WCAG compliance testing (default: true)
+#   LOKI_PHASE_REGRESSION      - Regression testing (default: true)
+#   LOKI_PHASE_UAT             - UAT simulation (default: true)
 #===============================================================================
 
 set -uo pipefail
@@ -31,6 +44,19 @@ ENABLE_DASHBOARD=${LOKI_DASHBOARD:-true}
 DASHBOARD_PORT=${LOKI_DASHBOARD_PORT:-57374}
 STATUS_MONITOR_PID=""
 DASHBOARD_PID=""
+
+# SDLC Phase Controls (all enabled by default)
+PHASE_UNIT_TESTS=${LOKI_PHASE_UNIT_TESTS:-true}
+PHASE_API_TESTS=${LOKI_PHASE_API_TESTS:-true}
+PHASE_E2E_TESTS=${LOKI_PHASE_E2E_TESTS:-true}
+PHASE_SECURITY=${LOKI_PHASE_SECURITY:-true}
+PHASE_INTEGRATION=${LOKI_PHASE_INTEGRATION:-true}
+PHASE_CODE_REVIEW=${LOKI_PHASE_CODE_REVIEW:-true}
+PHASE_WEB_RESEARCH=${LOKI_PHASE_WEB_RESEARCH:-true}
+PHASE_PERFORMANCE=${LOKI_PHASE_PERFORMANCE:-true}
+PHASE_ACCESSIBILITY=${LOKI_PHASE_ACCESSIBILITY:-true}
+PHASE_REGRESSION=${LOKI_PHASE_REGRESSION:-true}
+PHASE_UAT=${LOKI_PHASE_UAT:-true}
 
 # Colors
 RED='\033[0;31m'
@@ -669,20 +695,37 @@ build_prompt() {
     local retry="$1"
     local prd="$2"
 
+    # Build SDLC phases configuration
+    local phases=""
+    [ "$PHASE_UNIT_TESTS" = "true" ] && phases="${phases}UNIT_TESTS,"
+    [ "$PHASE_API_TESTS" = "true" ] && phases="${phases}API_TESTS,"
+    [ "$PHASE_E2E_TESTS" = "true" ] && phases="${phases}E2E_TESTS,"
+    [ "$PHASE_SECURITY" = "true" ] && phases="${phases}SECURITY,"
+    [ "$PHASE_INTEGRATION" = "true" ] && phases="${phases}INTEGRATION,"
+    [ "$PHASE_CODE_REVIEW" = "true" ] && phases="${phases}CODE_REVIEW,"
+    [ "$PHASE_WEB_RESEARCH" = "true" ] && phases="${phases}WEB_RESEARCH,"
+    [ "$PHASE_PERFORMANCE" = "true" ] && phases="${phases}PERFORMANCE,"
+    [ "$PHASE_ACCESSIBILITY" = "true" ] && phases="${phases}ACCESSIBILITY,"
+    [ "$PHASE_REGRESSION" = "true" ] && phases="${phases}REGRESSION,"
+    [ "$PHASE_UAT" = "true" ] && phases="${phases}UAT,"
+    phases="${phases%,}"  # Remove trailing comma
+
     # Core autonomous instructions - DO NOT ask questions, take action
     local autonomous_suffix="CRITICAL: You are running in FULLY AUTONOMOUS mode. DO NOT ask questions or wait for user input. Make decisions based on: 1) The PRD requirements, 2) Current state in .loki/, 3) Best practices and web search if needed. Take immediate action. If the project is complete, set currentPhase to 'finalized' in orchestrator.json and create .loki/COMPLETED marker file."
 
+    local sdlc_instruction="SDLC_PHASES_ENABLED: [$phases]. Execute ALL enabled phases in order. For each phase: run tests, log results to .loki/logs/, fail the phase if critical issues found. See SKILL.md for detailed phase instructions."
+
     if [ $retry -eq 0 ]; then
         if [ -n "$prd" ]; then
-            echo "Loki Mode with PRD at $prd. $autonomous_suffix"
+            echo "Loki Mode with PRD at $prd. $sdlc_instruction $autonomous_suffix"
         else
-            echo "Loki Mode. $autonomous_suffix"
+            echo "Loki Mode. $sdlc_instruction $autonomous_suffix"
         fi
     else
         if [ -n "$prd" ]; then
-            echo "Loki Mode - Resume from checkpoint. PRD at $prd. This is retry #$retry. Check .loki/state/ for progress and continue autonomously. $autonomous_suffix"
+            echo "Loki Mode - Resume from checkpoint. PRD at $prd. This is retry #$retry. Check .loki/state/ for progress and continue autonomously. $sdlc_instruction $autonomous_suffix"
         else
-            echo "Loki Mode - Resume from checkpoint. This is retry #$retry. Check .loki/state/ for progress and continue autonomously. $autonomous_suffix"
+            echo "Loki Mode - Resume from checkpoint. This is retry #$retry. Check .loki/state/ for progress and continue autonomously. $sdlc_instruction $autonomous_suffix"
         fi
     fi
 }

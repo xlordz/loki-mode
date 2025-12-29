@@ -40,6 +40,268 @@ claude --dangerously-skip-permissions
 
 **If project is complete:** Do NOT ask "What would you like to do next?" Instead, create the `.loki/COMPLETED` file and provide a final status report. The system will exit cleanly.
 
+## SDLC Testing Phases
+
+The prompt includes `SDLC_PHASES_ENABLED: [...]` listing which phases to execute. Execute each enabled phase in order. Log results to `.loki/logs/sdlc-{phase}-{timestamp}.md`.
+
+### UNIT_TESTS Phase
+```bash
+# Execute existing unit tests
+cd backend && npm test
+cd frontend && npm test
+# Generate coverage report
+npm run test:coverage
+```
+**Pass Criteria:** All tests pass, coverage > 80%
+**On Failure:** Fix failing tests before proceeding
+
+### API_TESTS Phase
+Functional testing of ALL API endpoints with real HTTP requests:
+```bash
+# For each route file in backend/src/routes/*.ts:
+# 1. Extract all endpoints (GET, POST, PUT, DELETE, PATCH)
+# 2. Generate test requests with valid payloads
+# 3. Test authentication (valid token, invalid token, no token)
+# 4. Test authorization (admin vs user vs guest)
+# 5. Test validation (missing fields, invalid types, edge cases)
+# 6. Test error handling (404, 400, 500 scenarios)
+```
+**Actions:**
+1. Start the backend server: `cd backend && npm run dev &`
+2. Use curl or write a test script to hit every endpoint
+3. Verify response codes, schemas, and data
+4. Test CRUD operations end-to-end
+5. Log all failures to `.loki/logs/api-test-failures.md`
+
+**Pass Criteria:** All endpoints return expected responses, auth works correctly
+**On Failure:** Create issues in `.loki/queue/pending.json` for each failing endpoint
+
+### E2E_TESTS Phase
+End-to-end UI testing with Playwright or Cypress:
+```bash
+# If Playwright not installed:
+npm init playwright@latest --yes
+# Or Cypress:
+npm install -D cypress
+```
+**Actions:**
+1. Write E2E tests for critical user flows:
+   - Login/logout flow
+   - Create/edit/delete for each entity type
+   - Search and filter functionality
+   - Form submissions with validation
+   - Navigation between pages
+   - Role-based access (admin sees more than user)
+2. Run tests: `npx playwright test` or `npx cypress run`
+3. Capture screenshots on failure
+4. Generate HTML report
+
+**Pass Criteria:** All critical flows work, no UI regressions
+**On Failure:** Log failures with screenshots
+
+### SECURITY Phase
+Security scanning and auth flow verification:
+```bash
+# Install security tools if needed
+npm install -D eslint-plugin-security
+npm audit
+```
+**Actions:**
+1. **Dependency Audit:** `npm audit --audit-level=high`
+2. **OWASP Top 10 Check:**
+   - SQL Injection: Verify parameterized queries
+   - XSS: Check output encoding, CSP headers
+   - CSRF: Verify tokens on state-changing requests
+   - Auth bypass: Test without tokens, with expired tokens
+   - Sensitive data exposure: Check for secrets in code/logs
+3. **Auth Flow Testing:**
+   - JWT validation (signature, expiry, claims)
+   - Refresh token rotation
+   - Password hashing (bcrypt/argon2)
+   - Rate limiting on login
+   - Account lockout after failed attempts
+4. **Web search:** Search "OWASP {framework} security checklist 2024"
+
+**Pass Criteria:** No high/critical vulnerabilities, auth flows secure
+**On Failure:** BLOCK - must fix security issues before proceeding
+
+### INTEGRATION Phase
+Test third-party integrations (SAML, OIDC, SSO, external APIs):
+```bash
+# Check for auth integration files
+ls -la backend/src/services/auth/
+ls -la backend/src/middleware/
+```
+**Actions:**
+1. **SAML Integration:**
+   - Verify SAML metadata endpoint exists
+   - Test SP-initiated SSO flow
+   - Test IdP-initiated SSO flow
+   - Verify assertion validation
+   - Test single logout (SLO)
+2. **OIDC/OAuth Integration:**
+   - Test authorization code flow
+   - Test token exchange
+   - Verify ID token validation
+   - Test refresh token flow
+   - Test with multiple providers (Google, Microsoft, Okta)
+3. **Entra ID (Azure AD):**
+   - Verify tenant configuration
+   - Test user provisioning
+   - Test group sync
+   - Verify conditional access
+4. **External API Integrations:**
+   - Slack: Test message posting, webhooks
+   - Teams: Test adaptive cards, bot messages
+   - Email: Test SMTP delivery
+   - SMS: Test message sending
+5. **Web search:** "Best practices {integration} Node.js 2024"
+
+**Pass Criteria:** All configured integrations work end-to-end
+**On Failure:** Log specific integration failures with error messages
+
+### CODE_REVIEW Phase
+Parallel code review with 3 specialized reviewers:
+```
+Use Task tool to spawn 3 parallel review agents:
+
+Agent 1: Security Reviewer (model: opus)
+- Focus: Auth, input validation, secrets, injection, XSS
+- Check: OWASP compliance, secure defaults
+
+Agent 2: Architecture Reviewer (model: sonnet)
+- Focus: Design patterns, SOLID principles, scalability
+- Check: Code organization, dependency management
+
+Agent 3: Performance Reviewer (model: sonnet)
+- Focus: N+1 queries, memory leaks, caching
+- Check: Database indexes, API response times
+```
+**Actions:**
+1. Dispatch all 3 reviewers in a SINGLE message with 3 Task tool calls
+2. Collect findings from each reviewer
+3. Triage by severity: Critical > High > Medium > Low
+4. Create fix tasks for Critical/High/Medium issues
+
+**Pass Criteria:** No Critical/High issues, Medium issues logged
+**On Failure:** BLOCK on Critical/High - fix before proceeding
+
+### WEB_RESEARCH Phase
+Research competitors and identify missing features:
+```
+Use WebSearch tool to research:
+1. "{product_type} SaaS competitors 2024"
+2. "{product_type} best features comparison"
+3. "{product_type} user complaints reddit"
+4. "enterprise {product_type} requirements checklist"
+```
+**Actions:**
+1. Identify top 5 competitors
+2. Extract their feature lists
+3. Compare against PRD features
+4. Identify gaps (features they have that we don't)
+5. Research industry best practices
+6. Check for compliance requirements (SOC2, GDPR, HIPAA)
+7. Log findings to `.loki/logs/competitive-analysis.md`
+
+**Pass Criteria:** Gap analysis complete, findings documented
+**Output:** List of potential enhancements for backlog
+
+### PERFORMANCE Phase
+Load testing and performance benchmarking:
+```bash
+# Install k6 or artillery for load testing
+npm install -g k6
+# Or use autocannon
+npm install -g autocannon
+```
+**Actions:**
+1. **API Benchmarking:**
+   ```bash
+   autocannon -c 100 -d 30 http://localhost:3000/api/health
+   ```
+2. **Load Testing Scenarios:**
+   - 100 concurrent users for 1 minute
+   - 500 concurrent users for 30 seconds (stress)
+   - Sustained 50 users for 5 minutes (endurance)
+3. **Database Performance:**
+   - Check for N+1 queries (use query logging)
+   - Verify indexes exist for common queries
+   - Test with realistic data volume (10k+ records)
+4. **Frontend Performance:**
+   - Lighthouse audit: `npx lighthouse http://localhost:3000`
+   - Check bundle size
+   - Verify lazy loading
+
+**Pass Criteria:** P95 response time < 500ms, no errors under load
+**On Failure:** Log slow endpoints, suggest optimizations
+
+### ACCESSIBILITY Phase
+WCAG 2.1 AA compliance testing:
+```bash
+# Install axe-core for accessibility testing
+npm install -D @axe-core/cli
+npx axe http://localhost:3000
+```
+**Actions:**
+1. Run automated accessibility scan on all pages
+2. Check for:
+   - Alt text on images
+   - ARIA labels on interactive elements
+   - Color contrast ratios (4.5:1 minimum)
+   - Keyboard navigation
+   - Focus indicators
+   - Screen reader compatibility
+   - Form labels and error messages
+3. Generate accessibility report
+
+**Pass Criteria:** No critical accessibility violations
+**On Failure:** Log violations with remediation suggestions
+
+### REGRESSION Phase
+Compare current behavior against previous version:
+```bash
+# Get previous version
+git log --oneline -10
+git diff HEAD~1 --stat
+```
+**Actions:**
+1. Identify changed files since last release
+2. For each changed module:
+   - Run module-specific tests
+   - Compare API responses with previous version
+   - Check for unintended side effects
+3. Verify no features were broken by recent changes
+4. Test backward compatibility of APIs
+
+**Pass Criteria:** No regressions detected, all existing features work
+**On Failure:** Document regressions, create fix tasks
+
+### UAT Phase
+User Acceptance Testing simulation:
+**Actions:**
+1. **Create UAT Test Cases from PRD:**
+   - For each PRD requirement, create acceptance test
+   - Include happy path and edge cases
+2. **Execute UAT Scenarios:**
+   - Walk through complete user journeys
+   - Verify business logic matches PRD
+   - Check data flows end-to-end
+   - Validate reporting accuracy
+3. **Bug Hunting:**
+   - Try unusual input combinations
+   - Test boundary conditions
+   - Attempt to break the system
+   - Document any unexpected behavior
+4. **Improvement Suggestions:**
+   - Note UX friction points
+   - Suggest workflow optimizations
+   - Identify missing validations
+5. Log all findings to `.loki/logs/uat-findings.md`
+
+**Pass Criteria:** All PRD requirements verified, bugs logged
+**Output:** UAT sign-off report or list of blocking issues
+
 ## Skill Metadata
 
 | Field | Value |

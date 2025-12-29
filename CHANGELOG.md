@@ -5,6 +5,30 @@ All notable changes to Loki Mode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.6.0] - 2025-12-28
+
+### Added
+- **Complete SDLC Testing Phases** - 11 comprehensive testing phases (all enabled by default):
+  - `UNIT_TESTS` - Run existing unit tests with coverage
+  - `API_TESTS` - Functional API testing with real HTTP requests
+  - `E2E_TESTS` - End-to-end UI testing with Playwright/Cypress
+  - `SECURITY` - OWASP scanning, auth flow verification, dependency audit
+  - `INTEGRATION` - SAML, OIDC, Entra ID, Slack, Teams testing
+  - `CODE_REVIEW` - 3-reviewer parallel code review (Security, Architecture, Performance)
+  - `WEB_RESEARCH` - Competitor analysis, feature gap identification
+  - `PERFORMANCE` - Load testing, benchmarking, Lighthouse audits
+  - `ACCESSIBILITY` - WCAG 2.1 AA compliance testing
+  - `REGRESSION` - Compare against previous version, detect regressions
+  - `UAT` - User acceptance testing simulation, bug hunting
+- **Phase Skip Options** - Each phase can be disabled via environment variables:
+  - `LOKI_PHASE_UNIT_TESTS=false` to skip unit tests
+  - `LOKI_PHASE_SECURITY=false` to skip security scanning
+  - etc.
+
+### Changed
+- Prompt now includes `SDLC_PHASES_ENABLED: [...]` to inform Claude which phases to execute
+- SKILL.md updated with detailed instructions for each SDLC phase
+
 ## [2.5.0] - 2025-12-28
 
 ### Added
