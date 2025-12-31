@@ -1024,27 +1024,33 @@ if __name__ == "__main__":
         if [ $exit_code -eq 0 ]; then
             # Perpetual mode: NEVER stop, always continue
             if [ "$PERPETUAL_MODE" = "true" ]; then
-                log_info "Perpetual mode: Ignoring exit, continuing loop..."
-                # Just continue to next iteration
-            else
-                # Only stop if EXPLICIT completion promise text was output
-                if [ -n "$COMPLETION_PROMISE" ] && check_completion_promise "$log_file"; then
-                    echo ""
-                    log_header "COMPLETION PROMISE FULFILLED: $COMPLETION_PROMISE"
-                    log_info "Explicit completion promise detected in output."
-                    save_state $retry "completion_promise_fulfilled" 0
-                    return 0
-                fi
-
-                # Warn if Claude says it's "done" but no explicit promise
-                if is_completed; then
-                    log_warn "Claude claims completion, but no explicit promise fulfilled."
-                    log_warn "Projects are never truly complete - there are always improvements!"
-                    log_info "Continuing to next iteration... (set LOKI_COMPLETION_PROMISE to stop)"
-                fi
+                log_info "Perpetual mode: Ignoring exit, continuing immediately..."
+                ((retry++))
+                continue  # Immediately start next iteration, no wait
             fi
+
+            # Only stop if EXPLICIT completion promise text was output
+            if [ -n "$COMPLETION_PROMISE" ] && check_completion_promise "$log_file"; then
+                echo ""
+                log_header "COMPLETION PROMISE FULFILLED: $COMPLETION_PROMISE"
+                log_info "Explicit completion promise detected in output."
+                save_state $retry "completion_promise_fulfilled" 0
+                return 0
+            fi
+
+            # Warn if Claude says it's "done" but no explicit promise
+            if is_completed; then
+                log_warn "Claude claims completion, but no explicit promise fulfilled."
+                log_warn "Projects are never truly complete - there are always improvements!"
+            fi
+
+            # SUCCESS exit - continue IMMEDIATELY to next iteration (no wait!)
+            log_info "Iteration complete. Continuing to next iteration..."
+            ((retry++))
+            continue  # Immediately start next iteration, no exponential backoff
         fi
 
+        # Only apply retry logic for ERRORS (non-zero exit code)
         # Handle retry - check for rate limit first
         local rate_limit_wait=$(detect_rate_limit "$log_file")
         local wait_time
