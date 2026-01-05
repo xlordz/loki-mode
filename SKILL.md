@@ -82,13 +82,13 @@ Development ← QA ← Deployment ← Business Ops ← Growth Loop
 
 ### Model Selection Strategy (Performance & Cost Optimization)
 
-**CRITICAL: Use Haiku 4.5 for maximum parallelization and speed.**
+**CRITICAL: Sonnet 4.5 is the DEFAULT. Use Haiku only for simple tasks to optimize speed/cost.**
 
 | Model | Use For | Examples | Speed | Cost | Thinking Mode |
 |-------|---------|----------|-------|------|---------------|
-| **Haiku 4.5** | Simple, fast tasks (DEFAULT for most subagents) | Unit tests, docs, bash commands, simple fixes, formatting, linting, file operations | ⚡⚡⚡ Fastest | 💰 Cheapest | Not available |
-| **Sonnet 4.5** | Standard implementation tasks | Feature implementation, API endpoints, moderate refactoring, integration tests | ⚡⚡ Fast | 💰💰 Medium | ✅ **Use for complex problems** |
-| **Opus 4.5** | Complex planning & architecture | System design, architecture decisions, complex refactoring plans, security reviews | ⚡ Slower | 💰💰💰 Expensive | ✅ **Use for architecture** |
+| **Sonnet 4.5** | **DEFAULT** - All standard implementation work | Feature implementation, API endpoints, bug fixes, moderate refactoring, integration tests, code reviews | ⚡⚡ Fast | 💰💰 Medium | ✅ **Use for complex problems** |
+| **Haiku 4.5** | OPTIMIZATION ONLY - Simple/parallelizable tasks | Unit tests, docs, bash commands, simple fixes, formatting, linting, file operations | ⚡⚡⚡ Fastest | 💰 Cheapest | Not available |
+| **Opus 4.5** | COMPLEX ONLY - Architecture & security | System design, architecture decisions, complex refactoring plans, security reviews, critical debugging | ⚡ Slower | 💰💰💰 Expensive | ✅ **Use for architecture** |
 
 **Extended Thinking Mode (Boris Cherny Pattern):**
 

@@ -867,8 +867,8 @@ build_prompt() {
     [ "$PHASE_UAT" = "true" ] && phases="${phases}UAT,"
     phases="${phases%,}"  # Remove trailing comma
 
-    # Ralph Wiggum Mode - Reason-Act-Reflect cycle with NO safety gates
-    local rar_instruction="RALPH WIGGUM MODE ACTIVE. Use Reason-Act-Reflect cycle: 1) REASON - Check .loki/state/ and .loki/queue/, identify next task. If queue empty, find new improvements. 2) ACT - Execute task, write code, run tests, commit. 3) REFLECT - Verify success, update state, identify NEXT improvement. CRITICAL: There is NEVER a 'finished' state - always find the next improvement, optimization, test, or feature."
+    # Ralph Wiggum Mode - Reason-Act-Reflect-VERIFY cycle with self-verification loop (Boris Cherny pattern)
+    local rarv_instruction="RALPH WIGGUM MODE ACTIVE. Use Reason-Act-Reflect-VERIFY cycle: 1) REASON - READ .loki/CONTINUITY.md including 'Mistakes & Learnings' section to avoid past errors. Check .loki/state/ and .loki/queue/, identify next task. If queue empty, find new improvements. 2) ACT - Execute task, write code, commit changes atomically (git checkpoint). 3) REFLECT - Update .loki/CONTINUITY.md with progress, update state, identify NEXT improvement. 4) VERIFY - Run automated tests (unit, integration, E2E), check compilation/build, verify against spec. IF VERIFICATION FAILS: a) Capture error details (stack trace, logs), b) Analyze root cause, c) UPDATE 'Mistakes & Learnings' in CONTINUITY.md with what failed, why, and how to prevent, d) Rollback to last good git checkpoint if needed, e) Apply learning and RETRY from REASON. If verification passes, mark task complete and continue. This self-verification loop achieves 2-3x quality improvement. CRITICAL: There is NEVER a 'finished' state - always find the next improvement, optimization, test, or feature."
 
     # Completion promise instruction (only if set)
     local completion_instruction=""
@@ -905,15 +905,15 @@ build_prompt() {
 
     if [ $retry -eq 0 ]; then
         if [ -n "$prd" ]; then
-            echo "Loki Mode with PRD at $prd. $rar_instruction $memory_instruction $completion_instruction $sdlc_instruction $autonomous_suffix"
+            echo "Loki Mode with PRD at $prd. $rarv_instruction $memory_instruction $completion_instruction $sdlc_instruction $autonomous_suffix"
         else
-            echo "Loki Mode. $analysis_instruction $rar_instruction $memory_instruction $completion_instruction $sdlc_instruction $autonomous_suffix"
+            echo "Loki Mode. $analysis_instruction $rarv_instruction $memory_instruction $completion_instruction $sdlc_instruction $autonomous_suffix"
         fi
     else
         if [ -n "$prd" ]; then
-            echo "Loki Mode - Resume iteration #$iteration (retry #$retry). PRD: $prd. $context_injection $rar_instruction $memory_instruction $completion_instruction $sdlc_instruction $autonomous_suffix"
+            echo "Loki Mode - Resume iteration #$iteration (retry #$retry). PRD: $prd. $context_injection $rarv_instruction $memory_instruction $completion_instruction $sdlc_instruction $autonomous_suffix"
         else
-            echo "Loki Mode - Resume iteration #$iteration (retry #$retry). $context_injection Use .loki/generated-prd.md if exists. $rar_instruction $memory_instruction $completion_instruction $sdlc_instruction $autonomous_suffix"
+            echo "Loki Mode - Resume iteration #$iteration (retry #$retry). $context_injection Use .loki/generated-prd.md if exists. $rarv_instruction $memory_instruction $completion_instruction $sdlc_instruction $autonomous_suffix"
         fi
     fi
 }

@@ -5,6 +5,31 @@ All notable changes to Loki Mode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.18.1] - 2026-01-04
+
+### Fixed
+- **Model Selection Hierarchy** - Corrected default model documentation (SKILL.md:83-91):
+  - **Sonnet 4.5** is now clearly marked as **DEFAULT** for all standard implementation work
+  - **Haiku 4.5** changed to **OPTIMIZATION ONLY** for simple/parallelizable tasks
+  - **Opus 4.5** changed to **COMPLEX ONLY** for architecture & security
+  - Previous documentation incorrectly suggested Haiku as default for most subagents
+  - Aligns with best practices: Sonnet for quality, Haiku for speed optimization only
+
+- **run.sh Implementation Gap** - RARV cycle now implemented in runner script (run.sh:870-871, 908-916):
+  - Updated `rar_instruction` to `rarv_instruction` with full VERIFY step
+  - Added "Mistakes & Learnings" reading in REASON step
+  - Added self-verification loop: test → fail → capture error → update CONTINUITY.md → retry
+  - Added git checkpoint rollback on verification failure
+  - Mentions 2-3x quality improvement from self-verification
+  - **CRITICAL FIX:** v2.18.0 documented RARV but run.sh still used old RAR cycle
+  - run.sh now aligns with SKILL.md patterns
+
+### Impact
+- **Clarity:** Eliminates confusion about which model to use by default
+- **Consistency:** run.sh now implements what SKILL.md documents
+- **Quality:** Self-verification loop now active in production runs (not just documentation)
+- **Real-World Testing:** Fixes gap identified during actual project usage
+
 ## [2.18.0] - 2026-01-04
 
 ### Added
