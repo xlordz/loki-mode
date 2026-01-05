@@ -15,7 +15,7 @@ Loki Mode has **unique differentiation** in business operations automation but f
 | **GitHub Stars** | 349 | 10,700 | 62,400 | 25,000+ | N/A (Commercial) | N/A (Commercial) |
 | **Agent Count** | 37 types | 64+ agents | 5 roles | Unlimited | 8 parallel | 1 autonomous |
 | **Parallel Execution** | Yes (100+) | Yes (swarms) | Sequential | Yes (crews) | Yes (8 worktrees) | Yes (fleet) |
-| **Published Benchmarks** | **98.17% HumanEval** | None | 85.9-87.7% HumanEval | None | ~250 tok/s | 15% complex tasks |
+| **Published Benchmarks** | **98.78% HumanEval (multi-agent)** | None | 85.9-87.7% HumanEval | None | ~250 tok/s | 15% complex tasks |
 | **SWE-bench Score** | **99.67% patch gen (299/300)** | Unknown | Unknown | Unknown | Unknown | 15% complex |
 | **Full SDLC** | Yes (8 phases) | Yes | Partial | Partial | No | Partial |
 | **Business Ops** | **Yes (8 agents)** | No | No | No | No | No |
@@ -154,7 +154,21 @@ Loki Mode has **unique differentiation** in business operations automation but f
 
 ## Benchmark Results (Published 2026-01-05)
 
-### HumanEval Results
+### HumanEval Results (Three-Way Comparison)
+
+**Loki Mode Multi-Agent (with RARV):**
+
+| Metric | Value |
+|--------|-------|
+| **Pass@1** | **98.78%** |
+| Passed | 162/164 problems |
+| Failed | 2 problems (HumanEval/32, HumanEval/50) |
+| RARV Recoveries | 2 (HumanEval/38, HumanEval/132) |
+| Avg Attempts | 1.04 |
+| Model | Claude Opus 4.5 |
+| Time | 45.1 minutes |
+
+**Direct Claude (Single Agent Baseline):**
 
 | Metric | Value |
 |--------|-------|
@@ -164,15 +178,17 @@ Loki Mode has **unique differentiation** in business operations automation but f
 | Model | Claude Opus 4.5 |
 | Time | 21.1 minutes |
 
-**Competitor Comparison:**
+**Three-Way Comparison:**
 
-| System | HumanEval Pass@1 |
-|--------|------------------|
-| **Loki Mode** | **98.17%** |
-| MetaGPT | 85.9-87.7% |
-| Difference | **+10.5%** |
+| System | HumanEval Pass@1 | Agent Type |
+|--------|------------------|------------|
+| **Loki Mode (multi-agent)** | **98.78%** | Architect->Engineer->QA->Reviewer |
+| Direct Claude | 98.17% | Single agent |
+| MetaGPT | 85.9-87.7% | Multi-agent (5 roles) |
 
-**Failed Problems:** HumanEval/32, HumanEval/38, HumanEval/132
+**Key Finding:** RARV cycle recovered 2 problems that failed on first attempt, demonstrating the value of self-verification loops.
+
+**Failed Problems (after RARV):** HumanEval/32, HumanEval/50
 
 ### SWE-bench Lite Results (Full 300 Problems)
 

@@ -5,6 +5,40 @@ All notable changes to Loki Mode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.24.0] - 2026-01-05
+
+### Added - Loki Mode Multi-Agent Benchmark (98.78% Pass@1)
+
+**True Multi-Agent Benchmark Implementation** - Now benchmarks actually use the Loki Mode agent pipeline!
+
+| System | HumanEval Pass@1 | Agent Type |
+|--------|------------------|------------|
+| **Loki Mode (multi-agent)** | **98.78%** | Architect->Engineer->QA->Reviewer |
+| Direct Claude | 98.17% | Single agent |
+| MetaGPT | 85.9-87.7% | Multi-agent |
+
+**Key Results:**
+- 162/164 problems passed (98.78%)
+- RARV cycle recovered 2 problems (HumanEval/38, HumanEval/132)
+- Only 2 problems failed after 3 RARV attempts (HumanEval/32, HumanEval/50)
+- Average attempts: 1.04 (most solved on first try)
+- Time: 45.1 minutes
+
+### Added
+- `--loki` flag for benchmark runner to use multi-agent system
+- `--retries N` flag to control RARV retry attempts
+- Architect agent (analyzes problem, designs approach)
+- Engineer agent (implements solution)
+- QA agent (tests solution)
+- Reviewer agent (analyzes failures, suggests fixes)
+- Engineer-Fix agent (applies fixes based on feedback)
+- Three-way comparison in README and competitive analysis
+
+### Changed
+- Updated README with Loki Mode badge (98.78%)
+- Updated competitive analysis with three-way comparison
+- Results stored in `benchmarks/results/humaneval-loki-results.json`
+
 ## [2.23.0] - 2026-01-05
 
 ### Added - Full SWE-bench Lite Benchmark (300 Problems)
