@@ -36,6 +36,7 @@ ToolOrchestra achieves 70% cost reduction vs GPT-5 by explicitly optimizing for 
     "agents_spawned": 3,
     "total_agent_calls": 7,
     "retry_count": 1,
+    "retry_reasons": ["test_failure"],
     "model_usage": {
       "haiku": {"calls": 4, "est_tokens": 12000},
       "sonnet": {"calls": 2, "est_tokens": 8000},
@@ -43,9 +44,16 @@ ToolOrchestra achieves 70% cost reduction vs GPT-5 by explicitly optimizing for 
     }
   },
   "outcome": "success",
-  "efficiency_score": 0.85
+  "outcome_reason": "tests_passed_after_fix",
+  "efficiency_score": 0.85,
+  "efficiency_factors": ["used_haiku_for_tests", "parallel_review"]
 }
 ```
+
+**Why capture reasons?** (Based on [Hashrocket research](https://hashrocket.substack.com/p/the-hidden-cost-of-well-fix-it-later))
+- "UX debt turns into data debt" - recording actions without intent creates useless analytics
+- Without reasons, we can't learn patterns like "Haiku for tests = higher success rate"
+- Reasons enable filtering and recommendations that raw metrics cannot
 
 ### Efficiency Score Calculation
 
@@ -73,6 +81,52 @@ def calculate_efficiency_score(metrics, task_complexity):
 
     # Weighted average (time matters most)
     return (time_score * 0.5) + (agent_score * 0.3) + (retry_score * 0.2)
+```
+
+### Standard Reason Codes
+
+Use consistent codes to enable pattern analysis:
+
+```yaml
+outcome_reasons:
+  success:
+    - tests_passed_first_try
+    - tests_passed_after_fix
+    - review_approved
+    - spec_validated
+  partial:
+    - tests_partial_pass
+    - review_concerns_minor
+    - timeout_partial_work
+  failure:
+    - tests_failed
+    - review_blocked
+    - dependency_missing
+    - timeout_no_progress
+    - error_unrecoverable
+
+retry_reasons:
+  - test_failure
+  - lint_error
+  - type_error
+  - review_rejection
+  - rate_limit
+  - timeout
+  - dependency_conflict
+
+efficiency_factors:
+  positive:
+    - used_haiku_for_simple
+    - parallel_execution
+    - cached_result
+    - first_try_success
+    - spec_driven
+  negative:
+    - used_opus_for_simple
+    - sequential_when_parallel_possible
+    - multiple_retries
+    - missing_context
+    - unclear_requirements
 ```
 
 ### Storage Location
