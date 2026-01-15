@@ -5,7 +5,7 @@ description: Multi-agent autonomous startup system for Claude Code. Triggers on 
 
 # Loki Mode - Multi-Agent Autonomous Startup System
 
-> **Version 2.36.3** | PRD to Production | Zero Human Intervention
+> **Version 2.36.4** | PRD to Production | Zero Human Intervention
 > Research-enhanced: OpenAI SDK, DeepMind, Anthropic, AWS Bedrock, Agent SDK, HN Production (2025)
 
 ---
@@ -597,6 +597,118 @@ See `references/lab-research-patterns.md` for debate verification details.
 
 ---
 
+## Property-Based Testing (Kiro Pattern)
+
+**Auto-generate edge case tests from specifications.**
+
+```yaml
+property_based_testing:
+  purpose: "Verify code meets spec constraints with hundreds of random inputs"
+  tools: "fast-check (JS/TS), hypothesis (Python), QuickCheck (Haskell)"
+
+  extract_properties_from:
+    - OpenAPI schema: "minLength, maxLength, pattern, enum, minimum, maximum"
+    - Business rules: "requirements.md invariants"
+    - Data models: "TypeScript interfaces, DB constraints"
+
+  examples:
+    - "email field always matches email regex"
+    - "price is never negative"
+    - "created_at <= updated_at always"
+    - "array length never exceeds maxItems"
+
+  integration:
+    phase: "QA (after unit tests, before integration tests)"
+    command: "npm run test:property"
+    failure_action: "Add to Mistakes & Learnings, fix, re-run"
+```
+
+**When to use:**
+- After implementing API endpoints (validate against OpenAPI)
+- After data model changes (validate invariants)
+- Before deployment (edge case regression)
+
+---
+
+## Event-Driven Hooks (Kiro Pattern)
+
+**Trigger quality checks on file operations, not just at phase boundaries.**
+
+```yaml
+hooks_system:
+  location: ".loki/hooks/"
+  purpose: "Catch issues during implementation, not after"
+
+  triggers:
+    on_file_write:
+      - lint: "npx eslint --fix {file}"
+      - typecheck: "npx tsc --noEmit"
+      - secrets_scan: "detect-secrets scan {file}"
+
+    on_task_complete:
+      - contract_test: "npm run test:contract"
+      - spec_lint: "spectral lint .loki/specs/openapi.yaml"
+
+    on_phase_complete:
+      - memory_consolidate: "Extract patterns to semantic memory"
+      - metrics_update: "Log efficiency scores"
+      - checkpoint: "git commit with phase summary"
+
+  benefits:
+    - "Catches issues 5-10x earlier than phase-end review"
+    - "Reduces rework cycles"
+    - "Aligns with Constitutional AI (continuous self-critique)"
+```
+
+**Implementation:**
+```bash
+# After writing any file, run quality hooks
+echo "Running on_file_write hooks..."
+npx eslint --fix "$MODIFIED_FILE"
+npx tsc --noEmit
+detect-secrets scan "$MODIFIED_FILE" || echo "ALERT: Potential secret detected"
+```
+
+---
+
+## Review-to-Memory Learning (Kiro Pattern)
+
+**Pipe code review findings into semantic memory to prevent repeat mistakes.**
+
+```yaml
+review_learning:
+  trigger: "After every code review cycle"
+  purpose: "Convert review findings into persistent anti-patterns"
+
+  workflow:
+    1. Complete 3-reviewer blind review
+    2. Aggregate findings by severity
+    3. For each Critical/High/Medium finding:
+       - Extract pattern description
+       - Document prevention strategy
+       - Save to .loki/memory/semantic/anti-patterns/
+    4. Link to episodic memory for traceability
+
+  output_format:
+    pattern: "Using any instead of proper TypeScript types"
+    category: "type-safety"
+    severity: "high"
+    prevention: "Always define explicit interfaces for API responses"
+    source: "review-2026-01-15-auth-endpoint"
+    confidence: 0.9
+
+  query_before_implementation:
+    - "Check anti-patterns before writing new code"
+    - "Prompt repetition includes recent learnings"
+```
+
+**Why this matters for autonomous operation:**
+- Same mistakes don't repeat (continuous improvement)
+- Review findings are high-signal learning opportunities
+- Builds institutional knowledge without human curation
+
+---
+
 ## Production Patterns (HN 2025)
 
 **Battle-tested insights from practitioners building real systems.**
@@ -865,4 +977,4 @@ Detailed documentation is split into reference files for progressive loading:
 
 ---
 
-**Version:** 2.36.3 | **Lines:** ~850 | **Research-Enhanced: 2026 Cutting-Edge Patterns (arXiv, HN, Labs, OpenCode, Cursor, Devin)**
+**Version:** 2.36.4 | **Lines:** ~950 | **Research-Enhanced: 2026 Patterns (arXiv, HN, Labs, OpenCode, Cursor, Devin, Codex, Kiro)**

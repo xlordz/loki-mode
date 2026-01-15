@@ -5,6 +5,74 @@ All notable changes to Loki Mode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.36.4] - 2026-01-15
+
+### Added - Codex/Kiro Comparison and Quality Enhancement Patterns
+
+**Deep comparison with OpenAI Codex (GPT-5.2-Codex) and AWS Kiro validated by Opus feedback loop.**
+
+#### OpenAI Codex Features Analyzed
+
+| Feature | Codex | Loki Mode | Assessment |
+|---------|-------|-----------|------------|
+| Skills System | SKILL.md + scripts/ + references/ | IS a SKILL.md | Already compatible |
+| Progressive Disclosure | Load name/desc first | Implicit via references/ | Already better |
+| Skill Precedence | 6 levels (repo to system) | Single directory | Simpler (autonomous) |
+| Sandbox | seccomp + landlock isolation | Claude Code environment | Different platforms |
+| $skill-creator | Interactive wizard | N/A | Not needed (autonomous) |
+
+#### AWS Kiro Features Analyzed
+
+| Feature | Kiro | Loki Mode | Assessment |
+|---------|------|-----------|------------|
+| Spec Files | requirements.md, design.md, tasks.md | OpenAPI-first | Both valid approaches |
+| Agent Steering | .kiro/steering/ | CLAUDE.md + CONTINUITY.md + memory | Already more comprehensive |
+| Property-Based Testing | Extract from specs, random inputs | None | **ADOPTED** |
+| Hooks System | Event-driven automation | Phase-boundary only | **ADOPTED** |
+| Review Learning | Build knowledge from feedback | Memory system exists but not connected | **ADOPTED** |
+| Autonomous Agent | Frontier Agent, multi-repo | Single product focus | Different use case |
+
+#### Patterns ADOPTED from Kiro (HIGH Priority)
+
+**1. Property-Based Testing:**
+- Auto-extract properties from OpenAPI schema constraints
+- Run hundreds of random inputs with fast-check/hypothesis
+- Verify invariants: email format, price >= 0, timestamps ordered
+- Phase: QA, after unit tests, before integration
+
+**2. Event-Driven Hooks:**
+- Trigger on file write, task complete, phase complete
+- Catches issues 5-10x earlier than phase-end review
+- Examples: lint on save, typecheck on save, secrets scan
+
+**3. Review-to-Memory Learning:**
+- Pipe review findings (Critical/High/Medium) into semantic memory
+- Convert to anti-patterns with prevention strategies
+- Query anti-patterns before new implementations
+- Continuous improvement loop
+
+#### Patterns NOT Adopted (with justification)
+
+| Pattern | Source | Why Not Adopted |
+|---------|--------|-----------------|
+| Progressive Skill Disclosure | Codex | Already implicit in references/ structure |
+| Multi-Level Precedence | Codex | Solves multi-developer problem (irrelevant) |
+| Agent Steering Files | Kiro | CLAUDE.md + memory already covers |
+| $skill-creator | Codex | Humans create skills beforehand |
+| Multi-Repository Agent | Kiro | Not aligned with single-product use case |
+
+#### Where Loki Mode is SUPERIOR
+
+1. **Zero Human Intervention**: Neither Codex nor Kiro designed for this
+2. **Memory Depth**: 3-tier (episodic/semantic/procedural) vs none/basic
+3. **Constitutional AI + Devil's Advocate**: Unique anti-sycophancy
+4. **Full SDLC**: 37 agents vs coding-only focus
+5. **Efficiency Metrics**: ToolOrchestra-inspired tracking
+
+**See `docs/COMPARISON.md` for full competitive analysis.**
+
+---
+
 ## [2.36.3] - 2026-01-15
 
 ### Added - Cursor/Devin Comparison and Parallel Development Patterns
