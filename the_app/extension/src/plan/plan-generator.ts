@@ -276,7 +276,7 @@ export class PlanGenerator {
         agentType: 'reviewer',
         files: affectedFiles,
         dependencies: this.config.includeTests ? [stepIndex - 3, stepIndex - 2] : [stepIndex - 2],
-        parallel: this.config.includeSecurity && this.needsSecurityReview(task),
+        parallel: !!(this.config.includeSecurity && this.needsSecurityReview(task)),
       }));
     }
 

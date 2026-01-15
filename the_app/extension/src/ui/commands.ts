@@ -422,12 +422,14 @@ export function registerCommands(
 /**
  * Helper to register a command with error handling
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function registerCommand(
   context: vscode.ExtensionContext,
   commandId: string,
-  handler: (...args: unknown[]) => void | Promise<void>
+  handler: (...args: any[]) => void | Promise<void>
 ): void {
-  const wrappedHandler = async (...args: unknown[]) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const wrappedHandler = async (...args: any[]) => {
     try {
       await handler(...args);
     } catch (error) {

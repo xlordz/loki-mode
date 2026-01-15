@@ -80,8 +80,14 @@ export interface ProviderStatus {
 
 // Provider configuration
 export interface ProviderConfig {
+  id: string;
+  name: string;
   apiKey: string;
   baseUrl?: string;
+  authHeader?: 'Authorization' | 'X-API-Key' | 'Api-Key';
+  authPrefix?: 'Bearer' | 'Api-Key' | '';
+  isOpenAICompatible?: boolean;
+  supportsStreaming?: boolean;
   timeout?: number;
   maxRetries?: number;
   rateLimitRpm?: number;

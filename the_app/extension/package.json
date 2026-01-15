@@ -104,6 +104,12 @@
         "command": "autonomi.configure",
         "title": "Autonomi: Open Configuration",
         "category": "Autonomi"
+      },
+      {
+        "command": "autonomi.quickStart",
+        "title": "Autonomi: Quick Start",
+        "category": "Autonomi",
+        "icon": "$(rocket)"
       }
     ],
     "viewsContainers": {
@@ -140,17 +146,43 @@
         "autonomi.provider.preferred": {
           "type": "string",
           "default": "anthropic",
-          "enum": ["anthropic", "openai", "google", "local"],
+          "enum": ["anthropic", "openai", "google", "mistral", "qwen", "ollama", "huggingface", "openrouter", "custom"],
+          "enumDescriptions": [
+            "Anthropic - Claude models",
+            "OpenAI - GPT-4, o1 models",
+            "Google - Gemini models",
+            "Mistral AI - Mistral, Codestral models",
+            "Qwen - Alibaba Qwen models",
+            "Ollama - Local models (free)",
+            "HuggingFace - Inference API",
+            "OpenRouter - Multi-provider gateway (200+ models)",
+            "Custom - Any OpenAI-compatible API"
+          ],
           "description": "Preferred AI provider"
         },
         "autonomi.provider.fallbacks": {
           "type": "array",
-          "default": ["openai", "google"],
+          "default": ["openai", "openrouter", "ollama"],
           "items": {
             "type": "string",
-            "enum": ["anthropic", "openai", "google", "local"]
+            "enum": ["anthropic", "openai", "google", "mistral", "qwen", "ollama", "huggingface", "openrouter", "custom"]
           },
           "description": "Fallback providers in order of preference"
+        },
+        "autonomi.provider.ollama.baseUrl": {
+          "type": "string",
+          "default": "http://localhost:11434/v1",
+          "description": "Ollama API base URL (for local models)"
+        },
+        "autonomi.provider.custom.baseUrl": {
+          "type": "string",
+          "default": "",
+          "description": "Custom provider base URL (any OpenAI-compatible API)"
+        },
+        "autonomi.provider.custom.name": {
+          "type": "string",
+          "default": "Custom Provider",
+          "description": "Display name for custom provider"
         },
         "autonomi.budgets.taskBudget": {
           "type": "number",

@@ -186,7 +186,7 @@ export class ApprovalManager {
   /**
    * Check if plan can be auto-approved based on gates and confidence
    */
-  async autoApprove(plan: Plan): boolean {
+  async autoApprove(plan: Plan): Promise<boolean> {
     const task: Task = {
       id: plan.taskId,
       description: plan.taskDescription,

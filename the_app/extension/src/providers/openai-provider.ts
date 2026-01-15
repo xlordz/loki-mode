@@ -49,14 +49,11 @@ const MODEL_INFO: Record<string, ModelInfo> = {
 };
 
 export class OpenAIProvider extends BaseProvider {
-  private apiKey: string;
-  private baseUrl: string;
+  protected openaiBaseUrl: string;
 
   constructor(config: ProviderConfig) {
     super(config, 'openai');
-
-    this.apiKey = config.apiKey;
-    this.baseUrl = config.baseUrl ?? 'https://api.openai.com/v1';
+    this.openaiBaseUrl = config.baseUrl ?? 'https://api.openai.com/v1';
   }
 
   /**
@@ -124,7 +121,7 @@ export class OpenAIProvider extends BaseProvider {
     stopSequences?: string[]
   ): AsyncGenerator<StreamChunk> {
     const response = await this.circuitBreaker.execute(async () => {
-      return await fetch(`${this.baseUrl}/chat/completions`, {
+      return await fetch(`${this.openaiBaseUrl}/chat/completions`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${this.apiKey}`,
@@ -220,8 +217,12 @@ export class OpenAIProvider extends BaseProvider {
     temperature: number,
     stopSequences?: string[]
   ): AsyncGenerator<StreamChunk> {
+    interface OpenAIResponse {
+      choices?: Array<{ message?: { content?: string } }>;
+      usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
+    }
     const response = await this.circuitBreaker.execute(async () => {
-      const res = await fetch(`${this.baseUrl}/chat/completions`, {
+      const res = await fetch(`${this.openaiBaseUrl}/chat/completions`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${this.apiKey}`,
@@ -242,7 +243,7 @@ export class OpenAIProvider extends BaseProvider {
       }
 
       return res.json();
-    });
+    }) as OpenAIResponse;
 
     yield { type: 'message_start' };
     yield { type: 'content_block_start' };
@@ -338,7 +339,7 @@ export class OpenAIProvider extends BaseProvider {
    */
   async validateApiKey(): Promise<boolean> {
     try {
-      const response = await fetch(`${this.baseUrl}/models`, {
+      const response = await fetch(`${this.openaiBaseUrl}/models`, {
         headers: {
           Authorization: `Bearer ${this.apiKey}`
         }

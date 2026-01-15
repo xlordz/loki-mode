@@ -495,6 +495,6 @@ export type {
   ActiveAgent,
   QueueState,
   CostState,
-  ExecutionState,
+  ExecutionState as UIExecutionState,
   StateUpdateEvent
 } from './execution';

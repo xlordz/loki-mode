@@ -62,3 +62,11 @@ export {
   showQualityGateFailure,
   showSecretDetected
 } from './notifications';
+
+// Onboarding / Quick Start
+export {
+  showOnboarding,
+  needsOnboarding,
+  resetOnboarding,
+  registerWelcomeView
+} from './onboarding';

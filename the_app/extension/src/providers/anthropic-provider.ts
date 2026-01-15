@@ -319,9 +319,10 @@ export class AnthropicProvider extends BaseProvider {
    */
   async validateApiKey(): Promise<boolean> {
     try {
-      // Use count_tokens endpoint which is cheap/free
-      await this.client.messages.count_tokens({
+      // Make a minimal API call to validate the key
+      await this.client.messages.create({
         model: ANTHROPIC_MODELS.HAIKU,
+        max_tokens: 1,
         messages: [{ role: 'user', content: 'test' }]
       });
       return true;
@@ -329,7 +330,8 @@ export class AnthropicProvider extends BaseProvider {
       if (
         error instanceof Error &&
         (error.message.includes('401') ||
-          error.message.includes('unauthorized'))
+          error.message.includes('unauthorized') ||
+          error.message.includes('invalid_api_key'))
       ) {
         return false;
       }
@@ -339,26 +341,10 @@ export class AnthropicProvider extends BaseProvider {
   }
 
   /**
-   * Count tokens using the API (more accurate than estimation)
+   * Count tokens using estimation (more accurate API method not available)
    */
   async countTokensAccurate(messages: Message[]): Promise<number> {
-    try {
-      const anthropicMessages: Anthropic.MessageParam[] = messages
-        .filter((m) => m.role !== 'system')
-        .map((m) => ({
-          role: m.role as 'user' | 'assistant',
-          content: m.content
-        }));
-
-      const response = await this.client.messages.count_tokens({
-        model: ANTHROPIC_MODELS.HAIKU,
-        messages: anthropicMessages
-      });
-
-      return response.input_tokens;
-    } catch {
-      // Fall back to estimation
-      return messages.reduce((acc, m) => acc + this.countTokens(m.content), 0);
-    }
+    // Use estimation since count_tokens API is not available in current SDK
+    return messages.reduce((acc, m) => acc + this.countTokens(m.content), 0);
   }
 }
