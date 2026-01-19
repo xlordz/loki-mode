@@ -67,8 +67,8 @@ GROWTH ──[continuous improvement loop]──> GROWTH
 | Task Type | Model | Reason |
 |-----------|-------|--------|
 | PRD analysis, architecture, system design | **opus** | Deep reasoning required |
-| Feature implementation, complex bugs | **opus** | Code quality critical |
-| Code review (always 3 parallel reviewers) | **opus** | Must catch subtle issues |
+| Feature implementation, complex bugs | **sonnet** | Development workload |
+| Code review (always 3 parallel reviewers) | **sonnet** | Balanced quality/cost |
 | Integration tests, E2E, deployment | **sonnet** | Functional verification |
 | Unit tests, linting, docs, simple fixes | **haiku** | Fast, parallelizable |
 

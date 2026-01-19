@@ -153,14 +153,14 @@ Every code change goes through 3 specialized reviewers **simultaneously**:
 ```
 IMPLEMENT -> BLIND REVIEW (parallel) -> DEBATE (if disagreement) -> AGGREGATE -> FIX -> RE-REVIEW
                 |
-                +-- code-reviewer (Opus) - Code quality, patterns, best practices
-                +-- business-logic-reviewer (Opus) - Requirements, edge cases, UX
-                +-- security-reviewer (Opus) - Vulnerabilities, OWASP Top 10
+                +-- code-reviewer (Sonnet) - Code quality, patterns, best practices
+                +-- business-logic-reviewer (Sonnet) - Requirements, edge cases, UX
+                +-- security-reviewer (Sonnet) - Vulnerabilities, OWASP Top 10
 ```
 
 **Important:**
 - ALWAYS launch all 3 reviewers in a single message (3 Task calls)
-- ALWAYS specify model: "opus" for each reviewer
+- ALWAYS specify model: "sonnet" for each reviewer
 - ALWAYS use blind review mode (reviewers cannot see each other's findings initially)
 - NEVER dispatch reviewers sequentially (always parallel - 3x faster)
 - NEVER aggregate before all 3 reviewers complete

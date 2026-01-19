@@ -4,18 +4,19 @@
 
 | Model | SDLC Phases | Examples |
 |-------|-------------|----------|
-| **Opus 4.5** | Bootstrap, Discovery, Architecture, Development | PRD analysis, system design, feature implementation, complex bug fixes |
-| **Sonnet 4.5** | QA, Deployment | Integration/E2E tests, security scanning, deployment automation |
+| **Opus 4.5** | Bootstrap, Discovery, Architecture | PRD analysis, system design, technology selection, API contracts |
+| **Sonnet 4.5** | Development, QA, Deployment | Feature implementation, complex bugs, integration/E2E tests, code review, deployment |
 | **Haiku 4.5** | All other operations (parallel) | Unit tests, docs, bash commands, linting, monitoring |
 
 ## Task Tool Examples
 
 ```python
-# Opus for Bootstrap, Discovery, Architecture, Development
+# Opus for Bootstrap, Discovery, Architecture (planning ONLY)
 Task(subagent_type="Plan", model="opus", description="Design system architecture", prompt="...")
-Task(subagent_type="general-purpose", model="opus", description="Implement API endpoint", prompt="...")
+Task(subagent_type="Plan", model="opus", description="Analyze PRD requirements", prompt="...")
 
-# Sonnet for QA and Deployment
+# Sonnet for Development, QA, and Deployment
+Task(subagent_type="general-purpose", model="sonnet", description="Implement API endpoint", prompt="...")
 Task(subagent_type="general-purpose", model="sonnet", description="Write integration tests", prompt="...")
 Task(subagent_type="general-purpose", model="sonnet", description="Deploy to production", prompt="...")
 
@@ -26,14 +27,14 @@ Task(subagent_type="general-purpose", model="haiku", description="Check service 
 
 ## Task Categories
 
-**Opus (Bootstrap -> Development):**
+**Opus (Bootstrap -> Architecture - Planning ONLY):**
 - Bootstrap: Project setup, dependency analysis, environment configuration
 - Discovery: PRD analysis, requirement extraction, gap identification
 - Architecture: System design, technology selection, schema design, API contracts
-- Development: Feature implementation, API endpoints, complex bug fixes, database migrations
 
-**Sonnet (QA -> Deployment):**
-- QA: Integration tests, E2E tests, security scanning, performance testing
+**Sonnet (Development -> Deployment):**
+- Development: Feature implementation, API endpoints, complex bug fixes, database migrations
+- QA: Integration tests, E2E tests, security scanning, performance testing, code review
 - Deployment: Release automation, infrastructure provisioning, monitoring setup
 
 **Haiku (Operations - Use Extensively in Parallel):**

@@ -85,13 +85,13 @@ velocity_quality_balance:
 
 ```python
 # ALWAYS launch all 3 in ONE message
-Task(model="opus", description="Code review: correctness", prompt="Review for bugs...")
-Task(model="opus", description="Code review: security", prompt="Review for vulnerabilities...")
-Task(model="opus", description="Code review: performance", prompt="Review for efficiency...")
+Task(model="sonnet", description="Code review: correctness", prompt="Review for bugs...")
+Task(model="sonnet", description="Code review: security", prompt="Review for vulnerabilities...")
+Task(model="sonnet", description="Code review: performance", prompt="Review for efficiency...")
 ```
 
 **Rules:**
-- ALWAYS use opus for reviews (deep analysis)
+- ALWAYS use sonnet for reviews (balanced quality/cost)
 - NEVER aggregate before all 3 complete
 - ALWAYS re-run ALL 3 after fixes
 - If unanimous approval -> run Devil's Advocate

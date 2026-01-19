@@ -127,12 +127,13 @@ done
 
 | Task Type | Model | Reason |
 |-----------|-------|--------|
-| Implementation | Sonnet | Fast, good enough for coding |
-| Code Review | Opus | Deep analysis, catches subtle issues |
-| Security Review | Opus | Critical, needs thoroughness |
-| Business Logic Review | Opus | Needs to understand requirements deeply |
+| Planning/Architecture | Opus | Deep reasoning for design decisions |
+| Implementation | Sonnet | Development workload |
+| Code Review | Sonnet | Balanced quality/cost |
+| Security Review | Sonnet | Balanced quality/cost |
+| Business Logic Review | Sonnet | Balanced quality/cost |
 | Documentation | Sonnet | Straightforward writing |
-| Quick fixes | Haiku | Fast iteration |
+| Unit tests/Quick fixes | Haiku | Fast iteration |
 
 ---
 

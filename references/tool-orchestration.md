@@ -476,7 +476,7 @@ def select_agents_for_task(task, available_agents):
     # 5. Assign models based on complexity
     for agent in selected:
         if agent.role == "reviewer":
-            agent.model = "opus"  # Always opus for reviews
+            agent.model = "sonnet"  # Sonnet for reviews (balanced quality/cost)
         else:
             agent.model = allocation["model"]
 
@@ -631,7 +631,7 @@ Track these metrics in `.loki/metrics/dashboard.json`:
     "top_performing_patterns": [
       "Haiku for unit tests (0.95 success, 0.92 efficiency)",
       "Explore agent for codebase search (1.0 success)",
-      "Parallel review with opus (0.98 accuracy)"
+      "Parallel review with sonnet (0.98 accuracy)"
     ],
     "areas_for_improvement": [
       "Complex refactors taking 2x expected time",

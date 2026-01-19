@@ -200,9 +200,9 @@ jobs:
 1. Dispatch implementation subagent (Task tool, model: sonnet)
 2. Subagent implements with TDD, commits, reports back
 3. Dispatch 3 reviewers IN PARALLEL (single message, 3 Task calls):
-   - code-reviewer (opus)
-   - business-logic-reviewer (opus)
-   - security-reviewer (opus)
+   - code-reviewer (sonnet)
+   - business-logic-reviewer (sonnet)
+   - security-reviewer (sonnet)
 4. Aggregate findings by severity
 5. IF Critical/High/Medium found:
    - Dispatch fix subagent

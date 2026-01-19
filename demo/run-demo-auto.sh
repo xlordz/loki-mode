@@ -186,7 +186,7 @@ sleep 2
 
 # Code Review
 banner "STEP 7: Code Review (Anti-Sycophancy)"
-step "Launching 3 parallel reviewers (Opus model)..."
+step "Launching 3 parallel reviewers (Sonnet model)..."
 echo ""
 
 echo "  [1/3] Code Quality Reviewer"

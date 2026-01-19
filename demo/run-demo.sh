@@ -257,7 +257,7 @@ banner "STEP 8: Code Review System"
 
 step "Launching 3-reviewer parallel review..."
 echo ""
-echo "Reviewers (Opus model):"
+echo "Reviewers (Sonnet model):"
 echo "  [1/3] Code Quality   - Checking patterns, SOLID principles"
 echo "  [2/3] Business Logic - Verifying requirements, edge cases"
 echo "  [3/3] Security       - Scanning for vulnerabilities"

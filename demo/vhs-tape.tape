@@ -121,7 +121,7 @@ Type@0ms "[LOKI MODE] Code Review"
 Sleep 1s
 Enter
 
-Type@0ms "  Launching 3 parallel reviewers (Opus)..."
+Type@0ms "  Launching 3 parallel reviewers (Sonnet)..."
 Sleep 500ms
 Enter
 

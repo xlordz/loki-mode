@@ -31,9 +31,9 @@ Issue -> [Architect] -> [Engineer] -> [QA] -> [Reviewer] -> Patch
 | Agent | Role | Model | Timeout |
 |-------|------|-------|---------|
 | **Architect** | Analyze issue, identify files, design fix approach | Claude Opus 4.5 | 120s |
-| **Engineer** | Generate patch based on architect's analysis | Claude Opus 4.5 | 300s |
+| **Engineer** | Generate patch based on architect's analysis | Claude Sonnet 4.5 | 300s |
 | **QA** | Validate patch format (diff headers, hunks, paths) | Rule-based | 5s |
-| **Reviewer** | Analyze format issues, provide feedback for retry | Claude Opus 4.5 | 60s |
+| **Reviewer** | Analyze format issues, provide feedback for retry | Claude Sonnet 4.5 | 60s |
 
 ### RARV Cycle
 

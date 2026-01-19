@@ -363,9 +363,9 @@ Every code change goes through **3 specialized reviewers simultaneously**:
 ```
 IMPLEMENT → REVIEW (parallel) → AGGREGATE → FIX → RE-REVIEW → COMPLETE
                 │
-                ├─ code-reviewer (Opus) - Code quality, patterns, best practices
-                ├─ business-logic-reviewer (Opus) - Requirements, edge cases, UX
-                └─ security-reviewer (Opus) - Vulnerabilities, OWASP Top 10
+                ├─ code-reviewer (Sonnet) - Code quality, patterns, best practices
+                ├─ business-logic-reviewer (Sonnet) - Requirements, edge cases, UX
+                └─ security-reviewer (Sonnet) - Vulnerabilities, OWASP Top 10
 ```
 
 **Severity-based issue handling:**
