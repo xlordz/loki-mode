@@ -26,6 +26,7 @@ skills/                     # On-demand skill modules (v3.0 architecture)
   agents.md                 # 37 agent types, structured prompting
   artifacts.md              # Generation, code transformation
   patterns-advanced.md      # OptiMind, k8s-valkey, Constitutional AI
+  parallel-workflows.md     # Git worktrees, parallel streams, auto-merge
 references/                 # Detailed documentation
   openai-patterns.md        # OpenAI Agents SDK: guardrails, tripwires, handoffs
   lab-research-patterns.md  # DeepMind + Anthropic: Constitutional AI, debate
@@ -84,7 +85,7 @@ Every iteration follows: **R**eason -> **A**ct -> **R**eflect -> **V**erify
 
 ### Version Numbering
 Follows semantic versioning: MAJOR.MINOR.PATCH
-- Current: v3.1.1
+- Current: v3.2.0
 - MAJOR bump for architecture changes (v3.0.0 = progressive disclosure)
 - MINOR bump for new features
 - PATCH bump for fixes

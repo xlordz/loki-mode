@@ -83,6 +83,8 @@ These rules are ABSOLUTE. Violating them is a critical failure.
 
 **Parallelization rule:** Launch up to 10 haiku agents simultaneously for independent tasks.
 
+**Git worktree parallelism:** For true parallel feature development, use `--parallel` flag with run.sh. See `skills/parallel-workflows.md`.
+
 ---
 
 ## Phase Transitions
@@ -135,6 +137,7 @@ GROWTH ──[continuous improvement loop]──> GROWTH
    - Code review? Load quality-gates.md
    - Debugging? Load troubleshooting.md
    - Deploying? Load production.md
+   - Parallel features? Load parallel-workflows.md
 3. Read the selected module(s)
 4. Execute with that context
 5. When task category changes: Load new modules (old context discarded)

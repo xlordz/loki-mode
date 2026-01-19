@@ -173,6 +173,25 @@ Key patterns incorporated from practitioner experience:
 
 ---
 
+## v3.2.0 Additions
+
+### Parallel Workflows
+
+| Resource | Contribution |
+|----------|--------------|
+| [Claude Code Git Worktrees](https://code.claude.com/docs/en/common-workflows#run-parallel-claude-code-sessions-with-git-worktrees) | Parallel Claude sessions, worktree isolation pattern |
+
+### Key Patterns Incorporated (v3.2.0)
+
+| Pattern | Source | Implementation |
+|---------|--------|----------------|
+| Git Worktree Isolation | Claude Code Docs | `skills/parallel-workflows.md`, `run.sh --parallel` |
+| Parallel Testing Stream | Claude Code Docs | Testing worktree tracks main, continuous validation |
+| Inter-Stream Signals | Custom | `.loki/signals/` for feature/test/docs coordination |
+| Auto-Merge Workflow | Custom | Completed features merge back automatically |
+
+---
+
 ## v3.0.0 Additions
 
 ### Agent Interoperability
@@ -211,4 +230,4 @@ Loki Mode itself is released under the MIT License.
 
 ---
 
-*Last updated: v3.0.0*
+*Last updated: v3.2.0*

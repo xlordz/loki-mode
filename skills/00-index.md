@@ -23,6 +23,7 @@
 | Spawning subagents, Task tool | `model-selection.md`, `agents.md` |
 | Architecture, design decisions | `patterns-advanced.md` |
 | Generating artifacts, reports | `artifacts.md` |
+| Parallel features, git worktrees | `parallel-workflows.md` |
 
 ## Module Descriptions
 
@@ -87,6 +88,14 @@
 - Code transformation (Amazon Q pattern)
 - Phase completion reports
 - Screenshot gallery generation
+
+### parallel-workflows.md
+**When:** Running multiple features in parallel, worktree orchestration
+- Git worktree-based isolation
+- Parallel Claude sessions (feature, testing, docs streams)
+- Inter-stream communication via signals
+- Auto-merge completed features
+- Orchestrator state management
 
 ## How to Load
 

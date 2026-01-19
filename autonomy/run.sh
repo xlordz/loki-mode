@@ -4,9 +4,11 @@
 # Single script that handles prerequisites, setup, and autonomous execution
 #
 # Usage:
-#   ./autonomy/run.sh [PRD_PATH]
+#   ./autonomy/run.sh [OPTIONS] [PRD_PATH]
 #   ./autonomy/run.sh ./docs/requirements.md
 #   ./autonomy/run.sh                          # Interactive mode
+#   ./autonomy/run.sh --parallel               # Parallel mode with git worktrees
+#   ./autonomy/run.sh --parallel ./prd.md      # Parallel mode with PRD
 #
 # Environment Variables:
 #   LOKI_MAX_RETRIES    - Max retry attempts (default: 50)
@@ -58,6 +60,16 @@
 #   LOKI_AUTONOMY_MODE         - Autonomy level (default: perpetual)
 #                                Options: perpetual, checkpoint, supervised
 #                                Tim Dettmers: "Shorter bursts of autonomy with feedback loops"
+#
+# Parallel Workflows (Git Worktrees):
+#   LOKI_PARALLEL_MODE         - Enable git worktree-based parallelism (default: false)
+#                                Use --parallel flag or set to 'true'
+#   LOKI_MAX_WORKTREES         - Maximum parallel worktrees (default: 5)
+#   LOKI_MAX_PARALLEL_SESSIONS - Maximum concurrent Claude sessions (default: 3)
+#   LOKI_PARALLEL_TESTING      - Run testing stream in parallel (default: true)
+#   LOKI_PARALLEL_DOCS         - Run documentation stream in parallel (default: true)
+#   LOKI_PARALLEL_BLOG         - Run blog stream if site has blog (default: false)
+#   LOKI_AUTO_MERGE            - Auto-merge completed features (default: true)
 #===============================================================================
 
 set -uo pipefail
@@ -139,6 +151,27 @@ AUTONOMY_MODE=${LOKI_AUTONOMY_MODE:-perpetual}  # perpetual|checkpoint|supervise
 # Proactive Context Management (OpenCode/Sisyphus pattern, validated by Opus)
 COMPACTION_INTERVAL=${LOKI_COMPACTION_INTERVAL:-25}  # Suggest compaction every N iterations
 
+# Parallel Workflows (Git Worktrees)
+PARALLEL_MODE=${LOKI_PARALLEL_MODE:-false}
+MAX_WORKTREES=${LOKI_MAX_WORKTREES:-5}
+MAX_PARALLEL_SESSIONS=${LOKI_MAX_PARALLEL_SESSIONS:-3}
+PARALLEL_TESTING=${LOKI_PARALLEL_TESTING:-true}
+PARALLEL_DOCS=${LOKI_PARALLEL_DOCS:-true}
+PARALLEL_BLOG=${LOKI_PARALLEL_BLOG:-false}
+AUTO_MERGE=${LOKI_AUTO_MERGE:-true}
+
+# Track worktree PIDs for cleanup (requires bash 4+ for associative arrays)
+# Check bash version for parallel mode compatibility
+BASH_VERSION_MAJOR="${BASH_VERSION%%.*}"
+if [ "$BASH_VERSION_MAJOR" -ge 4 ] 2>/dev/null; then
+    declare -A WORKTREE_PIDS
+    declare -A WORKTREE_PATHS
+else
+    # Fallback: parallel mode will check and warn
+    WORKTREE_PIDS=""
+    WORKTREE_PATHS=""
+fi
+
 # Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -164,6 +197,353 @@ log_warn() { echo -e "${YELLOW}[WARN]${NC} $*"; }
 log_warning() { log_warn "$@"; }  # Alias for backwards compatibility
 log_error() { echo -e "${RED}[ERROR]${NC} $*"; }
 log_step() { echo -e "${CYAN}[STEP]${NC} $*"; }
+
+#===============================================================================
+# Parallel Workflow Functions (Git Worktrees)
+#===============================================================================
+
+# Check if parallel mode is supported (bash 4+ required)
+check_parallel_support() {
+    if [ "$BASH_VERSION_MAJOR" -lt 4 ] 2>/dev/null; then
+        log_error "Parallel mode requires bash 4.0 or higher"
+        log_error "Current bash version: $BASH_VERSION"
+        log_error "On macOS, install newer bash: brew install bash"
+        return 1
+    fi
+    return 0
+}
+
+# Create a worktree for a specific stream
+create_worktree() {
+    local stream_name="$1"
+    local branch_name="${2:-}"
+    local project_name=$(basename "$TARGET_DIR")
+    local worktree_path="${TARGET_DIR}/../${project_name}-${stream_name}"
+
+    if [ -d "$worktree_path" ]; then
+        log_info "Worktree already exists: $stream_name"
+        WORKTREE_PATHS[$stream_name]="$worktree_path"
+        return 0
+    fi
+
+    log_step "Creating worktree: $stream_name"
+
+    if [ -n "$branch_name" ]; then
+        # Create new branch
+        git -C "$TARGET_DIR" worktree add "$worktree_path" -b "$branch_name" 2>/dev/null || \
+        git -C "$TARGET_DIR" worktree add "$worktree_path" "$branch_name" 2>/dev/null
+    else
+        # Track main branch
+        git -C "$TARGET_DIR" worktree add "$worktree_path" main 2>/dev/null || \
+        git -C "$TARGET_DIR" worktree add "$worktree_path" HEAD 2>/dev/null
+    fi
+
+    if [ $? -eq 0 ]; then
+        WORKTREE_PATHS[$stream_name]="$worktree_path"
+
+        # Copy .loki state to worktree
+        if [ -d "$TARGET_DIR/.loki" ]; then
+            cp -r "$TARGET_DIR/.loki" "$worktree_path/" 2>/dev/null || true
+        fi
+
+        # Initialize environment (detect and run appropriate install)
+        (
+            cd "$worktree_path"
+            if [ -f "package.json" ]; then
+                npm install --silent 2>/dev/null || true
+            elif [ -f "requirements.txt" ]; then
+                pip install -r requirements.txt -q 2>/dev/null || true
+            elif [ -f "Cargo.toml" ]; then
+                cargo build --quiet 2>/dev/null || true
+            fi
+        ) &
+
+        log_info "Created worktree: $worktree_path"
+        return 0
+    else
+        log_error "Failed to create worktree: $stream_name"
+        return 1
+    fi
+}
+
+# Remove a worktree
+remove_worktree() {
+    local stream_name="$1"
+    local worktree_path="${WORKTREE_PATHS[$stream_name]:-}"
+
+    if [ -z "$worktree_path" ] || [ ! -d "$worktree_path" ]; then
+        return 0
+    fi
+
+    log_step "Removing worktree: $stream_name"
+
+    # Kill any running Claude session
+    local pid="${WORKTREE_PIDS[$stream_name]:-}"
+    if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
+        kill "$pid" 2>/dev/null || true
+        wait "$pid" 2>/dev/null || true
+    fi
+
+    # Remove worktree
+    git -C "$TARGET_DIR" worktree remove "$worktree_path" --force 2>/dev/null || \
+    rm -rf "$worktree_path" 2>/dev/null
+
+    unset WORKTREE_PATHS[$stream_name]
+    unset WORKTREE_PIDS[$stream_name]
+
+    log_info "Removed worktree: $stream_name"
+}
+
+# Spawn a Claude session in a worktree
+spawn_worktree_session() {
+    local stream_name="$1"
+    local task_prompt="$2"
+    local worktree_path="${WORKTREE_PATHS[$stream_name]:-}"
+
+    if [ -z "$worktree_path" ] || [ ! -d "$worktree_path" ]; then
+        log_error "Worktree not found: $stream_name"
+        return 1
+    fi
+
+    # Check if session limit reached
+    local active_count=0
+    for pid in "${WORKTREE_PIDS[@]}"; do
+        if kill -0 "$pid" 2>/dev/null; then
+            ((active_count++))
+        fi
+    done
+
+    if [ "$active_count" -ge "$MAX_PARALLEL_SESSIONS" ]; then
+        log_warn "Max parallel sessions reached ($MAX_PARALLEL_SESSIONS). Waiting..."
+        return 1
+    fi
+
+    local log_file="$worktree_path/.loki/logs/session-${stream_name}.log"
+    mkdir -p "$(dirname "$log_file")"
+
+    log_step "Spawning Claude session: $stream_name"
+
+    (
+        cd "$worktree_path"
+        claude --dangerously-skip-permissions \
+            -p "Loki Mode: $task_prompt. Read .loki/CONTINUITY.md for context." \
+            >> "$log_file" 2>&1
+    ) &
+
+    local pid=$!
+    WORKTREE_PIDS[$stream_name]=$pid
+
+    log_info "Session spawned: $stream_name (PID: $pid)"
+    return 0
+}
+
+# List all active worktrees
+list_worktrees() {
+    log_header "Active Worktrees"
+
+    git -C "$TARGET_DIR" worktree list 2>/dev/null
+
+    echo ""
+    log_info "Tracked sessions:"
+    for stream in "${!WORKTREE_PIDS[@]}"; do
+        local pid="${WORKTREE_PIDS[$stream]}"
+        local status="stopped"
+        if kill -0 "$pid" 2>/dev/null; then
+            status="running"
+        fi
+        echo "  [$stream] PID: $pid - $status"
+    done
+}
+
+# Check for completed features ready to merge
+check_merge_queue() {
+    local signals_dir="$TARGET_DIR/.loki/signals"
+
+    if [ ! -d "$signals_dir" ]; then
+        return 0
+    fi
+
+    for signal in "$signals_dir"/MERGE_REQUESTED_*; do
+        if [ -f "$signal" ]; then
+            local feature=$(basename "$signal" | sed 's/MERGE_REQUESTED_//')
+            log_info "Merge requested: $feature"
+
+            if [ "$AUTO_MERGE" = "true" ]; then
+                merge_feature "$feature"
+            fi
+        fi
+    done
+}
+
+# Merge a completed feature branch
+merge_feature() {
+    local feature="$1"
+    local branch="feature/$feature"
+
+    log_step "Merging feature: $feature"
+
+    (
+        cd "$TARGET_DIR"
+
+        # Ensure we're on main
+        git checkout main 2>/dev/null
+
+        # Merge with no-ff for clear history
+        if git merge "$branch" --no-ff -m "feat: Merge $feature"; then
+            log_info "Merged: $feature"
+
+            # Remove signal
+            rm -f ".loki/signals/MERGE_REQUESTED_$feature"
+
+            # Remove worktree
+            remove_worktree "feature-$feature"
+
+            # Delete branch
+            git branch -d "$branch" 2>/dev/null || true
+
+            # Signal for docs update
+            touch ".loki/signals/DOCS_NEEDED"
+        else
+            log_error "Merge failed: $feature (conflicts?)"
+            git merge --abort 2>/dev/null || true
+        fi
+    )
+}
+
+# Initialize parallel workflow streams
+init_parallel_streams() {
+    # Check bash version
+    if ! check_parallel_support; then
+        return 1
+    fi
+
+    log_header "Initializing Parallel Workflows"
+
+    local active_streams=0
+
+    # Create testing worktree (always tracks main)
+    if [ "$PARALLEL_TESTING" = "true" ]; then
+        create_worktree "testing"
+        ((active_streams++))
+    fi
+
+    # Create documentation worktree
+    if [ "$PARALLEL_DOCS" = "true" ]; then
+        create_worktree "docs"
+        ((active_streams++))
+    fi
+
+    # Create blog worktree if enabled
+    if [ "$PARALLEL_BLOG" = "true" ]; then
+        create_worktree "blog"
+        ((active_streams++))
+    fi
+
+    log_info "Initialized $active_streams parallel streams"
+    list_worktrees
+}
+
+# Spawn feature worktree from task
+spawn_feature_stream() {
+    local feature_name="$1"
+    local task_description="$2"
+
+    # Check worktree limit
+    local worktree_count=$(git -C "$TARGET_DIR" worktree list 2>/dev/null | wc -l)
+    if [ "$worktree_count" -ge "$MAX_WORKTREES" ]; then
+        log_warn "Max worktrees reached ($MAX_WORKTREES). Queuing feature: $feature_name"
+        return 1
+    fi
+
+    create_worktree "feature-$feature_name" "feature/$feature_name"
+    spawn_worktree_session "feature-$feature_name" "$task_description"
+}
+
+# Cleanup all worktrees on exit
+cleanup_parallel_streams() {
+    log_header "Cleaning Up Parallel Streams"
+
+    # Kill all sessions
+    for stream in "${!WORKTREE_PIDS[@]}"; do
+        local pid="${WORKTREE_PIDS[$stream]}"
+        if kill -0 "$pid" 2>/dev/null; then
+            log_step "Stopping session: $stream"
+            kill "$pid" 2>/dev/null || true
+        fi
+    done
+
+    # Wait for all to finish
+    wait 2>/dev/null || true
+
+    # Optionally remove worktrees (keep by default for inspection)
+    # Uncomment to auto-cleanup:
+    # for stream in "${!WORKTREE_PATHS[@]}"; do
+    #     remove_worktree "$stream"
+    # done
+
+    log_info "Parallel streams stopped"
+}
+
+# Orchestrator loop for parallel mode
+run_parallel_orchestrator() {
+    log_header "Parallel Orchestrator Started"
+
+    # Initialize streams
+    init_parallel_streams
+
+    # Spawn testing session
+    if [ "$PARALLEL_TESTING" = "true" ] && [ -n "${WORKTREE_PATHS[testing]:-}" ]; then
+        spawn_worktree_session "testing" "Run all tests continuously. Watch for changes. Report failures to .loki/state/test-results.json"
+    fi
+
+    # Spawn docs session
+    if [ "$PARALLEL_DOCS" = "true" ] && [ -n "${WORKTREE_PATHS[docs]:-}" ]; then
+        spawn_worktree_session "docs" "Monitor for DOCS_NEEDED signal. Update documentation for recent changes. Check git log."
+    fi
+
+    # Main orchestrator loop
+    local running=true
+    trap 'running=false; cleanup_parallel_streams' INT TERM
+
+    while $running; do
+        # Check for merge requests
+        check_merge_queue
+
+        # Check session health
+        for stream in "${!WORKTREE_PIDS[@]}"; do
+            local pid="${WORKTREE_PIDS[$stream]}"
+            if ! kill -0 "$pid" 2>/dev/null; then
+                log_warn "Session ended: $stream"
+                unset WORKTREE_PIDS[$stream]
+            fi
+        done
+
+        # Update orchestrator state
+        local state_file="$TARGET_DIR/.loki/state/parallel-streams.json"
+        mkdir -p "$(dirname "$state_file")"
+
+        cat > "$state_file" << EOF
+{
+  "timestamp": "$(date -Iseconds)",
+  "worktrees": {
+$(for stream in "${!WORKTREE_PATHS[@]}"; do
+    local path="${WORKTREE_PATHS[$stream]}"
+    local pid="${WORKTREE_PIDS[$stream]:-null}"
+    local status="stopped"
+    if [ "$pid" != "null" ] && kill -0 "$pid" 2>/dev/null; then
+        status="running"
+    fi
+    echo "    \"$stream\": {\"path\": \"$path\", \"pid\": $pid, \"status\": \"$status\"},"
+done | sed '$ s/,$//')
+  },
+  "active_sessions": ${#WORKTREE_PIDS[@]},
+  "max_sessions": $MAX_PARALLEL_SESSIONS
+}
+EOF
+
+        sleep 30
+    done
+}
 
 #===============================================================================
 # Prerequisites Check
@@ -1945,12 +2325,39 @@ main() {
     echo ""
 
     # Parse arguments
-    PRD_PATH="${1:-}"
+    PRD_PATH=""
+    for arg in "$@"; do
+        case "$arg" in
+            --parallel)
+                PARALLEL_MODE=true
+                ;;
+            --help|-h)
+                echo "Usage: ./autonomy/run.sh [OPTIONS] [PRD_PATH]"
+                echo ""
+                echo "Options:"
+                echo "  --parallel    Enable git worktree-based parallel workflows"
+                echo "  --help, -h    Show this help message"
+                echo ""
+                echo "Environment variables: See header comments in this script"
+                exit 0
+                ;;
+            *)
+                if [ -z "$PRD_PATH" ]; then
+                    PRD_PATH="$arg"
+                fi
+                ;;
+        esac
+    done
 
     # Validate PRD if provided
     if [ -n "$PRD_PATH" ] && [ ! -f "$PRD_PATH" ]; then
         log_error "PRD file not found: $PRD_PATH"
         exit 1
+    fi
+
+    # Show parallel mode status
+    if [ "$PARALLEL_MODE" = "true" ]; then
+        log_info "Parallel mode enabled (git worktrees)"
     fi
 
     # Check prerequisites (unless skipped)
@@ -1994,11 +2401,40 @@ main() {
     fi
 
     # Log session start for audit
-    audit_log "SESSION_START" "prd=$PRD_PATH,dashboard=$ENABLE_DASHBOARD,staged_autonomy=$STAGED_AUTONOMY"
+    audit_log "SESSION_START" "prd=$PRD_PATH,dashboard=$ENABLE_DASHBOARD,staged_autonomy=$STAGED_AUTONOMY,parallel=$PARALLEL_MODE"
 
-    # Run autonomous loop
+    # Run in appropriate mode
     local result=0
-    run_autonomous "$PRD_PATH" || result=$?
+    if [ "$PARALLEL_MODE" = "true" ]; then
+        # Parallel mode: orchestrate multiple worktrees
+        log_header "Running in Parallel Mode"
+        log_info "Max worktrees: $MAX_WORKTREES"
+        log_info "Max parallel sessions: $MAX_PARALLEL_SESSIONS"
+
+        # Run main session + orchestrator
+        (
+            # Start main development session
+            run_autonomous "$PRD_PATH"
+        ) &
+        local main_pid=$!
+
+        # Run parallel orchestrator
+        run_parallel_orchestrator &
+        local orchestrator_pid=$!
+
+        # Wait for main session (orchestrator continues watching)
+        wait $main_pid || result=$?
+
+        # Signal orchestrator to stop
+        kill $orchestrator_pid 2>/dev/null || true
+        wait $orchestrator_pid 2>/dev/null || true
+
+        # Cleanup parallel streams
+        cleanup_parallel_streams
+    else
+        # Standard mode: single session
+        run_autonomous "$PRD_PATH" || result=$?
+    fi
 
     # Extract and save learnings from this session
     extract_learnings_from_session

@@ -5,6 +5,72 @@ All notable changes to Loki Mode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.0] - 2026-01-19
+
+### Added - Parallel Workflows with Git Worktrees
+
+**True parallel feature development using git worktrees and multiple Claude sessions.**
+
+#### New Module: `skills/parallel-workflows.md`
+- Git worktree-based isolation for parallel feature development
+- Multiple Claude sessions running simultaneously (one per worktree)
+- Parallel work streams: feature development, testing, documentation, blog
+- Inter-stream communication via `.loki/signals/` directory
+- Auto-merge workflow for completed features
+- Orchestrator state tracking in `.loki/state/parallel-streams.json`
+
+#### run.sh Enhancements
+- New `--parallel` flag to enable worktree-based parallelism
+- Worktree management functions: create, remove, list
+- Parallel session spawning with configurable limits
+- Background orchestrator watches all streams
+- Auto-merge completed feature branches
+
+#### New Environment Variables
+```bash
+LOKI_PARALLEL_MODE         # Enable parallel mode (default: false)
+LOKI_MAX_WORKTREES         # Maximum worktrees (default: 5)
+LOKI_MAX_PARALLEL_SESSIONS # Max concurrent Claude sessions (default: 3)
+LOKI_PARALLEL_TESTING      # Run testing stream (default: true)
+LOKI_PARALLEL_DOCS         # Run documentation stream (default: true)
+LOKI_PARALLEL_BLOG         # Run blog stream (default: false)
+LOKI_AUTO_MERGE            # Auto-merge completed features (default: true)
+```
+
+#### Usage
+```bash
+# Enable parallel mode
+./autonomy/run.sh --parallel
+
+# With PRD
+./autonomy/run.sh --parallel ./docs/prd.md
+
+# Or via environment variable
+LOKI_PARALLEL_MODE=true ./autonomy/run.sh
+```
+
+#### Parallel Streams Architecture
+```
+Main Worktree (orchestrator)
+    |
+    +-- ../project-feature-auth (Claude session 1)
+    +-- ../project-feature-api (Claude session 2)
+    +-- ../project-testing (continuous testing)
+    +-- ../project-docs (documentation updates)
+```
+
+#### Benefits
+- Feature A doesn't block Feature B development
+- Testing runs continuously against main while features develop
+- Documentation updates happen in parallel with code changes
+- Fresh context per worktree (no context bloat)
+- Auto-merge when features complete and tests pass
+
+#### Source
+- [Claude Code Git Worktrees](https://code.claude.com/docs/en/common-workflows#run-parallel-claude-code-sessions-with-git-worktrees)
+
+---
+
 ## [3.1.1] - 2026-01-19
 
 ### Fixed
