@@ -14,10 +14,11 @@
         <div class="nav-container">
             <div class="nav-brand">
                 <h1>Loki Mode</h1>
-                <span class="version">v3.4.0</span>
+                <span class="version">v4.0.0</span>
             </div>
             <ul class="nav-menu">
                 <li><a href="#home" class="nav-link active">Home</a></li>
+                <li><a href="#dashboard" class="nav-link">Dashboard</a></li>
                 <li><a href="#architecture" class="nav-link">Architecture</a></li>
                 <li><a href="#research" class="nav-link">Research</a></li>
                 <li><a href="#skills" class="nav-link">Skills</a></li>
@@ -73,6 +74,11 @@
                     <span class="feature-badge">Anthropic</span>
                 </div>
                 <div class="feature-card">
+                    <h3>Realtime Dashboard</h3>
+                    <p>Kanban board, agent cards, RARV cycle, quality gates. Anthropic design language.</p>
+                    <span class="feature-badge">v4.0.0</span>
+                </div>
+                <div class="feature-card">
                     <h3>Human Intervention</h3>
                     <p>PAUSE, HUMAN_INPUT.md, STOP files. Ctrl+C pause/exit. Full control when needed.</p>
                     <span class="feature-badge">v3.4.0</span>
@@ -101,6 +107,84 @@ claude --dangerously-skip-permissions
             <div class="doc-card" data-doc="../README.md" style="margin-top: 2rem; cursor: pointer;">
                 <h3>Full README</h3>
                 <p>Complete installation and usage guide</p>
+            </div>
+        </section>
+
+        <!-- Dashboard Section -->
+        <section id="dashboard" class="section">
+            <div class="section-header">
+                <h2>Realtime Dashboard</h2>
+                <p>Monitor and manage Loki Mode with a production-ready web interface</p>
+            </div>
+
+            <div class="dashboard-preview" style="background: linear-gradient(135deg, #1a1a1b 0%, #131314 100%); border-radius: 12px; padding: 2rem; margin-bottom: 2rem; border: 1px solid #2d2d30;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+                    <div style="background: #1e1e20; border-radius: 8px; padding: 1rem; border: 1px solid #2d2d30;">
+                        <div style="color: #a1a1a6; font-size: 0.75rem; margin-bottom: 0.25rem;">Total Tasks</div>
+                        <div style="color: #f5f5f5; font-size: 1.5rem; font-weight: 600; font-family: monospace;">12</div>
+                    </div>
+                    <div style="background: #1e1e20; border-radius: 8px; padding: 1rem; border: 1px solid #2d2d30;">
+                        <div style="color: #a1a1a6; font-size: 0.75rem; margin-bottom: 0.25rem;">Active Agents</div>
+                        <div style="color: #f5f5f5; font-size: 1.5rem; font-weight: 600; font-family: monospace;">4</div>
+                    </div>
+                    <div style="background: #1e1e20; border-radius: 8px; padding: 1rem; border: 1px solid #2d2d30;">
+                        <div style="color: #a1a1a6; font-size: 0.75rem; margin-bottom: 0.25rem;">Completed</div>
+                        <div style="color: #22c55e; font-size: 1.5rem; font-weight: 600; font-family: monospace;">8</div>
+                    </div>
+                    <div style="background: #1e1e20; border-radius: 8px; padding: 1rem; border: 1px solid #2d2d30;">
+                        <div style="color: #a1a1a6; font-size: 0.75rem; margin-bottom: 0.25rem;">Phase</div>
+                        <div style="color: #d97757; font-size: 1rem; font-weight: 600;">DEVELOPMENT</div>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                    <span style="background: rgba(34, 197, 94, 0.15); color: #22c55e; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.7rem;">AUTONOMOUS</span>
+                    <span style="background: rgba(217, 119, 87, 0.15); color: #d97757; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.7rem;">ACT</span>
+                    <span style="background: rgba(59, 130, 246, 0.15); color: #3b82f6; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.7rem;">3/6 Gates Passed</span>
+                </div>
+            </div>
+
+            <div class="features" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));">
+                <div class="feature-card">
+                    <h3>Kanban Board</h3>
+                    <p>4-column task queue: Pending, In Progress, Review, Completed. Drag-and-drop for local tasks.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>Agent Cards</h3>
+                    <p>Live status for all 37 agent types. Model badges (Opus/Sonnet/Haiku), runtime stats.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>RARV Cycle</h3>
+                    <p>Visual step indicator: Reason - Act - Reflect - Verify. Updates in realtime.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>Quality Gates</h3>
+                    <p>6 gates with pass/pending/fail icons. Static analysis, 3-reviewer, anti-sycophancy.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>Memory System</h3>
+                    <p>Progress bars for episodic (traces), semantic (patterns), procedural (skills) memory.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>Theme Support</h3>
+                    <p>Light/dark mode with Anthropic design language. System preference detection.</p>
+                </div>
+            </div>
+
+            <div class="docs-grid" style="margin-top: 2rem;">
+                <div class="doc-card" data-doc="../docs/dashboard-guide.md">
+                    <h3>Dashboard Guide</h3>
+                    <p>Complete documentation for all UI components, features, and architecture</p>
+                </div>
+            </div>
+
+            <div class="quick-start" style="margin-top: 2rem;">
+                <h2>Launch Dashboard</h2>
+                <pre><code># Start local server in .loki directory
+cd autonomy/.loki
+python3 -m http.server 8080
+
+# Open dashboard
+open http://localhost:8080/dashboard/index.html</code></pre>
             </div>
         </section>
 

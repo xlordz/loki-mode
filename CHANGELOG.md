@@ -5,6 +5,38 @@ All notable changes to Loki Mode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.0] - 2026-01-21
+
+### Added - Realtime Dashboard with Anthropic Design Language
+
+**Major release: Production-ready web dashboard for monitoring and managing Loki Mode operations.**
+
+#### Dashboard Features
+- **Realtime Sync**: File-based polling every 2 seconds via `dashboard-state.json`
+- **Kanban Board**: 4-column task visualization (Pending, In Progress, Review, Completed)
+- **Agent Cards**: Live status for all active agents with model badges (Opus/Sonnet/Haiku)
+- **RARV Cycle**: Visual step indicator with realtime updates
+- **Quality Gates**: 6 gates with pass/pending/fail status icons
+- **Memory System**: Progress bars for episodic, semantic, procedural memory
+
+#### Design System
+- **Anthropic Design Language**: Light mode (#faf9f0 cream) and dark mode (#131314)
+- **Theme Toggle**: Saved to localStorage, respects system preference
+- **Mobile Responsive**: Collapsible sidebar, mobile header on small screens
+- **Keyboard Shortcuts**: Cmd/Ctrl+N for new task, Escape to close modals
+
+#### Technical Architecture
+- `run.sh`: Added `write_dashboard_state()` function for JSON state output
+- `autonomy/.loki/dashboard/index.html`: Complete rewrite (2000+ lines)
+- Sidebar navigation with scroll-to-section and scroll spy
+- Local task persistence via localStorage
+- Export functionality for combined server + local state
+
+#### Documentation
+- `docs/dashboard-guide.md`: Complete dashboard documentation
+
+---
+
 ## [3.4.0] - 2026-01-21
 
 ### Added - Competitive Analysis and Improvements
