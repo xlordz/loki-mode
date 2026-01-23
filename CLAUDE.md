@@ -80,6 +80,35 @@ Every iteration follows: **R**eason -> **A**ct -> **R**eflect -> **V**erify
 
 ## Development Guidelines
 
+### Feedback Loop Requirement (CRITICAL)
+
+Before documenting ANY feature, installation method, or capability:
+
+1. **Verify it exists** - Check files, run commands, test endpoints
+2. **Run feedback loop** - Use Task tool with Opus to review claims for accuracy
+3. **Be factual only** - Never document features that don't work yet
+4. **Mark planned features** - Use "Coming Soon" or "Planned" labels for unimplemented features
+
+**Example verification:**
+```bash
+# Before documenting "npm install -g loki-mode"
+npm view loki-mode  # Does package exist on registry?
+
+# Before documenting a CLI command
+which loki && loki --help  # Does command exist?
+
+# Before documenting a file path
+ls -la path/to/file  # Does file exist?
+```
+
+**Feedback loop pattern:**
+```
+Task tool -> subagent_type: "general-purpose" or model: "opus"
+Prompt: "Review the following claims for factual accuracy.
+        Verify each statement is true and working.
+        Flag anything that cannot be verified."
+```
+
 ### When Modifying SKILL.md
 - Keep under 500 lines (currently ~190)
 - Reference detailed docs in `references/` instead of inlining

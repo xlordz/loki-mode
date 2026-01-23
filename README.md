@@ -40,24 +40,7 @@ claude --dangerously-skip-permissions
 Loki Mode with PRD at ./my-prd.md
 ```
 
-### Option 2: CLI
-
-```bash
-# Install
-npm install -g loki-mode
-
-# Run
-loki start ./my-prd.md
-
-# Other commands
-loki status      # Check progress
-loki dashboard   # Open dashboard
-loki pause       # Pause execution
-loki resume      # Resume
-loki stop        # Stop immediately
-```
-
-### Option 3: Shell Script
+### Option 2: Shell Script
 
 ```bash
 # Clone repo
@@ -68,28 +51,14 @@ cd loki-mode
 ./autonomy/run.sh ./my-prd.md
 ```
 
-### Option 4: Homebrew (macOS/Linux)
+### Coming Soon
 
-```bash
-# Install
-brew tap asklokesh/tap
-brew install loki-mode
+The following installation methods are planned but not yet published:
+- npm: `npm install -g loki-mode`
+- Homebrew: `brew install loki-mode`
+- Docker: `docker pull asklokesh/loki-mode`
 
-# Setup skill integration
-loki-mode-install-skill
-
-# Run
-loki start ./my-prd.md
-```
-
-### Option 5: Docker
-
-```bash
-# Run
-docker run -v $(pwd):/workspace asklokesh/loki-mode:4.2.0 ./my-prd.md
-```
-
-See [Installation Guide](docs/INSTALLATION.md) for detailed instructions.
+See [Installation Guide](docs/INSTALLATION.md) for updates.
 
 ---
 
