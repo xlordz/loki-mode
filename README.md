@@ -51,14 +51,27 @@ cd loki-mode
 ./autonomy/run.sh ./my-prd.md
 ```
 
-### Coming Soon
+### Option 3: npm
 
-The following installation methods are planned but not yet published:
-- npm: `npm install -g loki-mode`
-- Homebrew: `brew install loki-mode`
-- Docker: `docker pull asklokesh/loki-mode`
+```bash
+npm install -g loki-mode
+loki start ./my-prd.md
+```
 
-See [Installation Guide](docs/INSTALLATION.md) for updates.
+### Option 4: Homebrew (macOS/Linux)
+
+```bash
+brew install asklokesh/tap/loki-mode
+loki start ./my-prd.md
+```
+
+### Option 5: Docker
+
+```bash
+docker run -v $(pwd):/workspace asklokesh/loki-mode:4.2.0 ./my-prd.md
+```
+
+See [Installation Guide](docs/INSTALLATION.md) for more details.
 
 ---
 
