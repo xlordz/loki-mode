@@ -13,7 +13,7 @@ const skillDir = path.join(homeDir, '.claude', 'skills', 'loki-mode');
 const packageDir = path.join(__dirname, '..');
 
 console.log('');
-console.log('Loki Mode v5.2.0 installed!');
+console.log('Loki Mode v5.2.1 installed!');
 console.log('');
 
 // Try to create skill symlink

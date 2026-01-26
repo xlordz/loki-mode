@@ -5,6 +5,19 @@ All notable changes to Loki Mode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.2.1] - 2026-01-25
+
+### Changed - CI/CD Improvements
+
+**Patch release: Test automated release workflow.**
+
+#### CI/CD
+- Improved publish workflow with direct Homebrew API updates
+- Added auto-update website job on release
+- Removed dependency on repository_dispatch for Homebrew
+
+---
+
 ## [5.2.0] - 2026-01-25
 
 ### Added - Research Integration & Quality Improvements
