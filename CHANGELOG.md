@@ -5,6 +5,20 @@ All notable changes to Loki Mode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.2.3] - 2026-01-25
+
+### Fixed - Unified Release Workflow
+
+**Patch release: Consolidate all publishing into single workflow.**
+
+#### CI/CD
+- Merged publish.yml into release.yml for unified workflow
+- npm, Docker, Homebrew all run in same workflow with job dependencies
+- Removed separate publish.yml to avoid workflow chain issues
+- Flow: VERSION change -> release job -> parallel npm/docker -> homebrew
+
+---
+
 ## [5.2.2] - 2026-01-25
 
 ### Fixed - CI/CD Workflow Chain
