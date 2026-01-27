@@ -25,6 +25,18 @@
 
 ---
 
+## Presentation
+
+**[Download Presentation (PPTX)](docs/loki-mode-presentation.pptx)** - 9 slides covering:
+- The problem: Linear coding bottlenecks
+- The solution: 37 specialized agents across 6 swarms
+- RARV cycle (Reason-Act-Reflect-Verify)
+- Benchmark results: 98.78% HumanEval, 99.67% SWE-bench
+- Multi-provider architecture (Claude, Codex, Gemini)
+- Full lifecycle: PRD to Production with 14 quality gates
+
+---
+
 ## Usage
 
 ### Option 1: Claude Code Skill (Recommended)
