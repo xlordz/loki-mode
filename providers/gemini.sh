@@ -99,10 +99,11 @@ provider_version() {
 # Invocation function
 # Uses --model flag to specify model, --yolo for autonomous mode
 # Using positional prompt (not deprecated -p flag)
+# Note: < /dev/null prevents Gemini from pausing on stdin
 provider_invoke() {
     local prompt="$1"
     shift
-    gemini --yolo --model "$PROVIDER_MODEL" "$prompt" "$@"
+    gemini --yolo --model "$PROVIDER_MODEL" "$prompt" "$@" < /dev/null
 }
 
 # Model tier to thinking level parameter
@@ -119,10 +120,11 @@ provider_get_tier_param() {
 # Tier-aware invocation
 # Uses --model flag to specify model
 # Using positional prompt (not deprecated -p flag)
+# Note: < /dev/null prevents Gemini from pausing on stdin
 provider_invoke_with_tier() {
     local tier="$1"
     local prompt="$2"
     shift 2
     echo "[loki] Using tier: $tier, model: $PROVIDER_MODEL" >&2
-    gemini --yolo --model "$PROVIDER_MODEL" "$prompt" "$@"
+    gemini --yolo --model "$PROVIDER_MODEL" "$prompt" "$@" < /dev/null
 }

@@ -1378,9 +1378,10 @@ spawn_worktree_session() {
                 ;;
             gemini)
                 # Note: -p flag is DEPRECATED per gemini --help. Using positional prompt.
+                # Note: < /dev/null prevents Gemini from pausing on stdin
                 gemini --yolo --model "${PROVIDER_MODEL:-gemini-3-pro-preview}" \
                     "Loki Mode: $task_prompt. Read .loki/CONTINUITY.md for context." \
-                    >> "$log_file" 2>&1
+                    < /dev/null >> "$log_file" 2>&1
                 ;;
             *)
                 log_error "Unknown provider: ${PROVIDER_NAME}"
@@ -1471,7 +1472,7 @@ Output ONLY the resolved file content with no conflict markers. No explanations.
                 ;;
             gemini)
                 # Note: -p flag is DEPRECATED per gemini --help. Using positional prompt.
-                resolution=$(gemini --yolo --model "${PROVIDER_MODEL:-gemini-3-pro-preview}" "$conflict_prompt" 2>/dev/null)
+                resolution=$(gemini --yolo --model "${PROVIDER_MODEL:-gemini-3-pro-preview}" "$conflict_prompt" < /dev/null 2>/dev/null)
                 ;;
             *)
                 log_error "Unknown provider: ${PROVIDER_NAME}"
@@ -3024,8 +3025,9 @@ start_dashboard() {
 
     # Start Python HTTP server from .loki/ root so it can serve queue/ and state/
     log_step "Starting dashboard server..."
+    local loki_dir="$(pwd)/.loki"
     (
-        cd .loki
+        cd "$loki_dir" || { echo "[dashboard] Failed to cd to $loki_dir" >&2; exit 1; }
         python3 -m http.server $DASHBOARD_PORT --bind 127.0.0.1 2>&1 | while read line; do
             echo "[dashboard] $line" >> logs/dashboard.log
         done
@@ -3829,10 +3831,11 @@ if __name__ == "__main__":
             gemini)
                 # Gemini: Degraded mode - no stream-json, no agent tracking
                 # Using --model flag to specify model
+                # Note: < /dev/null prevents Gemini from pausing on stdin
                 echo "[loki] Gemini model: ${PROVIDER_MODEL:-gemini-3-pro-preview}, tier: $tier_param" >> "$log_file"
                 echo "[loki] Gemini model: ${PROVIDER_MODEL:-gemini-3-pro-preview}, tier: $tier_param" >> "$agent_log"
                 gemini --yolo --model "${PROVIDER_MODEL:-gemini-3-pro-preview}" \
-                    "$prompt" 2>&1 | tee -a "$log_file" "$agent_log"
+                    "$prompt" < /dev/null 2>&1 | tee -a "$log_file" "$agent_log"
                 local exit_code=${PIPESTATUS[0]}
                 ;;
 
