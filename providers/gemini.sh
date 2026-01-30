@@ -49,11 +49,13 @@ PROVIDER_MAX_PARALLEL=1
 
 # Model Configuration
 # Gemini CLI supports --model flag to specify model
-# Using gemini-3-pro-preview (latest as of Jan 2026)
+# Primary: gemini-3-pro-preview (latest as of Jan 2026)
+# Fallback: gemini-3-flash-preview (for rate limit scenarios)
 PROVIDER_MODEL="gemini-3-pro-preview"
+PROVIDER_MODEL_FALLBACK="gemini-3-flash-preview"
 PROVIDER_MODEL_PLANNING="gemini-3-pro-preview"
 PROVIDER_MODEL_DEVELOPMENT="gemini-3-pro-preview"
-PROVIDER_MODEL_FAST="gemini-3-pro-preview"
+PROVIDER_MODEL_FAST="gemini-3-flash-preview"
 
 # Thinking levels (Gemini-specific: maps to reasoning depth)
 PROVIDER_THINKING_PLANNING="high"
@@ -96,14 +98,28 @@ provider_version() {
     gemini --version 2>/dev/null | head -1
 }
 
-# Invocation function
+# Invocation function with rate limit fallback
 # Uses --model flag to specify model, --yolo for autonomous mode
-# Using positional prompt (not deprecated -p flag)
+# Falls back to flash model if pro hits rate limit
 # Note: < /dev/null prevents Gemini from pausing on stdin
 provider_invoke() {
     local prompt="$1"
     shift
-    gemini --yolo --model "$PROVIDER_MODEL" "$prompt" "$@" < /dev/null
+    local output
+    local exit_code
+
+    # Try primary model first
+    output=$(gemini --yolo --model "$PROVIDER_MODEL" "$prompt" "$@" < /dev/null 2>&1)
+    exit_code=$?
+
+    # Check for rate limit (429) or quota exceeded
+    if [[ $exit_code -ne 0 ]] && echo "$output" | grep -qiE "(rate.?limit|429|quota|resource.?exhausted)"; then
+        echo "[loki] Rate limit hit on $PROVIDER_MODEL, falling back to $PROVIDER_MODEL_FALLBACK" >&2
+        gemini --yolo --model "$PROVIDER_MODEL_FALLBACK" "$prompt" "$@" < /dev/null
+    else
+        echo "$output"
+        return $exit_code
+    fi
 }
 
 # Model tier to thinking level parameter
@@ -117,14 +133,34 @@ provider_get_tier_param() {
     esac
 }
 
-# Tier-aware invocation
+# Tier-aware invocation with rate limit fallback
 # Uses --model flag to specify model
-# Using positional prompt (not deprecated -p flag)
+# Falls back to flash model if pro hits rate limit
 # Note: < /dev/null prevents Gemini from pausing on stdin
 provider_invoke_with_tier() {
     local tier="$1"
     local prompt="$2"
     shift 2
-    echo "[loki] Using tier: $tier, model: $PROVIDER_MODEL" >&2
-    gemini --yolo --model "$PROVIDER_MODEL" "$prompt" "$@" < /dev/null
+
+    # Select model based on tier
+    local model="$PROVIDER_MODEL"
+    [[ "$tier" == "fast" ]] && model="$PROVIDER_MODEL_FAST"
+
+    echo "[loki] Using tier: $tier, model: $model" >&2
+
+    local output
+    local exit_code
+
+    # Try selected model first
+    output=$(gemini --yolo --model "$model" "$prompt" "$@" < /dev/null 2>&1)
+    exit_code=$?
+
+    # Check for rate limit (429) or quota exceeded - fallback to flash
+    if [[ $exit_code -ne 0 ]] && echo "$output" | grep -qiE "(rate.?limit|429|quota|resource.?exhausted)"; then
+        echo "[loki] Rate limit hit on $model, falling back to $PROVIDER_MODEL_FALLBACK" >&2
+        gemini --yolo --model "$PROVIDER_MODEL_FALLBACK" "$prompt" "$@" < /dev/null
+    else
+        echo "$output"
+        return $exit_code
+    fi
 }

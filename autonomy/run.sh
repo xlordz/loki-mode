@@ -1378,10 +1378,9 @@ spawn_worktree_session() {
                 ;;
             gemini)
                 # Note: -p flag is DEPRECATED per gemini --help. Using positional prompt.
-                # Note: < /dev/null prevents Gemini from pausing on stdin
-                gemini --yolo --model "${PROVIDER_MODEL:-gemini-3-pro-preview}" \
-                    "Loki Mode: $task_prompt. Read .loki/CONTINUITY.md for context." \
-                    < /dev/null >> "$log_file" 2>&1
+                # Uses invoke_gemini helper for rate limit fallback to flash model
+                invoke_gemini "Loki Mode: $task_prompt. Read .loki/CONTINUITY.md for context." \
+                    >> "$log_file" 2>&1
                 ;;
             *)
                 log_error "Unknown provider: ${PROVIDER_NAME}"
@@ -1471,8 +1470,8 @@ Output ONLY the resolved file content with no conflict markers. No explanations.
                 resolution=$(codex exec --dangerously-bypass-approvals-and-sandbox "$conflict_prompt" 2>/dev/null)
                 ;;
             gemini)
-                # Note: -p flag is DEPRECATED per gemini --help. Using positional prompt.
-                resolution=$(gemini --yolo --model "${PROVIDER_MODEL:-gemini-3-pro-preview}" "$conflict_prompt" < /dev/null 2>/dev/null)
+                # Uses invoke_gemini_capture for rate limit fallback to flash model
+                resolution=$(invoke_gemini_capture "$conflict_prompt" 2>/dev/null)
                 ;;
             *)
                 log_error "Unknown provider: ${PROVIDER_NAME}"
@@ -1865,17 +1864,72 @@ EOF
 }
 
 #===============================================================================
-# Copy Skill Files for Degraded Mode Providers
+# Gemini Invocation with Rate Limit Fallback
 #===============================================================================
 
-copy_skill_files_for_degraded_mode() {
-    # For non-Claude providers (Gemini, Codex), skill files must be in the
-    # project's .loki/ directory because these CLIs have workspace restrictions
-    # and cannot read files from the skill installation directory.
+# Invoke Gemini with automatic fallback to flash model on rate limit
+# Usage: invoke_gemini "prompt" [additional args...]
+# Returns: exit code from gemini CLI
+invoke_gemini() {
+    local prompt="$1"
+    shift
 
-    if [ "${PROVIDER_DEGRADED:-false}" != "true" ]; then
-        return 0  # Claude doesn't need this
+    local model="${PROVIDER_MODEL:-gemini-3-pro-preview}"
+    local fallback="${PROVIDER_MODEL_FALLBACK:-gemini-3-flash-preview}"
+
+    # Create temp file for output to preserve streaming while checking for rate limit
+    local tmp_output
+    tmp_output=$(mktemp)
+
+    # Try primary model first
+    gemini --yolo --model "$model" "$prompt" "$@" < /dev/null 2>&1 | tee "$tmp_output"
+    local exit_code=${PIPESTATUS[0]}
+
+    # Check for rate limit in output
+    if [[ $exit_code -ne 0 ]] && grep -qiE "(rate.?limit|429|quota|resource.?exhausted)" "$tmp_output"; then
+        log_warn "Rate limit hit on $model, falling back to $fallback"
+        rm -f "$tmp_output"
+        gemini --yolo --model "$fallback" "$prompt" "$@" < /dev/null
+        exit_code=$?
+    else
+        rm -f "$tmp_output"
     fi
+
+    return $exit_code
+}
+
+# Invoke Gemini and capture output (for variable assignment)
+# Usage: result=$(invoke_gemini_capture "prompt")
+# Falls back to flash model on rate limit
+invoke_gemini_capture() {
+    local prompt="$1"
+    shift
+
+    local model="${PROVIDER_MODEL:-gemini-3-pro-preview}"
+    local fallback="${PROVIDER_MODEL_FALLBACK:-gemini-3-flash-preview}"
+    local output
+
+    # Try primary model first
+    output=$(gemini --yolo --model "$model" "$prompt" "$@" < /dev/null 2>&1)
+    local exit_code=$?
+
+    # Check for rate limit in output
+    if [[ $exit_code -ne 0 ]] && echo "$output" | grep -qiE "(rate.?limit|429|quota|resource.?exhausted)"; then
+        log_warn "Rate limit hit on $model, falling back to $fallback" >&2
+        output=$(gemini --yolo --model "$fallback" "$prompt" "$@" < /dev/null 2>&1)
+    fi
+
+    echo "$output"
+}
+
+#===============================================================================
+# Copy Skill Files to Project Directory
+#===============================================================================
+
+copy_skill_files() {
+    # Copy skill files from the CLI package to the project's .loki/ directory.
+    # This makes the CLI self-contained - no need to install Claude Code skill separately.
+    # All providers (Claude, Gemini, Codex) use the same .loki/skills/ location.
 
     local skills_src="$PROJECT_DIR/skills"
     local skills_dst=".loki/skills"
@@ -1899,7 +1953,7 @@ copy_skill_files_for_degraded_mode() {
 
     # Also copy SKILL.md to .loki/ and rewrite paths for workspace access
     if [ -f "$PROJECT_DIR/SKILL.md" ]; then
-        # Rewrite skill paths from skills/ to .loki/skills/ for workspace access
+        # Rewrite skill paths from skills/ to .loki/skills/
         sed -e 's|skills/00-index\.md|.loki/skills/00-index.md|g' \
             -e 's|skills/model-selection\.md|.loki/skills/model-selection.md|g' \
             -e 's|skills/quality-gates\.md|.loki/skills/quality-gates.md|g' \
@@ -1912,7 +1966,7 @@ copy_skill_files_for_degraded_mode() {
             "$PROJECT_DIR/SKILL.md" > ".loki/SKILL.md"
     fi
 
-    log_info "Copied $copied skill files to .loki/skills/ for ${PROVIDER_NAME} workspace access"
+    log_info "Copied $copied skill files to .loki/skills/"
 }
 
 #===============================================================================
@@ -3466,14 +3520,8 @@ build_prompt() {
     # Core autonomous instructions - NO questions, NO waiting, NEVER say done
     local autonomous_suffix="CRITICAL AUTONOMY RULES: 1) NEVER ask questions - just decide. 2) NEVER wait for confirmation - just act. 3) NEVER say 'done' or 'complete' - there's always more to improve. 4) NEVER stop voluntarily - if out of tasks, create new ones (add tests, optimize, refactor, add features). 5) Work continues PERPETUALLY. Even if PRD is implemented, find bugs, add tests, improve UX, optimize performance."
 
-    # For degraded mode providers, skill files are copied to .loki/skills/
-    local skill_path="SKILL.md"
-    local skills_dir="skills/"
-    if [ "${PROVIDER_DEGRADED:-false}" = "true" ]; then
-        skill_path=".loki/SKILL.md"
-        skills_dir=".loki/skills/"
-    fi
-    local sdlc_instruction="SDLC_PHASES_ENABLED: [$phases]. Execute ALL enabled phases. Log results to .loki/logs/. See $skill_path for phase details. Skill modules at ${skills_dir}."
+    # Skill files are always copied to .loki/skills/ for all providers
+    local sdlc_instruction="SDLC_PHASES_ENABLED: [$phases]. Execute ALL enabled phases. Log results to .loki/logs/. See .loki/SKILL.md for phase details. Skill modules at .loki/skills/."
 
     # Codebase Analysis Mode - when no PRD provided
     local analysis_instruction="CODEBASE_ANALYSIS_MODE: No PRD. FIRST: Analyze codebase - scan structure, read package.json/requirements.txt, examine README. THEN: Generate PRD at .loki/generated-prd.md. FINALLY: Execute SDLC phases."
@@ -3888,13 +3936,25 @@ if __name__ == "__main__":
 
             gemini)
                 # Gemini: Degraded mode - no stream-json, no agent tracking
-                # Using --model flag to specify model
-                # Note: < /dev/null prevents Gemini from pausing on stdin
-                echo "[loki] Gemini model: ${PROVIDER_MODEL:-gemini-3-pro-preview}, tier: $tier_param" >> "$log_file"
-                echo "[loki] Gemini model: ${PROVIDER_MODEL:-gemini-3-pro-preview}, tier: $tier_param" >> "$agent_log"
-                gemini --yolo --model "${PROVIDER_MODEL:-gemini-3-pro-preview}" \
-                    "$prompt" < /dev/null 2>&1 | tee -a "$log_file" "$agent_log"
+                # Uses invoke_gemini helper for rate limit fallback to flash model
+                local model="${PROVIDER_MODEL:-gemini-3-pro-preview}"
+                local fallback="${PROVIDER_MODEL_FALLBACK:-gemini-3-flash-preview}"
+                echo "[loki] Gemini model: $model (fallback: $fallback), tier: $tier_param" >> "$log_file"
+                echo "[loki] Gemini model: $model (fallback: $fallback), tier: $tier_param" >> "$agent_log"
+
+                # Try primary model, fallback on rate limit
+                local tmp_output
+                tmp_output=$(mktemp)
+                gemini --yolo --model "$model" "$prompt" < /dev/null 2>&1 | tee "$tmp_output" | tee -a "$log_file" "$agent_log"
                 local exit_code=${PIPESTATUS[0]}
+
+                if [[ $exit_code -ne 0 ]] && grep -qiE "(rate.?limit|429|quota|resource.?exhausted)" "$tmp_output"; then
+                    log_warn "Rate limit hit on $model, falling back to $fallback"
+                    echo "[loki] Fallback to $fallback due to rate limit" >> "$log_file"
+                    gemini --yolo --model "$fallback" "$prompt" < /dev/null 2>&1 | tee -a "$log_file" "$agent_log"
+                    exit_code=${PIPESTATUS[0]}
+                fi
+                rm -f "$tmp_output"
                 ;;
 
             *)
@@ -4334,9 +4394,9 @@ main() {
     # Initialize .loki directory
     init_loki_dir
 
-    # Copy skill files for degraded mode providers (Gemini, Codex)
-    # These CLIs have workspace restrictions and can't read from skill installation
-    copy_skill_files_for_degraded_mode
+    # Copy skill files to .loki/skills/ - makes CLI self-contained
+    # No need to install Claude Code skill separately
+    copy_skill_files
 
     # Import GitHub issues if enabled (v4.1.0)
     if [ "$GITHUB_IMPORT" = "true" ]; then
