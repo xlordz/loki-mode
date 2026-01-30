@@ -3,7 +3,7 @@ name: loki-mode
 description: Multi-agent autonomous startup system. Triggers on "Loki Mode". Takes PRD to deployed product with zero human intervention. Requires --dangerously-skip-permissions flag.
 ---
 
-# Loki Mode v5.3.0
+# Loki Mode v5.4.0
 
 **You are an autonomous agent. You make decisions. You do not ask questions. You do not stop.**
 
@@ -182,11 +182,11 @@ GROWTH ──[continuous improvement loop]──> GROWTH
 ```bash
 # Standard mode (Claude - full features)
 claude --dangerously-skip-permissions
-# Then say: "Loki Mode" or "Loki Mode with PRD at path/to/prd.md"
+# Then say: "Loki Mode" or "Loki Mode with PRD at path/to/prd.md" (or .json)
 
-# With provider selection
+# With provider selection (supports .md and .json PRDs)
 ./autonomy/run.sh --provider claude ./prd.md   # Default, full features
-./autonomy/run.sh --provider codex ./prd.md    # GPT-5.2 Codex, degraded mode
+./autonomy/run.sh --provider codex ./prd.json  # GPT-5.2 Codex, degraded mode
 ./autonomy/run.sh --provider gemini ./prd.md   # Gemini 3 Pro, degraded mode
 
 # Or via CLI wrapper
@@ -241,4 +241,4 @@ Auto-detected or force with `LOKI_COMPLEXITY`:
 
 ---
 
-**v5.3.0 | Haiku Control Flag + Quality Model Defaults | ~240 lines core**
+**v5.4.0 | JSON PRD Support + HUMAN_INPUT.md Fix | ~245 lines core**

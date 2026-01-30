@@ -583,7 +583,25 @@ detect_complexity() {
     local prd_complexity="standard"
     if [ -n "$prd_path" ] && [ -f "$prd_path" ]; then
         local prd_words=$(wc -w < "$prd_path" | tr -d ' ')
-        local feature_count=$(grep -c "^##\|^- \[" "$prd_path" 2>/dev/null || echo "0")
+        local feature_count=0
+
+        # Detect PRD format and count features accordingly
+        if [[ "$prd_path" == *.json ]]; then
+            # JSON PRD: count features, requirements, tasks arrays
+            if command -v jq &>/dev/null; then
+                feature_count=$(jq '
+                    [.features, .requirements, .tasks, .user_stories, .epics] |
+                    map(select(. != null) | if type == "array" then length else 0 end) |
+                    add // 0
+                ' "$prd_path" 2>/dev/null || echo "0")
+            else
+                # Fallback: count array elements by pattern
+                feature_count=$(grep -c '"title"\|"name"\|"feature"\|"requirement"' "$prd_path" 2>/dev/null || echo "0")
+            fi
+        else
+            # Markdown PRD: count headers and checkboxes
+            feature_count=$(grep -c "^##\|^- \[" "$prd_path" 2>/dev/null || echo "0")
+        fi
 
         if [ "$prd_words" -lt 200 ] && [ "$feature_count" -lt 5 ]; then
             prd_complexity="simple"
@@ -3296,10 +3314,14 @@ run_autonomous() {
         log_step "No PRD provided, searching for existing PRD files..."
         local found_prd=""
 
-        # Search common PRD file patterns
-        for pattern in "PRD.md" "prd.md" "REQUIREMENTS.md" "requirements.md" "SPEC.md" "spec.md" \
-                       "docs/PRD.md" "docs/prd.md" "docs/REQUIREMENTS.md" "docs/requirements.md" \
-                       "docs/SPEC.md" "docs/spec.md" ".github/PRD.md" "PROJECT.md" "project.md"; do
+        # Search common PRD file patterns (markdown and JSON)
+        for pattern in "PRD.md" "prd.md" "PRD.json" "prd.json" \
+                       "REQUIREMENTS.md" "requirements.md" "requirements.json" \
+                       "SPEC.md" "spec.md" "spec.json" \
+                       "docs/PRD.md" "docs/prd.md" "docs/PRD.json" "docs/prd.json" \
+                       "docs/REQUIREMENTS.md" "docs/requirements.md" "docs/requirements.json" \
+                       "docs/SPEC.md" "docs/spec.md" "docs/spec.json" \
+                       ".github/PRD.md" ".github/PRD.json" "PROJECT.md" "project.md" "project.json"; do
             if [ -f "$pattern" ]; then
                 found_prd="$pattern"
                 break
@@ -3312,6 +3334,9 @@ run_autonomous() {
         elif [ -f ".loki/generated-prd.md" ]; then
             log_info "Using previously generated PRD: .loki/generated-prd.md"
             prd_path=".loki/generated-prd.md"
+        elif [ -f ".loki/generated-prd.json" ]; then
+            log_info "Using previously generated PRD: .loki/generated-prd.json"
+            prd_path=".loki/generated-prd.json"
         else
             log_info "No PRD found - will analyze codebase and generate one"
         fi

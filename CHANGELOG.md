@@ -5,6 +5,33 @@ All notable changes to Loki Mode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.4.0] - 2026-01-29
+
+### Added - JSON PRD Support + HUMAN_INPUT.md Fix
+
+**Minor release: Full JSON PRD support and critical directive injection fix.**
+
+#### JSON PRD Support
+- **Auto-detection**: Now detects JSON PRDs (PRD.json, prd.json, requirements.json, spec.json)
+- **Complexity analysis**: Uses jq to count features, requirements, tasks, user_stories, epics
+- **Fallback**: Grep-based counting when jq unavailable
+- **Priority**: Markdown PRDs still take precedence over JSON in auto-detection
+- **Generated PRD**: Supports `.loki/generated-prd.json` fallback
+
+#### HUMAN_INPUT.md Directive Fix (PR #11)
+- **Bug fix**: `check_human_intervention()` was defined but never called
+- **Now works**: Directives in `.loki/HUMAN_INPUT.md` are injected into prompts
+- **Priority marker**: Directives marked as "HUMAN_DIRECTIVE (PRIORITY)" and executed before normal tasks
+- **Documentation**: Added "Hints vs Directives" section to SKILL.md
+
+#### Files Changed
+- `autonomy/run.sh`: JSON PRD detection, complexity analysis, directive injection
+- `SKILL.md`: JSON PRD examples, hints vs directives documentation
+- `tests/test-json-prd.sh`: New test suite (8 tests)
+- `tests/test-human-input-directive.sh`: New test suite (PR #11)
+
+---
+
 ## [5.3.0] - 2026-01-27
 
 ### Added - Haiku Control Flag
