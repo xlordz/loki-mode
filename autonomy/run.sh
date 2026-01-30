@@ -1374,7 +1374,7 @@ spawn_worktree_session() {
                 ;;
             gemini)
                 # Note: -p flag is DEPRECATED per gemini --help. Using positional prompt.
-                gemini --yolo \
+                gemini --yolo --model "${PROVIDER_MODEL:-gemini-3-pro-preview}" \
                     "Loki Mode: $task_prompt. Read .loki/CONTINUITY.md for context." \
                     >> "$log_file" 2>&1
                 ;;
@@ -1467,7 +1467,7 @@ Output ONLY the resolved file content with no conflict markers. No explanations.
                 ;;
             gemini)
                 # Note: -p flag is DEPRECATED per gemini --help. Using positional prompt.
-                resolution=$(gemini --yolo "$conflict_prompt" 2>/dev/null)
+                resolution=$(gemini --yolo --model "${PROVIDER_MODEL:-gemini-3-pro-preview}" "$conflict_prompt" 2>/dev/null)
                 ;;
             *)
                 log_error "Unknown provider: ${PROVIDER_NAME}"
@@ -3646,10 +3646,9 @@ if __name__ == "__main__":
 
             gemini)
                 # Gemini: Degraded mode - no stream-json, no agent tracking
-                # Note: Thinking level is set via settings.json, not CLI flag
-                # Log the dynamic tier for debugging (tier_param already set above)
-                echo "[loki] Gemini thinking tier: $tier_param (configure in ~/.gemini/settings.json)" >> "$log_file"
-                gemini --yolo \
+                # Using --model flag to specify model
+                echo "[loki] Gemini model: ${PROVIDER_MODEL:-gemini-3-pro-preview}, tier: $tier_param" >> "$log_file"
+                gemini --yolo --model "${PROVIDER_MODEL:-gemini-3-pro-preview}" \
                     "$prompt" 2>&1 | tee -a "$log_file"
                 local exit_code=${PIPESTATUS[0]}
                 ;;

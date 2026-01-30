@@ -48,12 +48,12 @@ PROVIDER_HAS_MCP=false
 PROVIDER_MAX_PARALLEL=1
 
 # Model Configuration
-# Gemini uses single model with thinking_level parameter
-# NOTE: "gemini-3-pro-medium" is a PLACEHOLDER model name. Update this value when
-# official Gemini CLI documentation specifies the actual model identifier.
-PROVIDER_MODEL_PLANNING="gemini-3-pro-medium"
-PROVIDER_MODEL_DEVELOPMENT="gemini-3-pro-medium"
-PROVIDER_MODEL_FAST="gemini-3-pro-medium"
+# Gemini CLI supports --model flag to specify model
+# Using gemini-3-pro-preview (latest as of Jan 2026)
+PROVIDER_MODEL="gemini-3-pro-preview"
+PROVIDER_MODEL_PLANNING="gemini-3-pro-preview"
+PROVIDER_MODEL_DEVELOPMENT="gemini-3-pro-preview"
+PROVIDER_MODEL_FAST="gemini-3-pro-preview"
 
 # Thinking levels (Gemini-specific: maps to reasoning depth)
 PROVIDER_THINKING_PLANNING="high"
@@ -97,13 +97,12 @@ provider_version() {
 }
 
 # Invocation function
-# Note: Gemini CLI does not support thinking-level CLI flags
-# Thinking mode is configured via settings.json, not CLI
+# Uses --model flag to specify model, --yolo for autonomous mode
 # Using positional prompt (not deprecated -p flag)
 provider_invoke() {
     local prompt="$1"
     shift
-    gemini --yolo "$prompt" "$@"
+    gemini --yolo --model "$PROVIDER_MODEL" "$prompt" "$@"
 }
 
 # Model tier to thinking level parameter
@@ -118,14 +117,12 @@ provider_get_tier_param() {
 }
 
 # Tier-aware invocation
-# Note: Gemini CLI does not support thinking-level CLI flags
-# Thinking mode is configured via ~/.gemini/settings.json
+# Uses --model flag to specify model
 # Using positional prompt (not deprecated -p flag)
 provider_invoke_with_tier() {
     local tier="$1"
     local prompt="$2"
     shift 2
-    # Log tier for debugging (thinking level must be pre-configured in settings.json)
-    echo "[loki] Using tier: $tier (configure thinking in ~/.gemini/settings.json)" >&2
-    gemini --yolo "$prompt" "$@"
+    echo "[loki] Using tier: $tier, model: $PROVIDER_MODEL" >&2
+    gemini --yolo --model "$PROVIDER_MODEL" "$prompt" "$@"
 }
