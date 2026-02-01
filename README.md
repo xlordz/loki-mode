@@ -81,6 +81,29 @@ loki start ./my-prd.md
 docker run -v $(pwd):/workspace asklokesh/loki-mode:5.1.1 ./my-prd.md
 ```
 
+### Option 6: VS Code Extension
+
+Install directly from the VS Code Marketplace for a visual interface:
+
+```bash
+# From VS Code
+1. Open Extensions (Cmd+Shift+X / Ctrl+Shift+X)
+2. Search "loki-mode"
+3. Click Install
+
+# Or via command line
+code --install-extension asklokesh.loki-mode
+```
+
+**Extension Features:**
+- Start/Stop/Pause/Resume sessions from the activity bar
+- Real-time task progress in the sidebar
+- Provider selection (Claude, Codex, Gemini)
+- Status bar showing current phase and progress
+- Quick actions menu (Cmd+Shift+L / Ctrl+Shift+L)
+
+[View on Marketplace](https://marketplace.visualstudio.com/items?itemName=asklokesh.loki-mode)
+
 See [Installation Guide](docs/INSTALLATION.md) for more details.
 
 ### Multi-Provider Support (v5.0.0)
@@ -181,6 +204,7 @@ PRD → Research → Architecture → Development → Testing → Deployment →
 
 | Feature | Description | Documentation |
 |---------|-------------|---------------|
+| **VS Code Extension** | Visual interface with sidebar, status bar | [Marketplace](https://marketplace.visualstudio.com/items?itemName=asklokesh.loki-mode) |
 | **Multi-Provider (v5.0.0)** | Claude, Codex, Gemini support | [Provider Guide](skills/providers.md) |
 | **CLI (v4.1.0)** | `loki` command for start/stop/pause/status | [CLI Commands](#cli-commands-v410) |
 | **Config Files** | YAML configuration support | [autonomy/config.example.yaml](autonomy/config.example.yaml) |
