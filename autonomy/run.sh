@@ -3092,6 +3092,10 @@ with open(continuity_file, 'r') as f:
 project = os.path.basename(os.getcwd())
 timestamp = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
+def normalize_for_hash(text):
+    """Normalize text for consistent hashing (case-insensitive, trimmed)"""
+    return text.strip().lower()
+
 def get_existing_hashes(filepath):
     """Get hashes of existing entries to avoid duplicates"""
     hashes = set()
@@ -3101,19 +3105,22 @@ def get_existing_hashes(filepath):
                 try:
                     entry = json.loads(line)
                     if 'description' in entry:
-                        h = hashlib.md5(entry['description'].encode()).hexdigest()
+                        normalized = normalize_for_hash(entry['description'])
+                        h = hashlib.md5(normalized.encode()).hexdigest()
                         hashes.add(h)
                 except:
                     continue
     return hashes
 
 def save_entries(filepath, entries, category):
-    """Save entries avoiding duplicates"""
+    """Save entries avoiding duplicates (case-insensitive)"""
     existing = get_existing_hashes(filepath)
     saved = 0
     with open(filepath, 'a') as f:
         for desc in entries:
-            h = hashlib.md5(desc.encode()).hexdigest()
+            # Normalize for deduplication
+            normalized = normalize_for_hash(desc)
+            h = hashlib.md5(normalized.encode()).hexdigest()
             if h not in existing:
                 entry = {
                     "timestamp": timestamp,

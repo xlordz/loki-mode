@@ -1501,6 +1501,78 @@ for proj, count in projects.most_common(10):
 " 2>/dev/null
             ;;
 
+        dedupe|dedup)
+            echo -e "${BOLD}Deduplicating Learnings${NC}"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+            python3 -c "
+import json
+import os
+import hashlib
+from datetime import datetime, timezone
+
+learnings_dir = '$learnings_dir'
+
+def dedupe_file(filepath):
+    '''Deduplicate a JSONL file, keeping first occurrence of each unique description'''
+    if not os.path.exists(filepath):
+        return 0, 0
+
+    seen_hashes = set()
+    unique_entries = []
+    duplicates = 0
+
+    # Read all entries
+    with open(filepath, 'r') as f:
+        for line in f:
+            try:
+                entry = json.loads(line)
+                if 'description' not in entry:
+                    # Keep header/metadata lines
+                    if 'version' in entry:
+                        unique_entries.append(entry)
+                    continue
+
+                # Normalize description for hashing (case-insensitive, trimmed)
+                desc = entry['description'].strip().lower()
+                h = hashlib.md5(desc.encode()).hexdigest()
+
+                if h not in seen_hashes:
+                    seen_hashes.add(h)
+                    unique_entries.append(entry)
+                else:
+                    duplicates += 1
+            except json.JSONDecodeError:
+                continue
+
+    # Write back unique entries
+    with open(filepath, 'w') as f:
+        for entry in unique_entries:
+            f.write(json.dumps(entry) + '\n')
+
+    return len(unique_entries) - (1 if unique_entries and 'version' in unique_entries[0] else 0), duplicates
+
+total_kept = 0
+total_removed = 0
+
+for category in ['patterns', 'mistakes', 'successes']:
+    filepath = os.path.join(learnings_dir, f'{category}.jsonl')
+    kept, removed = dedupe_file(filepath)
+    total_kept += kept
+    total_removed += removed
+    if removed > 0:
+        print(f'{category}: kept {kept}, removed {removed} duplicates')
+    else:
+        print(f'{category}: {kept} entries (no duplicates)')
+
+print()
+print(f'Total: kept {total_kept} unique entries, removed {total_removed} duplicates')
+if total_removed > 0:
+    reduction = total_removed / (total_kept + total_removed) * 100
+    print(f'Storage reduced by {reduction:.1f}%')
+" 2>/dev/null
+            ;;
+
         --help|-h|help)
             echo -e "${BOLD}loki memory${NC} - Manage cross-project learnings"
             echo ""
@@ -1509,16 +1581,19 @@ for proj, count in projects.most_common(10):
             echo "Commands:"
             echo "  list              Show summary of all learnings"
             echo "  show [type]       Show entries (patterns|mistakes|successes|all)"
+            echo "                    Options: --limit N, --project P"
             echo "  search <query>    Search across all learnings"
             echo "  stats             Show statistics by project and category"
             echo "  export [file]     Export to JSON file"
+            echo "  dedupe            Remove duplicate entries"
             echo "  clear [type]      Clear learnings (all or specific type)"
             echo ""
             echo "Examples:"
             echo "  loki memory list"
-            echo "  loki memory show mistakes"
+            echo "  loki memory show mistakes --limit 10"
+            echo "  loki memory show patterns --project myapp"
             echo "  loki memory search 'rate limit'"
-            echo "  loki memory stats"
+            echo "  loki memory dedupe"
             echo "  loki memory export backup.json"
             ;;
 
