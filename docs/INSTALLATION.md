@@ -96,11 +96,24 @@ Open VS Code Settings and search for "loki":
 
 ### Requirements
 
-The extension connects to the Loki Mode API server. You need either:
-- **Loki CLI** installed (`npm install -g loki-mode` or Homebrew)
-- **Autonomous runner** (`./autonomy/run.sh`)
+**The VS Code extension requires the Loki Mode API server to be running.**
 
-The extension will automatically detect when a Loki session is running.
+Before using the extension, start the server:
+
+```bash
+# Option A: Using Loki CLI (if installed via npm or Homebrew)
+loki start
+
+# Option B: Using the autonomous runner (from source)
+./autonomy/run.sh
+
+# Option C: Direct API server start
+node autonomy/api-server.js
+```
+
+The extension will automatically connect when it detects the server is running at `localhost:9898`.
+
+**Troubleshooting:** If you see "API server is not running" errors, make sure you started the server first using one of the commands above.
 
 ---
 

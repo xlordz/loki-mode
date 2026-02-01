@@ -223,9 +223,29 @@ async function startSession(deps: CommandDependencies): Promise<void> {
 
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        outputChannel.appendLine(`Error starting session: ${errorMessage}`);
+        const errorCode = (error as { code?: string }).code;
+        outputChannel.appendLine(`Error starting session: ${errorMessage} (code: ${errorCode})`);
         statusBarManager.setState('error');
-        vscode.window.showErrorMessage(`Failed to start Loki Mode: ${errorMessage}`);
+
+        // Show user-friendly error with action button for connection issues
+        if (errorCode === 'CONNECTION_REFUSED' || errorMessage.includes('server is not running')) {
+            const action = await vscode.window.showErrorMessage(
+                'Loki Mode API server is not running. Start it with "loki start" or "./autonomy/run.sh" first.',
+                'Open Terminal',
+                'Copy Command'
+            );
+
+            if (action === 'Open Terminal') {
+                const terminal = vscode.window.createTerminal('Loki Mode Server');
+                terminal.show();
+                terminal.sendText('loki start || ./autonomy/run.sh');
+            } else if (action === 'Copy Command') {
+                await vscode.env.clipboard.writeText('loki start');
+                vscode.window.showInformationMessage('Command copied: loki start');
+            }
+        } else {
+            vscode.window.showErrorMessage(`Failed to start Loki Mode: ${errorMessage}`);
+        }
     }
 }
 

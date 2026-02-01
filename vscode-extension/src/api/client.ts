@@ -45,6 +45,39 @@ function createApiError(message: string, code: string, statusCode?: number, resp
 }
 
 /**
+ * Check if an error is a connection refused error
+ */
+function isConnectionRefusedError(error: unknown): boolean {
+    if (error instanceof Error) {
+        const message = error.message.toLowerCase();
+        const cause = (error as NodeJS.ErrnoException).cause;
+        const causeMessage = cause instanceof Error ? cause.message.toLowerCase() : '';
+        const causeCode = (cause as NodeJS.ErrnoException)?.code;
+
+        return (
+            message.includes('econnrefused') ||
+            message.includes('connection refused') ||
+            message.includes('fetch failed') ||
+            message.includes('network request failed') ||
+            causeMessage.includes('econnrefused') ||
+            causeMessage.includes('connection refused') ||
+            causeCode === 'ECONNREFUSED'
+        );
+    }
+    return false;
+}
+
+/**
+ * Create a user-friendly error for connection issues
+ */
+function createConnectionError(): ApiError {
+    return createApiError(
+        'Loki Mode API server is not running. Start it with "loki start" or "./autonomy/run.sh" first.',
+        'CONNECTION_REFUSED'
+    );
+}
+
+/**
  * LokiApiClient - HTTP client for the Loki Mode API
  */
 export class LokiApiClient {
@@ -140,12 +173,22 @@ export class LokiApiClient {
                     throw createApiError('Request timeout', 'TIMEOUT', undefined, undefined);
                 }
 
+                // Don't retry on connection refused - server is not running
+                if (isConnectionRefusedError(error)) {
+                    throw createConnectionError();
+                }
+
                 // Retry on network errors and server errors
                 if (attempt < retries) {
                     await this.delay(this.config.retryDelay * (attempt + 1));
                     continue;
                 }
             }
+        }
+
+        // Check if final error is connection refused
+        if (lastError && isConnectionRefusedError(lastError)) {
+            throw createConnectionError();
         }
 
         throw lastError || createApiError('Unknown error', 'UNKNOWN');

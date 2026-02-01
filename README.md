@@ -95,6 +95,13 @@ Install directly from the VS Code Marketplace for a visual interface:
 code --install-extension asklokesh.loki-mode
 ```
 
+**Important:** Start the Loki Mode server before using the extension:
+```bash
+loki start              # If using CLI
+# or
+./autonomy/run.sh       # If running from source
+```
+
 **Extension Features:**
 - Start/Stop/Pause/Resume sessions from the activity bar
 - Real-time task progress in the sidebar

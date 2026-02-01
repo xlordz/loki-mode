@@ -53,11 +53,27 @@ Multi-agent autonomous development powered by Claude Code, OpenAI Codex, and Goo
 
 ## Quick Start
 
+### Step 1: Start the Backend Server
+
+**The extension requires the Loki Mode server to be running first:**
+
+```bash
+# Using Loki CLI (if installed via npm or Homebrew)
+loki start
+
+# Or from loki-mode source directory
+./autonomy/run.sh
+```
+
+You should see: "Loki API server listening on http://localhost:9898"
+
+### Step 2: Use the Extension
+
 1. Open a project folder in VS Code
-2. Click the Loki Mode icon in the status bar or Activity Bar
+2. Click the Loki Mode icon in the Activity Bar (sidebar)
 3. Select "Start Session"
 4. Choose your PRD file
-5. Select your AI provider
+5. Select your AI provider (Claude recommended)
 6. Watch as Loki Mode autonomously develops your project
 
 ## Commands

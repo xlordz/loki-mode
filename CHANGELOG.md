@@ -5,6 +5,25 @@ All notable changes to Loki Mode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.7.1] - 2026-02-01
+
+### Fixed - VS Code Extension UX
+
+**Patch release: Improved error handling and documentation for server requirement.**
+
+#### VS Code Extension (v0.1.1)
+- **Server requirement clarified**: Extension now shows clear error when API server is not running
+- **Action buttons**: "Open Terminal" and "Copy Command" buttons added to connection error dialogs
+- **Connection detection**: Better detection of ECONNREFUSED and connection refused errors
+- **Documentation**: Quick Start now emphasizes starting the server first
+
+#### Documentation Updates
+- README.md: Added server start requirement to VS Code section
+- docs/INSTALLATION.md: Clarified server requirement with multiple start options
+- vscode-extension/README.md: Restructured Quick Start with server step first
+
+---
+
 ## [5.7.0] - 2026-01-31
 
 ### Added - VS Code Extension
