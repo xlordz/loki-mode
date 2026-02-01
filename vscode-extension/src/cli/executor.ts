@@ -7,6 +7,7 @@ import { spawn, ChildProcess, SpawnOptions, execFile } from 'child_process';
 import { promisify } from 'util';
 import { EventEmitter } from 'events';
 import { detectLokiCli, waitForServer, isLokiServerRunning } from './detector';
+import { DEFAULT_API_PORT } from '../utils/constants';
 
 const execFileAsync = promisify(execFile);
 
@@ -43,7 +44,7 @@ export interface ExecutorConfig {
  */
 const DEFAULT_CONFIG: Required<Omit<ExecutorConfig, 'env' | 'cwd'>> = {
     cliPath: '',
-    serverPort: 9898,
+    serverPort: DEFAULT_API_PORT,
     startupTimeout: 30000,
     commandTimeout: 60000,
 };

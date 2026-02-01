@@ -1,4 +1,6 @@
 import * as vscode from 'vscode';
+import { DEFAULT_API_BASE_URL } from '../utils/constants';
+import { parseTasksResponse } from '../api/validators';
 
 /**
  * Represents a task in the Loki Mode task tree
@@ -74,7 +76,7 @@ export class TaskTreeProvider implements vscode.TreeDataProvider<TaskItem> {
     private apiEndpoint: string;
 
     constructor(apiEndpoint?: string) {
-        this.apiEndpoint = apiEndpoint || 'http://localhost:9898';
+        this.apiEndpoint = apiEndpoint || DEFAULT_API_BASE_URL;
     }
 
     /**
@@ -221,8 +223,9 @@ export class TaskTreeProvider implements vscode.TreeDataProvider<TaskItem> {
         try {
             const response = await fetch(`${this.apiEndpoint}/tasks`);
             if (response.ok) {
-                const data = await response.json() as { tasks?: LokiTask[] };
-                this.tasks = data.tasks || [];
+                const rawData = await response.json();
+                const data = parseTasksResponse(rawData);
+                this.tasks = (data.tasks || []) as LokiTask[];
             } else {
                 // API not available or error - keep existing tasks
                 console.warn('Task API returned non-OK status:', response.status);

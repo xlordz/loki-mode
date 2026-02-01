@@ -8,6 +8,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { LokiApiClient } from '../api/client';
 import { logger } from '../utils/logger';
+import { getNonce } from '../utils/webview';
 
 interface LogEntry {
     timestamp: string;
@@ -89,7 +90,7 @@ export class LogsViewProvider implements vscode.WebviewViewProvider, vscode.Disp
             const response = await fetch(`${baseUrl}/logs?limit=100`);
 
             if (response.ok) {
-                const data = await response.json();
+                const data = await response.json() as { logs?: LogEntry[] };
                 if (data.logs && Array.isArray(data.logs)) {
                     this._logs = data.logs;
                     this._updateWebview();
@@ -252,7 +253,7 @@ export class LogsViewProvider implements vscode.WebviewViewProvider, vscode.Disp
     }
 
     private _getHtmlForWebview(webview: vscode.Webview): string {
-        const nonce = this._getNonce();
+        const nonce = getNonce();
 
         return `<!DOCTYPE html>
 <html lang="en">
@@ -528,14 +529,5 @@ export class LogsViewProvider implements vscode.WebviewViewProvider, vscode.Disp
     </script>
 </body>
 </html>`;
-    }
-
-    private _getNonce(): string {
-        let text = '';
-        const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-        for (let i = 0; i < 32; i++) {
-            text += possible.charAt(Math.floor(Math.random() * possible.length));
-        }
-        return text;
     }
 }

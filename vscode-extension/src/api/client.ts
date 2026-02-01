@@ -21,15 +21,17 @@ import {
     StatusResponse,
     StopResponse,
 } from './types';
+import { DEFAULT_API_BASE_URL, DEFAULT_POLLING_INTERVAL_MS } from '../utils/constants';
 
 /**
  * Default configuration values
  */
 const DEFAULT_CONFIG: Required<ApiClientConfig> = {
-    baseUrl: 'http://localhost:9898',
+    baseUrl: DEFAULT_API_BASE_URL,
     timeout: 30000,
     retryAttempts: 3,
     retryDelay: 1000,
+    pollingInterval: DEFAULT_POLLING_INTERVAL_MS,
 };
 
 /**
@@ -50,9 +52,11 @@ function createApiError(message: string, code: string, statusCode?: number, resp
 function isConnectionRefusedError(error: unknown): boolean {
     if (error instanceof Error) {
         const message = error.message.toLowerCase();
-        const cause = (error as NodeJS.ErrnoException).cause;
+        // Access cause through the error object (ES2022+)
+        const errorWithCause = error as Error & { cause?: unknown };
+        const cause = errorWithCause.cause;
         const causeMessage = cause instanceof Error ? cause.message.toLowerCase() : '';
-        const causeCode = (cause as NodeJS.ErrnoException)?.code;
+        const causeCode = (cause as NodeJS.ErrnoException | undefined)?.code;
 
         return (
             message.includes('econnrefused') ||
@@ -301,7 +305,6 @@ export class LokiApiClient {
     // =========================================================================
 
     private pollingInterval: ReturnType<typeof setInterval> | null = null;
-    private readonly POLLING_INTERVAL_MS = 2000;
 
     /**
      * Subscribe to events using polling
@@ -371,7 +374,7 @@ export class LokiApiClient {
         // Then poll at regular intervals
         this.pollingInterval = setInterval(() => {
             this.pollForEvents();
-        }, this.POLLING_INTERVAL_MS);
+        }, this.config.pollingInterval);
     }
 
     /**

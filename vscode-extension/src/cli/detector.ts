@@ -9,6 +9,8 @@ import { promisify } from 'util';
 import * as path from 'path';
 import * as os from 'os';
 import * as net from 'net';
+import { DEFAULT_API_PORT } from '../utils/constants';
+import { parseHealthResponse } from '../api/validators';
 
 const execAsync = promisify(exec);
 const execFileAsync = promisify(execFile);
@@ -252,10 +254,10 @@ export async function isServerRunning(port: number, host: string = 'localhost'):
 
 /**
  * Check if the Loki server is running on the default port
- * @param port - Port to check (default: 9898)
+ * @param port - Port to check (default: DEFAULT_API_PORT)
  * @returns true if server is running
  */
-export async function isLokiServerRunning(port: number = 9898): Promise<boolean> {
+export async function isLokiServerRunning(port: number = DEFAULT_API_PORT): Promise<boolean> {
     // First check if port is in use
     const portInUse = await isServerRunning(port);
     if (!portInUse) {
@@ -270,7 +272,8 @@ export async function isLokiServerRunning(port: number = 9898): Promise<boolean>
         });
 
         if (response.ok) {
-            const data = await response.json() as { status?: string };
+            const rawData = await response.json();
+            const data = parseHealthResponse(rawData);
             return data.status === 'ok';
         }
     } catch {
@@ -288,7 +291,7 @@ export async function isLokiServerRunning(port: number = 9898): Promise<boolean>
  * @returns true if server became available, false if timeout
  */
 export async function waitForServer(
-    port: number = 9898,
+    port: number = DEFAULT_API_PORT,
     timeout: number = 30000,
     interval: number = 500
 ): Promise<boolean> {

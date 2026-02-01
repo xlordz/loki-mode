@@ -446,6 +446,7 @@ export interface ApiClientConfig {
     timeout?: number;
     retryAttempts?: number;
     retryDelay?: number;
+    pollingInterval?: number;
 }
 
 /**

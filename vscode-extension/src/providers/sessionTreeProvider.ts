@@ -1,4 +1,6 @@
 import * as vscode from 'vscode';
+import { DEFAULT_API_BASE_URL } from '../utils/constants';
+import { parseSessionResponse } from '../api/validators';
 
 /**
  * Represents the current Loki Mode session state
@@ -60,7 +62,7 @@ export class SessionTreeProvider implements vscode.TreeDataProvider<SessionItem>
     private durationInterval?: NodeJS.Timeout;
 
     constructor(apiEndpoint?: string) {
-        this.apiEndpoint = apiEndpoint || 'http://localhost:9898';
+        this.apiEndpoint = apiEndpoint || DEFAULT_API_BASE_URL;
     }
 
     /**
@@ -386,20 +388,21 @@ export class SessionTreeProvider implements vscode.TreeDataProvider<SessionItem>
         try {
             const response = await fetch(`${this.apiEndpoint}/status`);
             if (response.ok) {
-                const data = await response.json() as Record<string, unknown>;
+                const rawData = await response.json();
+                const data = parseSessionResponse(rawData);
                 this.session = {
-                    active: (data.active as boolean) ?? false,
-                    prdPath: data.prdPath as string | undefined,
-                    prdName: data.prdName as string | undefined,
-                    provider: (data.provider as 'claude' | 'codex' | 'gemini') ?? 'claude',
-                    phase: (data.phase as string) ?? 'Idle',
-                    startedAt: data.startedAt as string | undefined,
-                    pausedAt: data.pausedAt as string | undefined,
+                    active: data.active ?? false,
+                    prdPath: data.prdPath,
+                    prdName: data.prdName,
+                    provider: data.provider ?? 'claude',
+                    phase: data.phase ?? 'Idle',
+                    startedAt: data.startedAt,
+                    pausedAt: data.pausedAt,
                     status: (data.status as 'idle' | 'running' | 'paused' | 'error') ?? 'idle',
-                    errorMessage: data.errorMessage as string | undefined,
-                    currentTask: data.currentTask as string | undefined,
-                    completedTasks: (data.completedTasks as number) ?? 0,
-                    totalTasks: (data.totalTasks as number) ?? 0
+                    errorMessage: data.errorMessage,
+                    currentTask: data.currentTask,
+                    completedTasks: data.completedTasks ?? 0,
+                    totalTasks: data.totalTasks ?? 0
                 };
                 this.updateDurationTimer();
             } else {

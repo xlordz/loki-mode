@@ -7,6 +7,7 @@ import * as vscode from 'vscode';
 import { LokiApiClient } from '../api/client';
 import { Provider } from '../api/types';
 import { logger } from '../utils/logger';
+import { getNonce } from '../utils/webview';
 
 interface ChatMessage {
     id: string;
@@ -124,7 +125,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
     }
 
     private async _sendChatMessage(message: string): Promise<string> {
-        // Try the chat endpoint first, fall back to input injection
+        // Try the chat endpoint first
         try {
             const baseUrl = this._apiClient.baseUrl;
             const response = await fetch(`${baseUrl}/chat`, {
@@ -139,18 +140,52 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
             });
 
             if (response.ok) {
-                const data = await response.json();
+                const data = await response.json() as { response?: string; message?: string };
                 return data.response || data.message || 'Response received';
             }
 
-            // Fall back to input injection if chat endpoint not available
-            await this._apiClient.injectInput(message);
-            return 'Message sent to Loki Mode. The AI will process it in the current session.';
-        } catch {
-            // If chat endpoint doesn't exist, use input injection
-            await this._apiClient.injectInput(message);
-            return 'Message injected into current Loki session.';
+            // Check for prompt injection disabled error
+            if (response.status === 500) {
+                try {
+                    const errorData = await response.json() as { error?: string };
+                    if (errorData.error?.includes('Prompt injection is disabled')) {
+                        return this._handlePromptInjectionDisabled();
+                    }
+                } catch {
+                    // Ignore JSON parse errors
+                }
+            }
+
+            // Check for 404 (endpoint not available) - fall back to input injection
+            if (response.status === 404) {
+                await this._apiClient.injectInput(message);
+                return 'Message sent to Loki Mode. The AI will process it in the current session.';
+            }
+
+            throw new Error(`Chat request failed with status ${response.status}`);
+        } catch (error) {
+            // Check if error is about prompt injection
+            if (error instanceof Error && error.message.includes('Prompt injection is disabled')) {
+                return this._handlePromptInjectionDisabled();
+            }
+            throw error;
         }
+    }
+
+    /**
+     * Handle case when prompt injection is disabled on the server
+     * Shows a helpful message with option to enable it
+     */
+    private _handlePromptInjectionDisabled(): string {
+        // Send a special message type to the webview to show the enable option
+        if (this._view) {
+            this._view.webview.postMessage({
+                type: 'showPromptInjectionWarning'
+            });
+        }
+        return 'Chat requires prompt injection to be enabled on the server. ' +
+               'This allows sending messages to the AI during an active session. ' +
+               'To enable, start the server with: loki start --allow-injection';
     }
 
     private _addSystemMessage(content: string) {
@@ -201,7 +236,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
     }
 
     private _getHtmlForWebview(webview: vscode.Webview): string {
-        const nonce = this._getNonce();
+        const nonce = getNonce();
 
         return `<!DOCTYPE html>
 <html lang="en">
@@ -353,6 +388,18 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
             text-align: center;
             padding: 20px;
         }
+        .injection-warning {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: var(--vscode-foreground);
+            text-align: center;
+            padding: 20px;
+            max-width: 320px;
+            margin: 0 auto;
+        }
         .empty-state svg {
             width: 48px;
             height: 48px;
@@ -436,8 +483,34 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
                     providerSelect.value = data.provider;
                     renderMessages();
                     break;
+                case 'showPromptInjectionWarning':
+                    showInjectionWarning();
+                    break;
             }
         });
+
+        function showInjectionWarning() {
+            messagesContainer.innerHTML = \`
+                <div class="injection-warning">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 48px; height: 48px; margin-bottom: 12px; color: var(--vscode-editorWarning-foreground);">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                        <line x1="12" y1="9" x2="12" y2="13"></line>
+                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                    </svg>
+                    <h3 style="margin-bottom: 8px;">Chat Requires Prompt Injection</h3>
+                    <p style="margin-bottom: 16px; color: var(--vscode-descriptionForeground);">
+                        The server has prompt injection disabled. Chat allows sending messages directly to the AI during an active session.
+                    </p>
+                    <div style="background: var(--vscode-textCodeBlock-background); padding: 12px; border-radius: 6px; margin-bottom: 16px; text-align: left;">
+                        <p style="font-size: 12px; margin-bottom: 8px; color: var(--vscode-descriptionForeground);">To enable chat, restart the server with:</p>
+                        <code style="font-family: var(--vscode-editor-font-family);">loki start --allow-injection</code>
+                    </div>
+                    <p style="font-size: 11px; color: var(--vscode-descriptionForeground);">
+                        Note: Prompt injection allows external input during AI execution. Only enable in trusted environments.
+                    </p>
+                </div>
+            \`;
+        }
 
         function renderMessages() {
             if (messages.length === 0) {
@@ -486,14 +559,5 @@ export class ChatViewProvider implements vscode.WebviewViewProvider, vscode.Disp
     </script>
 </body>
 </html>`;
-    }
-
-    private _getNonce(): string {
-        let text = '';
-        const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-        for (let i = 0; i < 32; i++) {
-            text += possible.charAt(Math.floor(Math.random() * possible.length));
-        }
-        return text;
     }
 }

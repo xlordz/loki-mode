@@ -6,12 +6,14 @@ import { Logger, logger } from './utils/logger';
 import { ChatViewProvider } from './views/chatViewProvider';
 import { LogsViewProvider } from './views/logsViewProvider';
 import { LokiApiClient } from './api/client';
+import { parseStatusResponse, isValidTaskStatus } from './api/validators';
+import { LokiEvent, Disposable } from './api/types';
 
 // State tracking
 let isRunning = false;
 let isPaused = false;
 let statusBarItem: vscode.StatusBarItem | undefined;
-let pollingInterval: NodeJS.Timeout | undefined;
+let statusSubscription: Disposable | undefined;
 
 /**
  * Session item for the sessions tree view
@@ -244,11 +246,60 @@ function updateContext(): void {
 }
 
 /**
- * Poll the API for status updates
+ * Manually refresh status from API (for user-triggered refresh)
  */
-async function pollStatus(): Promise<void> {
+async function refreshStatus(): Promise<void> {
     try {
-        const status = await apiRequest('/status') as { running?: boolean; paused?: boolean; tasks?: Array<{ id: string; title: string; status: string; description?: string }> };
+        const rawStatus = await apiRequest('/status');
+        const status = parseStatusResponse(rawStatus);
+
+        if (status.running !== undefined) {
+            isRunning = status.running;
+        }
+        if (status.paused !== undefined) {
+            isPaused = status.paused;
+        }
+        updateStatusBar();
+        updateContext();
+
+        if (status.tasks && Array.isArray(status.tasks)) {
+            const taskItems = status.tasks.map(t => new TaskItem(
+                t.title,
+                t.id,
+                mapTaskStatus(t.status),
+                t.description
+            ));
+            tasksProvider.setTasks(taskItems);
+        }
+    } catch {
+        logger.debug('Manual status refresh failed');
+    }
+}
+
+/**
+ * Map TaskStatus to the subset accepted by TaskItem
+ */
+function mapTaskStatus(status: string): 'pending' | 'in_progress' | 'completed' {
+    if (!isValidTaskStatus(status)) {
+        return 'pending';
+    }
+    // Map 'failed' and 'skipped' to 'completed' for UI display
+    if (status === 'failed' || status === 'skipped') {
+        return 'completed';
+    }
+    return status as 'pending' | 'in_progress' | 'completed';
+}
+
+/**
+ * Handle status events from the API client
+ */
+function handleStatusEvent(event: LokiEvent): void {
+    if (event.type !== 'status') {
+        return;
+    }
+
+    try {
+        const status = parseStatusResponse(event.data);
 
         if (status.running !== undefined && status.running !== isRunning) {
             isRunning = status.running;
@@ -266,37 +317,37 @@ async function pollStatus(): Promise<void> {
             const taskItems = status.tasks.map(t => new TaskItem(
                 t.title,
                 t.id,
-                t.status as 'pending' | 'in_progress' | 'completed',
+                mapTaskStatus(t.status),
                 t.description
             ));
             tasksProvider.setTasks(taskItems);
         }
     } catch {
         // API not available, silently ignore
-        logger.debug('API polling failed - server may not be running');
+        logger.debug('Status event handling failed');
     }
 }
 
 /**
- * Start polling the API
+ * Start polling the API (via client subscription)
  */
 function startPolling(): void {
-    if (pollingInterval) {
+    if (statusSubscription) {
         return;
     }
 
-    const interval = Config.pollingInterval;
-    pollingInterval = setInterval(pollStatus, interval);
-    logger.info(`Started API polling (interval: ${interval}ms)`);
+    // Subscribe to status events from the API client
+    statusSubscription = apiClient.subscribeToEvents(handleStatusEvent);
+    logger.info(`Started API polling (interval: ${Config.pollingInterval}ms)`);
 }
 
 /**
  * Stop polling the API
  */
 function stopPolling(): void {
-    if (pollingInterval) {
-        clearInterval(pollingInterval);
-        pollingInterval = undefined;
+    if (statusSubscription) {
+        statusSubscription.dispose();
+        statusSubscription = undefined;
         logger.info('Stopped API polling');
     }
 }
@@ -478,7 +529,8 @@ async function showStatus(): Promise<void> {
     logger.info('Fetching Loki status...');
 
     try {
-        const status = await apiRequest('/status') as { running?: boolean; paused?: boolean; provider?: string; uptime?: number; tasksCompleted?: number; tasksPending?: number };
+        const rawStatus = await apiRequest('/status');
+        const status = parseStatusResponse(rawStatus);
 
         const statusMessage = [
             `Running: ${status.running ? 'Yes' : 'No'}`,
@@ -619,8 +671,8 @@ async function openPrd(): Promise<void> {
 export function activate(context: vscode.ExtensionContext): void {
     logger.info('Activating Loki Mode extension...');
 
-    // Initialize API client
-    apiClient = new LokiApiClient(Config.apiBaseUrl);
+    // Initialize API client with configurable polling interval
+    apiClient = new LokiApiClient(Config.apiBaseUrl, { pollingInterval: Config.pollingInterval });
 
     // Initialize tree providers
     sessionsProvider = new SessionsProvider();
@@ -670,9 +722,9 @@ export function activate(context: vscode.ExtensionContext): void {
             sessionsProvider.refresh();
             logger.debug('Sessions refreshed');
         }),
-        vscode.commands.registerCommand('loki.refreshTasks', () => {
+        vscode.commands.registerCommand('loki.refreshTasks', async () => {
             tasksProvider.refresh();
-            pollStatus();
+            await refreshStatus();
             logger.debug('Tasks refreshed');
         }),
         vscode.commands.registerCommand('loki.showQuickPick', showQuickPick),
@@ -688,7 +740,7 @@ export function activate(context: vscode.ExtensionContext): void {
         }
 
         if (Config.didChange(e, 'pollingInterval')) {
-            if (pollingInterval) {
+            if (statusSubscription) {
                 stopPolling();
                 startPolling();
             }

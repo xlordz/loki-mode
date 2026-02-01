@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { DEFAULT_API_PORT, DEFAULT_API_HOST, DEFAULT_POLLING_INTERVAL_MS } from './constants';
 
 export type Provider = 'claude' | 'codex' | 'gemini';
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
@@ -28,12 +29,12 @@ export class Config {
         const config = vscode.workspace.getConfiguration(this.SECTION);
         return {
             provider: config.get<Provider>('provider', 'claude'),
-            apiPort: config.get<number>('apiPort', 9898),
-            apiHost: config.get<string>('apiHost', 'localhost'),
+            apiPort: config.get<number>('apiPort', DEFAULT_API_PORT),
+            apiHost: config.get<string>('apiHost', DEFAULT_API_HOST),
             autoConnect: config.get<boolean>('autoConnect', true),
             showStatusBar: config.get<boolean>('showStatusBar', true),
             logLevel: config.get<LogLevel>('logLevel', 'info'),
-            pollingInterval: config.get<number>('pollingInterval', 2000),
+            pollingInterval: config.get<number>('pollingInterval', DEFAULT_POLLING_INTERVAL_MS),
             prdPath: config.get<string>('prdPath', ''),
         };
     }
@@ -49,14 +50,14 @@ export class Config {
      * Get the API port setting
      */
     static get apiPort(): number {
-        return vscode.workspace.getConfiguration(this.SECTION).get<number>('apiPort', 9898);
+        return vscode.workspace.getConfiguration(this.SECTION).get<number>('apiPort', DEFAULT_API_PORT);
     }
 
     /**
      * Get the API host setting
      */
     static get apiHost(): string {
-        return vscode.workspace.getConfiguration(this.SECTION).get<string>('apiHost', 'localhost');
+        return vscode.workspace.getConfiguration(this.SECTION).get<string>('apiHost', DEFAULT_API_HOST);
     }
 
     /**
@@ -91,7 +92,7 @@ export class Config {
      * Get the polling interval setting (in milliseconds)
      */
     static get pollingInterval(): number {
-        return vscode.workspace.getConfiguration(this.SECTION).get<number>('pollingInterval', 2000);
+        return vscode.workspace.getConfiguration(this.SECTION).get<number>('pollingInterval', DEFAULT_POLLING_INTERVAL_MS);
     }
 
     /**
