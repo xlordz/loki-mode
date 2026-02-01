@@ -5,6 +5,32 @@ All notable changes to Loki Mode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.8.5] - 2026-02-01
+
+### Improved - CLI UX
+
+**Patch release: Improved CLI user experience based on feedback.**
+
+#### UX Improvements
+- **`loki start --help`**: Added help flag support with detailed usage info
+- **Provider capability indicator**: Shows "full features" vs "degraded mode" status
+- **Smarter stop/pause**: Now checks if session is running before sending signals
+- **Better resume messaging**: Clearer feedback about session state
+- **CLI installation warning**: `loki provider set` warns if CLI not installed
+
+#### Example Output
+```
+$ loki provider show
+Provider: codex
+Status:   Degraded mode (sequential only)
+
+$ loki stop
+No active session running.
+Start a session with: loki start
+```
+
+---
+
 ## [5.8.4] - 2026-02-01
 
 ### Added - Provider Persistence

@@ -148,6 +148,31 @@ cmd_start() {
 
     while [[ $# -gt 0 ]]; do
         case "$1" in
+            --help|-h)
+                echo -e "${BOLD}loki start${NC} - Start Loki Mode autonomous execution"
+                echo ""
+                echo "Usage: loki start [PRD] [options]"
+                echo ""
+                echo "Arguments:"
+                echo "  PRD                   Path to PRD file (optional)"
+                echo ""
+                echo "Options:"
+                echo "  --provider NAME       AI provider: claude (default), codex, gemini"
+                echo "  --parallel            Enable parallel mode with git worktrees"
+                echo "  --bg, --background    Run in background mode"
+                echo "  --simple              Force simple complexity tier (3 phases)"
+                echo "  --complex             Force complex complexity tier (8 phases)"
+                echo "  --github              Enable GitHub issue import"
+                echo "  --no-dashboard        Disable web dashboard"
+                echo "  --sandbox             Run in Docker sandbox"
+                echo ""
+                echo "Examples:"
+                echo "  loki start                      # Interactive or resume existing"
+                echo "  loki start ./prd.md             # Start with PRD file"
+                echo "  loki start ./prd.md --parallel  # Parallel mode with worktrees"
+                echo "  loki start --provider codex     # Use OpenAI Codex CLI"
+                exit 0
+                ;;
             --provider)
                 if [[ -n "${2:-}" ]]; then
                     provider="$2"
@@ -262,43 +287,92 @@ cmd_start() {
     exec "$RUN_SH" "${args[@]}"
 }
 
+# Check if session is running
+is_session_running() {
+    if [ -f "$LOKI_DIR/run.pid" ]; then
+        local pid
+        pid=$(cat "$LOKI_DIR/run.pid" 2>/dev/null)
+        if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
+            return 0
+        fi
+    fi
+    return 1
+}
+
 # Stop execution immediately
 cmd_stop() {
     if [ ! -d "$LOKI_DIR" ]; then
-        echo -e "${YELLOW}No .loki directory found. Is Loki Mode running?${NC}"
-        exit 1
+        echo -e "${YELLOW}No .loki directory found.${NC}"
+        echo "No active session to stop."
+        exit 0
     fi
 
-    touch "$LOKI_DIR/STOP"
-    echo -e "${RED}STOP signal sent. Execution will halt immediately.${NC}"
+    if is_session_running; then
+        touch "$LOKI_DIR/STOP"
+        echo -e "${RED}STOP signal sent. Execution will halt immediately.${NC}"
+    else
+        echo -e "${YELLOW}No active session running.${NC}"
+        if [ -f "$LOKI_DIR/STOP" ]; then
+            echo "STOP signal already present."
+        else
+            echo "Start a session with: loki start"
+        fi
+    fi
 }
 
 # Pause after current session
 cmd_pause() {
     if [ ! -d "$LOKI_DIR" ]; then
-        echo -e "${YELLOW}No .loki directory found. Is Loki Mode running?${NC}"
-        exit 1
+        echo -e "${YELLOW}No .loki directory found.${NC}"
+        echo "No active session to pause."
+        exit 0
     fi
 
-    touch "$LOKI_DIR/PAUSE"
-    echo -e "${YELLOW}PAUSE signal sent. Execution will pause after current session.${NC}"
+    if is_session_running; then
+        touch "$LOKI_DIR/PAUSE"
+        echo -e "${YELLOW}PAUSE signal sent. Execution will pause after current task.${NC}"
+        echo -e "${DIM}Resume with: loki resume${NC}"
+    else
+        echo -e "${YELLOW}No active session running.${NC}"
+        if [ -f "$LOKI_DIR/PAUSE" ]; then
+            echo "PAUSE signal already present."
+        else
+            echo "Start a session with: loki start"
+        fi
+    fi
 }
 
 # Resume paused execution
 cmd_resume() {
     if [ ! -d "$LOKI_DIR" ]; then
         echo -e "${YELLOW}No .loki directory found.${NC}"
-        exit 1
+        echo "Nothing to resume. Start a session with: loki start"
+        exit 0
     fi
 
+    local removed_signal=""
     if [ -f "$LOKI_DIR/PAUSE" ]; then
         rm -f "$LOKI_DIR/PAUSE"
-        echo -e "${GREEN}PAUSE file removed. You may need to restart Loki Mode.${NC}"
+        removed_signal="PAUSE"
     elif [ -f "$LOKI_DIR/STOP" ]; then
         rm -f "$LOKI_DIR/STOP"
-        echo -e "${GREEN}STOP file removed. You may need to restart Loki Mode.${NC}"
+        removed_signal="STOP"
+    fi
+
+    if [ -n "$removed_signal" ]; then
+        if is_session_running; then
+            echo -e "${GREEN}$removed_signal signal cleared. Session will resume automatically.${NC}"
+        else
+            echo -e "${GREEN}$removed_signal signal cleared.${NC}"
+            echo "Session is not running. Start with: loki start"
+        fi
     else
-        echo -e "${YELLOW}No pause/stop files found.${NC}"
+        if is_session_running; then
+            echo -e "${CYAN}Session is running normally.${NC}"
+        else
+            echo -e "${YELLOW}No pause/stop signals found.${NC}"
+            echo "Session is not running. Start with: loki start"
+        fi
     fi
 }
 
@@ -319,23 +393,33 @@ cmd_status() {
         saved_provider=$(cat "$LOKI_DIR/state/provider" 2>/dev/null)
     fi
     local current_provider="${saved_provider:-${LOKI_PROVIDER:-claude}}"
-    echo -e "${CYAN}Provider:${NC} $current_provider"
+    # Show provider with capability
+    local capability="full features"
+    case "$current_provider" in
+        codex|gemini)
+            capability="degraded mode"
+            ;;
+    esac
+    echo -e "${CYAN}Provider:${NC} $current_provider ($capability)"
     echo -e "${DIM}  Switch with: loki provider set <claude|codex|gemini>${NC}"
     echo ""
 
-    # Check status file
-    if [ -f "$LOKI_DIR/STATUS.txt" ]; then
-        echo -e "${CYAN}Current Status:${NC}"
-        cat "$LOKI_DIR/STATUS.txt"
+    # Check for signals first (more prominent)
+    if [ -f "$LOKI_DIR/PAUSE" ]; then
+        echo -e "${YELLOW}Status: PAUSED${NC}"
+        echo -e "${DIM}  Resume with: loki resume${NC}"
+        echo ""
+    elif [ -f "$LOKI_DIR/STOP" ]; then
+        echo -e "${RED}Status: STOPPED${NC}"
+        echo -e "${DIM}  Clear with: loki resume${NC}"
         echo ""
     fi
 
-    # Check for signals
-    if [ -f "$LOKI_DIR/PAUSE" ]; then
-        echo -e "${YELLOW}PAUSE signal active${NC}"
-    fi
-    if [ -f "$LOKI_DIR/STOP" ]; then
-        echo -e "${RED}STOP signal active${NC}"
+    # Check status file
+    if [ -f "$LOKI_DIR/STATUS.txt" ]; then
+        echo -e "${CYAN}Session Info:${NC}"
+        cat "$LOKI_DIR/STATUS.txt"
+        echo ""
     fi
 
     # Check orchestrator state
@@ -408,6 +492,16 @@ cmd_provider_show() {
     echo ""
     echo -e "${CYAN}Provider:${NC} $current"
 
+    # Show capability status
+    case "$current" in
+        claude)
+            echo -e "${GREEN}Status:${NC}   Full features (subagents, parallel, MCP)"
+            ;;
+        codex|gemini)
+            echo -e "${YELLOW}Status:${NC}   Degraded mode (sequential only)"
+            ;;
+    esac
+
     if [ -n "$saved_provider" ]; then
         echo -e "${DIM}(saved in .loki/state/provider)${NC}"
     else
@@ -438,6 +532,25 @@ cmd_provider_set() {
             exit 1
             ;;
     esac
+
+    # Check if CLI is installed
+    if ! command -v "$new_provider" &> /dev/null; then
+        echo -e "${YELLOW}Warning: '$new_provider' CLI not found in PATH${NC}"
+        echo ""
+        case "$new_provider" in
+            claude)
+                echo "Install: npm install -g @anthropic-ai/claude-code"
+                ;;
+            codex)
+                echo "Install: npm install -g @openai/codex"
+                ;;
+            gemini)
+                echo "Install: npm install -g @anthropic-ai/gemini-cli"
+                ;;
+        esac
+        echo ""
+        echo -e "${DIM}Setting provider anyway...${NC}"
+    fi
 
     # Save provider
     mkdir -p "$LOKI_DIR/state"
