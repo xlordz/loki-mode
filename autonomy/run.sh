@@ -3515,6 +3515,71 @@ load_state() {
     fi
 }
 
+# Load tasks from queue files for prompt injection
+# Supports both array format [...] and object format {"tasks": [...]}
+load_queue_tasks() {
+    local task_injection=""
+
+    # Helper Python script to extract and format tasks
+    # Handles both formats, truncates long actions, normalizes newlines
+    local extract_script='
+import json
+import sys
+
+def extract_tasks(filepath, prefix):
+    try:
+        data = json.load(open(filepath))
+        # Support both formats: [...] and {"tasks": [...]}
+        tasks = data.get("tasks", data) if isinstance(data, dict) else data
+        if not isinstance(tasks, list):
+            return ""
+
+        results = []
+        for i, task in enumerate(tasks[:3]):  # Limit to first 3 tasks
+            if not isinstance(task, dict):
+                continue
+            task_id = task.get("id") or "unknown"
+            task_type = task.get("type") or "unknown"
+            payload = task.get("payload", {})
+
+            # Extract action from payload
+            if isinstance(payload, dict):
+                action = payload.get("action") or payload.get("goal") or ""
+            else:
+                action = str(payload) if payload else ""
+
+            # Normalize: remove newlines, truncate to 500 chars
+            action = str(action).replace("\n", " ").replace("\r", "")[:500]
+            if len(str(task.get("payload", {}).get("action", ""))) > 500:
+                action += "..."
+
+            results.append(f"{prefix}[{i+1}] id={task_id} type={task_type}: {action}")
+
+        return " ".join(results)
+    except:
+        return ""
+
+# Check in-progress first
+in_progress = extract_tasks(".loki/queue/in-progress.json", "TASK")
+pending = extract_tasks(".loki/queue/pending.json", "PENDING")
+
+output = []
+if in_progress:
+    output.append(f"IN-PROGRESS TASKS (EXECUTE THESE): {in_progress}")
+if pending:
+    output.append(f"PENDING: {pending}")
+
+print(" | ".join(output))
+'
+
+    # First check in-progress tasks (highest priority)
+    if [ -f ".loki/queue/in-progress.json" ] || [ -f ".loki/queue/pending.json" ]; then
+        task_injection=$(python3 -c "$extract_script" 2>/dev/null || echo "")
+    fi
+
+    echo "$task_injection"
+}
+
 #===============================================================================
 # Build Resume Prompt
 #===============================================================================
@@ -3588,17 +3653,24 @@ build_prompt() {
         human_directive="HUMAN_DIRECTIVE (PRIORITY): $LOKI_HUMAN_INPUT Execute this directive BEFORE continuing normal tasks."
     fi
 
+    # Queue task injection (from dashboard or API)
+    local queue_tasks=""
+    queue_tasks=$(load_queue_tasks)
+    if [ -n "$queue_tasks" ]; then
+        queue_tasks="QUEUED_TASKS (PRIORITY): $queue_tasks. Execute these tasks BEFORE finding new improvements."
+    fi
+
     if [ $retry -eq 0 ]; then
         if [ -n "$prd" ]; then
-            echo "Loki Mode with PRD at $prd. $human_directive $rarv_instruction $memory_instruction $compaction_reminder $completion_instruction $sdlc_instruction $autonomous_suffix"
+            echo "Loki Mode with PRD at $prd. $human_directive $queue_tasks $rarv_instruction $memory_instruction $compaction_reminder $completion_instruction $sdlc_instruction $autonomous_suffix"
         else
-            echo "Loki Mode. $human_directive $analysis_instruction $rarv_instruction $memory_instruction $compaction_reminder $completion_instruction $sdlc_instruction $autonomous_suffix"
+            echo "Loki Mode. $human_directive $queue_tasks $analysis_instruction $rarv_instruction $memory_instruction $compaction_reminder $completion_instruction $sdlc_instruction $autonomous_suffix"
         fi
     else
         if [ -n "$prd" ]; then
-            echo "Loki Mode - Resume iteration #$iteration (retry #$retry). PRD: $prd. $human_directive $context_injection $rarv_instruction $memory_instruction $compaction_reminder $completion_instruction $sdlc_instruction $autonomous_suffix"
+            echo "Loki Mode - Resume iteration #$iteration (retry #$retry). PRD: $prd. $human_directive $queue_tasks $context_injection $rarv_instruction $memory_instruction $compaction_reminder $completion_instruction $sdlc_instruction $autonomous_suffix"
         else
-            echo "Loki Mode - Resume iteration #$iteration (retry #$retry). $human_directive $context_injection Use .loki/generated-prd.md if exists. $rarv_instruction $memory_instruction $compaction_reminder $completion_instruction $sdlc_instruction $autonomous_suffix"
+            echo "Loki Mode - Resume iteration #$iteration (retry #$retry). $human_directive $queue_tasks $context_injection Use .loki/generated-prd.md if exists. $rarv_instruction $memory_instruction $compaction_reminder $completion_instruction $sdlc_instruction $autonomous_suffix"
         fi
     fi
 }
