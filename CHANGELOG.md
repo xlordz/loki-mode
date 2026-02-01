@@ -5,6 +5,31 @@ All notable changes to Loki Mode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.8.4] - 2026-02-01
+
+### Added - Provider Persistence
+
+**Minor release: Provider selection now persists across runs for each codebase.**
+
+#### Provider Management
+- **Persistent provider**: Once you select a provider (claude/codex/gemini), it saves to `.loki/state/provider`
+- **Auto-load on start**: `loki start` automatically loads the saved provider for the codebase
+- **Provider display**: `loki start` and `loki status` now show current provider with switch instructions
+- **New `loki provider` command**: Full provider management CLI
+  - `loki provider show` - Display current provider
+  - `loki provider set <name>` - Switch to a different provider
+  - `loki provider list` - List available providers with install status
+  - `loki provider info <name>` - Show detailed provider info
+
+#### Example Output
+```
+$ loki status
+Provider: claude (full features)
+  Switch: loki provider set codex|gemini
+```
+
+---
+
 ## [5.8.3] - 2026-02-01
 
 ### Fixed - Bash Compatibility

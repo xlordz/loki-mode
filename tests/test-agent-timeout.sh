@@ -1,4 +1,7 @@
 #!/bin/bash
+# shellcheck disable=SC2034  # Variables may be unused in test context
+# shellcheck disable=SC2155  # Declare and assign separately
+# shellcheck disable=SC2329  # Unreachable code in test functions
 # Test: Agent Timeout and Stuck Process Handling
 # Tests timeout mechanisms for long-running commands like npm build
 
@@ -26,7 +29,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-cd "$TEST_DIR"
+cd "$TEST_DIR" || exit 1
 
 echo "========================================"
 echo "Loki Mode Timeout & Stuck Process Tests"
@@ -37,7 +40,7 @@ echo ""
 run_with_timeout() {
     local timeout_seconds="$1"
     shift
-    local cmd="$@"
+    local cmd="$*"
 
     # Use gtimeout if available (from coreutils), otherwise use Perl
     if command -v gtimeout &> /dev/null; then
@@ -129,14 +132,14 @@ fi
 log_test "Stuck process detection (heartbeat)"
 python3 << 'EOF'
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 # Simulate agent state with heartbeat
 agent_state = {
     "id": "eng-backend-01",
     "status": "active",
     "currentTask": "task-001",
-    "lastHeartbeat": (datetime.utcnow() - timedelta(minutes=10)).isoformat() + 'Z'
+    "lastHeartbeat": (datetime.now(timezone.utc) - timedelta(minutes=10)).isoformat().replace('+00:00', 'Z')
 }
 
 HEARTBEAT_TIMEOUT = 300  # 5 minutes
@@ -220,7 +223,7 @@ fi
 log_test "Task retry after timeout"
 python3 << 'EOF'
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 # Task that timed out
 task = {
@@ -232,7 +235,7 @@ task = {
     "maxRetries": 3,
     "lastError": "Timeout after 300 seconds",
     "claimedBy": "agent-001",
-    "claimedAt": (datetime.utcnow() - timedelta(seconds=310)).isoformat() + 'Z'
+    "claimedAt": (datetime.now(timezone.utc) - timedelta(seconds=310)).isoformat().replace('+00:00', 'Z')
 }
 
 def handle_timeout(task):
@@ -264,25 +267,25 @@ fi
 log_test "Watchdog timer pattern"
 python3 << 'EOF'
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 class Watchdog:
     def __init__(self, timeout_seconds):
         self.timeout = timeout_seconds
-        self.last_pet = datetime.utcnow()
+        self.last_pet = datetime.now(timezone.utc)
 
     def pet(self):
         """Reset the watchdog timer"""
-        self.last_pet = datetime.utcnow()
+        self.last_pet = datetime.now(timezone.utc)
 
     def is_expired(self):
         """Check if watchdog has expired"""
-        age = (datetime.utcnow() - self.last_pet).total_seconds()
+        age = (datetime.now(timezone.utc) - self.last_pet).total_seconds()
         return age > self.timeout
 
     def remaining(self):
         """Get remaining time before expiry"""
-        age = (datetime.utcnow() - self.last_pet).total_seconds()
+        age = (datetime.now(timezone.utc) - self.last_pet).total_seconds()
         return max(0, self.timeout - age)
 
 # Create watchdog with 2 second timeout
@@ -299,7 +302,7 @@ assert not wd.is_expired(), "Should not be expired after pet"
 # Let it expire
 time.sleep(0.1)
 # Simulate expiry by setting last_pet in past
-wd.last_pet = datetime.utcnow() - timedelta(seconds=3)
+wd.last_pet = datetime.now(timezone.utc) - timedelta(seconds=3)
 assert wd.is_expired(), "Should be expired"
 print("Watchdog expired correctly")
 print("VERIFIED")

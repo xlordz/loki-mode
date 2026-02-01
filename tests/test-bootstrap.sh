@@ -1,4 +1,7 @@
 #!/bin/bash
+# shellcheck disable=SC2034  # Variables may be unused in test context
+# shellcheck disable=SC2155  # Declare and assign separately
+# shellcheck disable=SC2329  # Unreachable code in test functions
 # Test: Bootstrap Script Functionality
 # Tests the .loki directory initialization and state management
 
@@ -25,7 +28,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-cd "$TEST_DIR"
+cd "$TEST_DIR" || exit 1
 
 echo "========================================"
 echo "Loki Mode Bootstrap Tests"
@@ -147,22 +150,44 @@ log_test "File locking mechanism"
 mkdir -p .loki/state/locks
 LOCK_FILE=".loki/state/locks/test.lock"
 
-# Test acquiring lock
-(
-    exec 200>"$LOCK_FILE"
-    if flock -x -w 1 200; then
-        echo "locked" > "$LOCK_FILE.status"
-        sleep 0.1
-    fi
-) &
-LOCK_PID=$!
-sleep 0.2
-wait $LOCK_PID 2>/dev/null || true
+# Test acquiring lock using Python (cross-platform fcntl)
+python3 << 'EOF'
+import sys
+import time
+import fcntl
+import os
 
-if [ -f "$LOCK_FILE.status" ] && grep -q "locked" "$LOCK_FILE.status"; then
-    log_pass "File locking works"
+lock_file = ".loki/state/locks/test.lock"
+status_file = lock_file + ".status"
+
+try:
+    # Open file for locking
+    with open(lock_file, 'w') as f:
+        # Acquire exclusive lock (non-blocking)
+        # LOCK_EX: Exclusive lock
+        # LOCK_NB: Non-blocking (raise error if locked)
+        fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        
+        # Write status to indicate success
+        with open(status_file, 'w') as sf:
+            sf.write("locked")
+            
+        # Hold lock for a short duration to simulate work
+        time.sleep(0.1)
+        
+        # Lock releases automatically when file is closed
+except IOError:
+    # Failed to acquire lock (shouldn't happen in this isolated test)
+    sys.exit(1)
+except Exception as e:
+    print(f"Error: {e}")
+    sys.exit(1)
+EOF
+
+if [ $? -eq 0 ] && [ -f "$LOCK_FILE.status" ] && grep -q "locked" "$LOCK_FILE.status"; then
+    log_pass "File locking works (via Python fcntl)"
 else
-    log_pass "File locking works (or flock not available - acceptable)"
+    log_fail "File locking failed"
 fi
 
 # Test 8: Backup directory structure

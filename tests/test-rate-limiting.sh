@@ -1,4 +1,7 @@
 #!/bin/bash
+# shellcheck disable=SC2034  # Variables may be unused in test context
+# shellcheck disable=SC2155  # Declare and assign separately
+# shellcheck disable=SC2329  # Unreachable code in test functions
 # Test suite for rate limiting functions in autonomy/run.sh
 # Tests: is_rate_limited, parse_claude_reset_time, parse_retry_after,
 #        calculate_rate_limit_backoff, detect_rate_limit, format_duration
@@ -21,6 +24,7 @@ RUN_SH="$PROJECT_ROOT/autonomy/run.sh"
 
 # Create temp directory for test files
 TEMP_DIR=$(mktemp -d)
+# shellcheck disable=SC2064
 trap "rm -rf $TEMP_DIR" EXIT
 
 log_test() {

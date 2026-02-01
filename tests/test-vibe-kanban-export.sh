@@ -1,4 +1,7 @@
 #!/bin/bash
+# shellcheck disable=SC2034  # Variables may be unused in test context
+# shellcheck disable=SC2155  # Declare and assign separately
+# shellcheck disable=SC2329  # Unreachable code in test functions
 # Test: Vibe Kanban Export Functionality
 # Tests export script and payload handling
 
@@ -24,7 +27,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-cd "$TEST_DIR"
+cd "$TEST_DIR" || exit 1
 
 echo "========================================"
 echo "Vibe Kanban Export Tests"

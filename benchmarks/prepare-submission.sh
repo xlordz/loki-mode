@@ -1,4 +1,5 @@
 #!/bin/bash
+# shellcheck disable=SC2034  # Variables may be used in sourced scripts
 #===============================================================================
 # Prepare SWE-bench Submission
 # Converts benchmark results to official SWE-bench submission format
@@ -15,6 +16,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+export PROJECT_DIR
 
 # Colors
 RED='\033[0;31m'
@@ -135,7 +137,7 @@ with open("$SUBMISSION_DIR/metadata.yaml", 'w') as f:
     yaml.dump(metadata, f, default_flow_style=False, sort_keys=False)
 
 print("Metadata updated with actual results")
-CONVERT_PREDS
+UPDATE_META
 
 # Generate submission summary
 log_info "Generating submission summary..."

@@ -498,6 +498,11 @@ if [ -f "$PROVIDERS_DIR/loader.sh" ]; then
         echo "ERROR: Failed to load provider config: $LOKI_PROVIDER" >&2
         exit 1
     fi
+
+    # Save provider for future runs (if .loki dir exists or will be created)
+    if [ -d ".loki/state" ] || mkdir -p ".loki/state" 2>/dev/null; then
+        echo "$LOKI_PROVIDER" > ".loki/state/provider"
+    fi
 else
     # Fallback: Claude-only mode (backwards compatibility)
     PROVIDER_NAME="claude"

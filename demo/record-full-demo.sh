@@ -1,4 +1,5 @@
 #!/bin/bash
+# shellcheck disable=SC2034  # Unused color vars are for consistency
 #===============================================================================
 # Record Full Loki Mode End-to-End Demo
 #
@@ -126,7 +127,7 @@ echo ""
 # Create demo workspace
 log_step "Creating demo workspace..."
 mkdir -p "$DEMO_WORKSPACE"
-cd "$DEMO_WORKSPACE"
+cd "$DEMO_WORKSPACE" || exit 1
 
 # Initialize git
 git init -q
@@ -179,7 +180,8 @@ cleanup() {
     echo ""
     if [ -f "$OUTPUT_FILE" ]; then
         log_info "Video saved to: $OUTPUT_FILE"
-        local size=$(du -h "$OUTPUT_FILE" | cut -f1)
+        local size
+        size=$(du -h "$OUTPUT_FILE" | cut -f1)
         log_info "File size: $size"
     fi
 

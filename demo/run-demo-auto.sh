@@ -1,13 +1,15 @@
 #!/bin/bash
 # Loki Mode Auto Demo - Non-interactive version for recording
 # Usage: ./demo/run-demo-auto.sh
+# shellcheck disable=SC2034  # Unused variables are for future use or exported
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+export SCRIPT_DIR PROJECT_DIR  # Used by sourced scripts
 
-# Colors
+# Colors (all used in echo statements)
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
 YELLOW='\033[1;33m'

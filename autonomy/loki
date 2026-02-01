@@ -26,6 +26,7 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 BOLD='\033[1m'
+DIM='\033[2m'
 NC='\033[0m'
 
 # Resolve the script's real path (handles symlinks)
@@ -108,6 +109,7 @@ show_help() {
     echo "  status           Show current status"
     echo "  logs             Show recent log output"
     echo "  dashboard        Open dashboard in browser"
+    echo "  provider [cmd]   Manage AI provider (show|set|list|info)"
     echo "  serve            Start HTTP API server (alias for api start)"
     echo "  api [cmd]        HTTP API server (start|stop|status)"
     echo "  sandbox [cmd]    Docker sandbox (start|stop|status|logs|shell|build)"
@@ -204,6 +206,19 @@ cmd_start() {
         args+=("$prd_file")
     fi
 
+    # Load saved provider if not specified on command line
+    if [ -z "$provider" ]; then
+        if [ -f "$LOKI_DIR/state/provider" ]; then
+            provider=$(cat "$LOKI_DIR/state/provider" 2>/dev/null)
+            if [ -n "$provider" ]; then
+                args+=("--provider" "$provider")
+            fi
+        fi
+    fi
+
+    # Determine effective provider for display
+    local effective_provider="${provider:-${LOKI_PROVIDER:-claude}}"
+
     # Handle sandbox mode - delegate to sandbox.sh
     if [[ "${LOKI_SANDBOX_MODE:-}" == "true" ]]; then
         if [ ! -f "$SANDBOX_SH" ]; then
@@ -235,11 +250,15 @@ cmd_start() {
     fi
 
     # Show provider info
-    if [ -n "$provider" ]; then
-        echo -e "${GREEN}Starting Loki Mode with provider: $provider${NC}"
+    echo -e "${GREEN}Starting Loki Mode...${NC}"
+    echo -e "${CYAN}Provider:${NC} $effective_provider"
+    if [ -f "$LOKI_DIR/state/provider" ]; then
+        echo -e "${DIM}  (saved for this project - change with: loki provider set <name>)${NC}"
     else
-        echo -e "${GREEN}Starting Loki Mode...${NC}"
+        echo -e "${DIM}  (default - save for project with: loki provider set <name>)${NC}"
     fi
+    echo ""
+
     exec "$RUN_SH" "${args[@]}"
 }
 
@@ -294,6 +313,16 @@ cmd_status() {
     echo -e "${BOLD}Loki Mode Status${NC}"
     echo ""
 
+    # Show current provider
+    local saved_provider=""
+    if [ -f "$LOKI_DIR/state/provider" ]; then
+        saved_provider=$(cat "$LOKI_DIR/state/provider" 2>/dev/null)
+    fi
+    local current_provider="${saved_provider:-${LOKI_PROVIDER:-claude}}"
+    echo -e "${CYAN}Provider:${NC} $current_provider"
+    echo -e "${DIM}  Switch with: loki provider set <claude|codex|gemini>${NC}"
+    echo ""
+
     # Check status file
     if [ -f "$LOKI_DIR/STATUS.txt" ]; then
         echo -e "${CYAN}Current Status:${NC}"
@@ -326,6 +355,192 @@ cmd_status() {
         local port=${LOKI_DASHBOARD_PORT:-57374}
         echo -e "${CYAN}Dashboard:${NC} http://127.0.0.1:$port/dashboard/index.html"
     fi
+}
+
+# Provider management
+cmd_provider() {
+    local subcommand="${1:-show}"
+    shift || true
+
+    case "$subcommand" in
+        show|current)
+            cmd_provider_show
+            ;;
+        set)
+            cmd_provider_set "$@"
+            ;;
+        list)
+            cmd_provider_list
+            ;;
+        info)
+            cmd_provider_info "$@"
+            ;;
+        *)
+            echo -e "${BOLD}Loki Mode Provider Management${NC}"
+            echo ""
+            echo "Usage: loki provider <command>"
+            echo ""
+            echo "Commands:"
+            echo "  show     Show current provider (default)"
+            echo "  set      Set provider for this project"
+            echo "  list     List available providers"
+            echo "  info     Show provider details"
+            echo ""
+            echo "Examples:"
+            echo "  loki provider show"
+            echo "  loki provider set claude"
+            echo "  loki provider set codex"
+            echo "  loki provider list"
+            echo "  loki provider info gemini"
+            ;;
+    esac
+}
+
+cmd_provider_show() {
+    local saved_provider=""
+    if [ -f "$LOKI_DIR/state/provider" ]; then
+        saved_provider=$(cat "$LOKI_DIR/state/provider" 2>/dev/null)
+    fi
+
+    local current="${saved_provider:-${LOKI_PROVIDER:-claude}}"
+
+    echo -e "${BOLD}Current Provider${NC}"
+    echo ""
+    echo -e "${CYAN}Provider:${NC} $current"
+
+    if [ -n "$saved_provider" ]; then
+        echo -e "${DIM}(saved in .loki/state/provider)${NC}"
+    else
+        echo -e "${DIM}(default - not explicitly set)${NC}"
+    fi
+
+    echo ""
+    echo -e "Switch provider: ${CYAN}loki provider set <name>${NC}"
+    echo -e "Available:       ${CYAN}loki provider list${NC}"
+}
+
+cmd_provider_set() {
+    local new_provider="${1:-}"
+
+    if [ -z "$new_provider" ]; then
+        echo -e "${RED}Error: Provider name required${NC}"
+        echo "Usage: loki provider set <claude|codex|gemini>"
+        exit 1
+    fi
+
+    # Validate provider
+    case "$new_provider" in
+        claude|codex|gemini)
+            ;;
+        *)
+            echo -e "${RED}Error: Invalid provider '$new_provider'${NC}"
+            echo "Valid providers: claude, codex, gemini"
+            exit 1
+            ;;
+    esac
+
+    # Save provider
+    mkdir -p "$LOKI_DIR/state"
+    echo "$new_provider" > "$LOKI_DIR/state/provider"
+
+    echo -e "${GREEN}Provider set to: $new_provider${NC}"
+    echo ""
+    echo "This will be used for all future runs in this project."
+    echo "Override temporarily with: loki start --provider <name>"
+}
+
+cmd_provider_list() {
+    echo -e "${BOLD}Available Providers${NC}"
+    echo ""
+
+    local saved_provider=""
+    if [ -f "$LOKI_DIR/state/provider" ]; then
+        saved_provider=$(cat "$LOKI_DIR/state/provider" 2>/dev/null)
+    fi
+    local current="${saved_provider:-${LOKI_PROVIDER:-claude}}"
+
+    # Check which CLIs are installed
+    local claude_status="${RED}not installed${NC}"
+    local codex_status="${RED}not installed${NC}"
+    local gemini_status="${RED}not installed${NC}"
+
+    if command -v claude &> /dev/null; then
+        claude_status="${GREEN}installed${NC}"
+    fi
+    if command -v codex &> /dev/null; then
+        codex_status="${GREEN}installed${NC}"
+    fi
+    if command -v gemini &> /dev/null; then
+        gemini_status="${GREEN}installed${NC}"
+    fi
+
+    # Display providers
+    local marker=""
+    [ "$current" = "claude" ] && marker=" ${CYAN}(current)${NC}"
+    echo -e "  claude  - Claude Code (Anthropic)     $claude_status$marker"
+
+    marker=""
+    [ "$current" = "codex" ] && marker=" ${CYAN}(current)${NC}"
+    echo -e "  codex   - Codex CLI (OpenAI)          $codex_status$marker"
+
+    marker=""
+    [ "$current" = "gemini" ] && marker=" ${CYAN}(current)${NC}"
+    echo -e "  gemini  - Gemini CLI (Google)         $gemini_status$marker"
+
+    echo ""
+    echo -e "Set provider: ${CYAN}loki provider set <name>${NC}"
+}
+
+cmd_provider_info() {
+    local provider="${1:-${LOKI_PROVIDER:-claude}}"
+
+    echo -e "${BOLD}Provider: $provider${NC}"
+    echo ""
+
+    case "$provider" in
+        claude)
+            echo "Name:        Claude Code"
+            echo "Vendor:      Anthropic"
+            echo "CLI:         claude"
+            echo "Flag:        --dangerously-skip-permissions"
+            echo ""
+            echo "Features:"
+            echo "  - Full autonomous mode"
+            echo "  - Task tool for subagents"
+            echo "  - Parallel execution"
+            echo "  - MCP server support"
+            echo ""
+            echo "Status:      Full features"
+            ;;
+        codex)
+            echo "Name:        Codex CLI"
+            echo "Vendor:      OpenAI"
+            echo "CLI:         codex"
+            echo "Flag:        exec --dangerously-bypass-approvals-and-sandbox"
+            echo ""
+            echo "Features:"
+            echo "  - Autonomous mode"
+            echo "  - Sequential only (no subagents)"
+            echo ""
+            echo "Status:      Degraded mode"
+            ;;
+        gemini)
+            echo "Name:        Gemini CLI"
+            echo "Vendor:      Google"
+            echo "CLI:         gemini"
+            echo "Flag:        --yolo"
+            echo ""
+            echo "Features:"
+            echo "  - Autonomous mode"
+            echo "  - Sequential only (no subagents)"
+            echo ""
+            echo "Status:      Degraded mode"
+            ;;
+        *)
+            echo -e "${RED}Unknown provider: $provider${NC}"
+            exit 1
+            ;;
+    esac
 }
 
 # Open dashboard in browser
@@ -770,6 +985,9 @@ main() {
             ;;
         config)
             cmd_config "$@"
+            ;;
+        provider)
+            cmd_provider "$@"
             ;;
         version|--version|-v)
             cmd_version

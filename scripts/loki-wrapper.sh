@@ -1,4 +1,6 @@
 #!/bin/bash
+# shellcheck disable=SC2034  # Unused variables are for future use or exported
+# shellcheck disable=SC2155  # Declare and assign separately (acceptable here)
 # Loki Mode Wrapper Script
 # Provides true autonomy by auto-resuming on rate limits or interruptions
 #

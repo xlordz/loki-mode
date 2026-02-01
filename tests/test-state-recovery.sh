@@ -1,4 +1,7 @@
 #!/bin/bash
+# shellcheck disable=SC2034  # Variables may be unused in test context
+# shellcheck disable=SC2155  # Declare and assign separately
+# shellcheck disable=SC2329  # Unreachable code in test functions
 # Test: State Recovery and Checkpoint Functionality
 # Tests checkpoint creation, recovery, and rate limit handling
 
@@ -24,7 +27,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-cd "$TEST_DIR"
+cd "$TEST_DIR" || exit 1
 
 echo "========================================"
 echo "Loki Mode State Recovery Tests"
@@ -85,12 +88,12 @@ fi
 log_test "Update lastCheckpoint timestamp"
 python3 << EOF
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 
 with open('.loki/state/orchestrator.json', 'r') as f:
     state = json.load(f)
 
-state['lastCheckpoint'] = datetime.utcnow().isoformat() + 'Z'
+state['lastCheckpoint'] = datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')
 
 with open('.loki/state/orchestrator.json', 'w') as f:
     json.dump(state, f, indent=2)
@@ -183,7 +186,7 @@ fi
 log_test "Detect orphaned tasks"
 python3 << 'EOF'
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 CLAIM_TIMEOUT = 3600  # 1 hour
 
@@ -192,7 +195,7 @@ old_task = {
     "id": "task-old-001",
     "type": "eng-backend",
     "claimedBy": "dead-agent-99",
-    "claimedAt": (datetime.utcnow() - timedelta(hours=2)).isoformat() + 'Z'
+    "claimedAt": (datetime.now(timezone.utc) - timedelta(hours=2)).isoformat().replace('+00:00', 'Z')
 }
 
 with open('.loki/queue/in-progress.json', 'r') as f:
@@ -205,12 +208,12 @@ with open('.loki/queue/in-progress.json', 'w') as f:
 
 def find_orphaned_tasks(in_progress_tasks):
     orphaned = []
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
 
     for task in in_progress_tasks:
         if task.get('claimedAt'):
             claimed_at = datetime.fromisoformat(task['claimedAt'].replace('Z', '+00:00'))
-            age = (now.replace(tzinfo=claimed_at.tzinfo) - claimed_at).total_seconds()
+            age = (now - claimed_at).total_seconds()
             if age > CLAIM_TIMEOUT:
                 orphaned.append(task['id'])
 
@@ -228,7 +231,7 @@ log_pass "Orphaned task detection works"
 log_test "Re-queue orphaned tasks"
 python3 << 'EOF'
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 CLAIM_TIMEOUT = 3600
 
@@ -238,19 +241,19 @@ with open('.loki/queue/in-progress.json', 'r') as f:
 with open('.loki/queue/pending.json', 'r') as f:
     pending = json.load(f)
 
-now = datetime.utcnow()
+now = datetime.now(timezone.utc)
 requeued = []
 
 for task in in_progress['tasks'][:]:
     if task.get('claimedAt'):
         claimed_at = datetime.fromisoformat(task['claimedAt'].replace('Z', '+00:00'))
-        age = (now.replace(tzinfo=claimed_at.tzinfo) - claimed_at).total_seconds()
+        age = (now - claimed_at).total_seconds()
 
         if age > CLAIM_TIMEOUT:
             # Re-queue: clear claim and move to pending
             task['claimedBy'] = None
             task['claimedAt'] = None
-            task['requeuedAt'] = now.isoformat() + 'Z'
+            task['requeuedAt'] = now.isoformat().replace('+00:00', 'Z')
             task['requeueReason'] = 'claim_timeout'
 
             pending['tasks'].append(task)

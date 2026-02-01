@@ -1,4 +1,7 @@
 #!/bin/bash
+# shellcheck disable=SC2034  # Variables may be unused in test context
+# shellcheck disable=SC2155  # Declare and assign separately
+# shellcheck disable=SC2329  # Unreachable code in test functions
 # Test: Distributed Task Queue Functionality
 # Tests task creation, claiming, completion, and failure handling
 
@@ -25,7 +28,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-cd "$TEST_DIR"
+cd "$TEST_DIR" || exit 1
 
 echo "========================================"
 echo "Loki Mode Task Queue Tests"
@@ -121,7 +124,7 @@ log_test "Claim task atomically"
 python3 << 'EOF'
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 
 # Simulate atomic claim with file locking
 queue_file = '.loki/queue/pending.json'
@@ -138,7 +141,7 @@ claimed_task = None
 for task in tasks:
     if task.get('claimedBy') is None:
         task['claimedBy'] = 'agent-001'
-        task['claimedAt'] = datetime.utcnow().isoformat() + 'Z'
+        task['claimedAt'] = datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')
         claimed_task = task
         break
 
@@ -181,7 +184,7 @@ fi
 log_test "Complete task"
 python3 << 'EOF'
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 
 progress_file = '.loki/queue/in-progress.json'
 completed_file = '.loki/queue/completed.json'
@@ -195,7 +198,7 @@ with open(completed_file, 'r') as f:
 # Complete first task
 if progress['tasks']:
     task = progress['tasks'][0]
-    task['completedAt'] = datetime.utcnow().isoformat() + 'Z'
+    task['completedAt'] = datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')
     task['result'] = {'status': 'success'}
 
     completed['tasks'].append(task)
@@ -221,7 +224,7 @@ log_test "Fail task with retry"
 # First claim a task
 python3 << 'EOF'
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 
 queue_file = '.loki/queue/pending.json'
 progress_file = '.loki/queue/in-progress.json'
@@ -232,7 +235,7 @@ with open(queue_file, 'r') as f:
 if pending['tasks']:
     task = pending['tasks'][0]
     task['claimedBy'] = 'agent-002'
-    task['claimedAt'] = datetime.utcnow().isoformat() + 'Z'
+    task['claimedAt'] = datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')
 
     with open(progress_file, 'r') as f:
         progress = json.load(f)
@@ -301,7 +304,7 @@ fi
 log_test "Move to dead letter queue after max retries"
 python3 << 'EOF'
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 
 pending_file = '.loki/queue/pending.json'
 dlq_file = '.loki/queue/dead-letter.json'
@@ -317,7 +320,7 @@ for task in pending['tasks']:
     if task.get('retries', 0) > 0:
         task['retries'] = task.get('maxRetries', 3)
         task['lastError'] = 'Max retries exceeded'
-        task['movedToDLQ'] = datetime.utcnow().isoformat() + 'Z'
+        task['movedToDLQ'] = datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')
 
         dlq['tasks'].append(task)
         pending['tasks'] = [t for t in pending['tasks'] if t['id'] != task['id']]

@@ -1,4 +1,5 @@
 #!/bin/bash
+# shellcheck disable=SC2034  # Unused variables are for loop iteration
 # Real-time sync watcher for Loki Mode -> Vibe Kanban
 # Watches .loki/queue/ for changes and automatically exports tasks
 
