@@ -2,16 +2,18 @@
 
 Complete installation instructions for all platforms and use cases.
 
-**Version:** v5.0.0
+**Version:** v5.7.0
 
 ---
 
 ## Table of Contents
 
 - [Quick Install (Recommended)](#quick-install-recommended)
+- [VS Code Extension](#vs-code-extension)
 - [npm (Node.js)](#npm-nodejs)
 - [Homebrew (macOS/Linux)](#homebrew-macoslinux)
 - [Docker](#docker)
+- [Sandbox Mode](#sandbox-mode)
 - [Multi-Provider Support](#multi-provider-support)
 - [Claude Code (CLI)](#claude-code-cli)
 - [Claude.ai (Web)](#claudeai-web)
@@ -40,6 +42,65 @@ git clone https://github.com/asklokesh/loki-mode.git ~/.claude/skills/loki-mode
 ```
 
 **Done!** Skip to [Verify Installation](#verify-installation).
+
+---
+
+## VS Code Extension
+
+The easiest way to use Loki Mode with a visual interface.
+
+### Installation
+
+**From VS Code:**
+1. Open Extensions (`Cmd+Shift+X` / `Ctrl+Shift+X`)
+2. Search for "loki-mode"
+3. Click **Install**
+
+**From Command Line:**
+```bash
+code --install-extension asklokesh.loki-mode
+```
+
+**From Marketplace:**
+Visit [marketplace.visualstudio.com/items?itemName=asklokesh.loki-mode](https://marketplace.visualstudio.com/items?itemName=asklokesh.loki-mode)
+
+### Features
+
+- **Activity Bar Icon**: Dedicated Loki Mode panel in the sidebar
+- **Session View**: Real-time session status, provider, phase, and duration
+- **Task View**: Tasks grouped by status (In Progress, Pending, Completed)
+- **Status Bar**: Current state and progress at a glance
+- **Quick Actions**: Start/Stop/Pause/Resume from command palette
+- **Keyboard Shortcut**: `Cmd+Shift+L` (Mac) / `Ctrl+Shift+L` (Windows/Linux)
+
+### Usage
+
+1. Open a project folder in VS Code
+2. Click the Loki Mode icon in the activity bar (or press `Cmd+Shift+L`)
+3. Click "Start Session" and select your PRD file
+4. Choose your AI provider (Claude, Codex, or Gemini)
+5. Watch progress in the sidebar and status bar
+
+### Configuration
+
+Open VS Code Settings and search for "loki":
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `loki.provider` | `claude` | Default AI provider |
+| `loki.apiPort` | `9898` | API server port |
+| `loki.apiHost` | `localhost` | API server host |
+| `loki.autoConnect` | `true` | Auto-connect on activation |
+| `loki.showStatusBar` | `true` | Show status bar item |
+| `loki.pollingInterval` | `2000` | Status polling interval (ms) |
+
+### Requirements
+
+The extension connects to the Loki Mode API server. You need either:
+- **Loki CLI** installed (`npm install -g loki-mode` or Homebrew)
+- **Autonomous runner** (`./autonomy/run.sh`)
+
+The extension will automatically detect when a Loki session is running.
 
 ---
 
@@ -186,6 +247,59 @@ docker run -e LOKI_MAX_RETRIES=100 -e LOKI_BASE_WAIT=120 \
 ```bash
 docker pull asklokesh/loki-mode:latest
 ```
+
+---
+
+## Sandbox Mode
+
+Run Loki Mode in an isolated Docker container for enhanced security.
+
+### Features
+
+- **Docker isolation**: Complete process isolation from host system
+- **Seccomp profiles**: Restricted system calls
+- **Resource limits**: CPU, memory, and process limits enforced
+- **Dropped capabilities**: Minimal Linux capabilities
+- **Read-only rootfs**: Immutable container filesystem
+- **Git worktree fallback**: Automatic fallback when Docker unavailable
+
+### Usage
+
+```bash
+# Run in sandbox mode
+./autonomy/sandbox.sh ./my-prd.md
+
+# With provider selection
+./autonomy/sandbox.sh --provider codex ./my-prd.md
+```
+
+### Security Controls
+
+#### Prompt Injection Protection
+
+By default, prompt injection is **disabled** for enterprise safety:
+
+```bash
+# Default: prompt injection disabled
+./autonomy/run.sh ./my-prd.md
+
+# Opt-in to enable prompt injection
+LOKI_PROMPT_INJECTION_ENABLED=true ./autonomy/run.sh ./my-prd.md
+```
+
+#### Human Input Security
+
+The `HUMAN_INPUT.md` file has security controls:
+- **Symlink protection**: Symlinks are rejected
+- **Size limit**: Maximum 1MB file size
+- **Path validation**: Must be within `.loki/` directory
+
+### When to Use Sandbox Mode
+
+- Running untrusted PRD files
+- Enterprise environments with strict security requirements
+- Automated CI/CD pipelines
+- Multi-tenant deployments
 
 ---
 

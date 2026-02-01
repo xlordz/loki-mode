@@ -5,6 +5,135 @@ All notable changes to Loki Mode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.7.0] - 2026-01-31
+
+### Added - VS Code Extension
+
+**Minor release: Official VS Code extension for visual Loki Mode interface.**
+
+#### VS Code Extension (v0.1.0)
+- **Marketplace**: Published at [marketplace.visualstudio.com/items?itemName=asklokesh.loki-mode](https://marketplace.visualstudio.com/items?itemName=asklokesh.loki-mode)
+- **Activity Bar**: Dedicated Loki Mode icon in the sidebar
+- **Session Tree View**: Real-time session status (provider, phase, duration, progress)
+- **Task Tree View**: Tasks grouped by status (In Progress, Pending, Completed)
+- **Status Bar**: Shows current state, phase, and task progress
+- **Quick Actions**: Start/Stop/Pause/Resume via command palette or keyboard shortcut
+- **Provider Selection**: Choose between Claude, Codex, or Gemini when starting
+- **Keyboard Shortcut**: `Cmd+Shift+L` (Mac) / `Ctrl+Shift+L` (Windows/Linux)
+- **Auto-connect**: Automatically connects to running Loki API when workspace has `.loki/` directory
+
+#### Commands
+- `loki.start` - Start a new session with PRD selection
+- `loki.stop` - Stop current session
+- `loki.pause` - Pause current session
+- `loki.resume` - Resume paused session
+- `loki.status` - Show detailed status notification
+- `loki.injectInput` - Send human input to running session
+- `loki.refreshTasks` - Refresh task and session views
+- `loki.showQuickPick` - Show quick actions menu
+
+#### Configuration
+- `loki.provider` - Default AI provider (claude/codex/gemini)
+- `loki.apiPort` - API server port (default: 9898)
+- `loki.apiHost` - API server host (default: localhost)
+- `loki.autoConnect` - Auto-connect on activation (default: true)
+- `loki.showStatusBar` - Show status bar item (default: true)
+- `loki.pollingInterval` - Status polling interval in ms (default: 2000)
+
+#### Files Added
+- `vscode-extension/` - Complete VS Code extension source
+- `.github/workflows/release.yml` - Added publish-vscode job for automated marketplace publishing
+- `assets/publisher-icon-128.png` - Marketplace publisher icon
+- `assets/lokesh_brand_full.png` - Full resolution brand icon
+
+---
+
+## [5.6.1] - 2026-01-30
+
+### Fixed - Security Hardening
+
+**Patch release: Critical security fixes for sandbox and prompt injection.**
+
+#### Security Fixes
+- **Command injection in sandbox**: Fixed `sandbox_prompt()` using heredoc instead of echo interpolation
+- **Symlink attack prevention**: Added symlink check before processing HUMAN_INPUT.md
+- **File size limit**: HUMAN_INPUT.md limited to 1MB to prevent resource exhaustion
+- **Path traversal**: API PRD validation now uses `path.resolve()` with containment check
+- **CORS origin bypass**: Fixed with strict regex pattern for localhost only
+
+#### Files Changed
+- `autonomy/run.sh`: Symlink check, size limit for HUMAN_INPUT.md
+- `autonomy/sandbox.sh`: Heredoc fix, command injection prevention
+
+---
+
+## [5.6.0] - 2026-01-30
+
+### Added - Sandbox Mode & Prompt Injection Control
+
+**Minor release: Docker sandbox isolation and enterprise security controls.**
+
+#### Sandbox Mode
+- **Docker isolation**: Run Loki Mode in isolated container with seccomp profiles
+- **Resource limits**: CPU, memory, and process limits enforced
+- **Dropped capabilities**: Minimal Linux capabilities for security
+- **Read-only rootfs**: Immutable container filesystem
+- **Git worktree fallback**: Automatic fallback when Docker unavailable
+
+#### Prompt Injection Control
+- **Disabled by default**: `LOKI_PROMPT_INJECTION_ENABLED=false` for enterprise safety
+- **Opt-in activation**: Set `LOKI_PROMPT_INJECTION_ENABLED=true` to enable
+- **Security gate**: Prevents untrusted input from being injected into AI prompts
+
+#### Usage
+```bash
+# Enable sandbox mode
+./autonomy/sandbox.sh ./my-prd.md
+
+# Enable prompt injection (opt-in)
+LOKI_PROMPT_INJECTION_ENABLED=true ./autonomy/run.sh ./my-prd.md
+```
+
+#### Files Changed
+- `autonomy/sandbox.sh`: New sandbox runner with Docker isolation
+- `autonomy/run.sh`: Added LOKI_PROMPT_INJECTION_ENABLED check
+
+---
+
+## [5.5.0] - 2026-01-30
+
+### Added - Gemini Rate Limit Fallback
+
+**Minor release: Automatic model fallback for Gemini rate limits.**
+
+#### Gemini Provider
+- **Flash fallback**: Automatically falls back to `gemini-2.0-flash` on rate limits
+- **Retry logic**: Exponential backoff with model downgrade
+- **Stdin pause fix**: Fixed input handling for Gemini CLI
+
+#### Files Changed
+- `providers/gemini.sh`: Rate limit detection and flash fallback
+- `autonomy/run.sh`: Gemini-specific retry handling
+
+---
+
+## [5.4.4] - 2026-01-29
+
+### Added - Background Mode & Task Auto-Tracking
+
+**Patch release: Background execution and automatic task status updates.**
+
+#### Background Mode
+- **Detached execution**: Run Loki Mode in background with `--background` flag
+- **Log persistence**: Output saved to `.loki/logs/background.log`
+- **PID tracking**: Process ID saved for status checks
+
+#### Task Auto-Tracking
+- **Automatic status**: Tasks auto-update based on file changes
+- **Progress sync**: Dashboard reflects real-time progress
+
+---
+
 ## [5.4.0] - 2026-01-29
 
 ### Added - JSON PRD Support + HUMAN_INPUT.md Fix
