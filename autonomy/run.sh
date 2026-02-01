@@ -3137,29 +3137,52 @@ def extract_bullets(text):
     """Extract bullet points from text"""
     return [b.strip() for b in re.findall(r'[-*]\s+(.+)', text) if b.strip()]
 
+def extract_numbered_items(text):
+    """Extract numbered list items"""
+    return [b.strip() for b in re.findall(r'\d+\.\s+(.+)', text) if b.strip()]
+
 # === Extract Mistakes & Learnings ===
+mistakes = []
+
+# From ## Mistakes & Learnings section
 mistakes_match = re.search(r'## Mistakes & Learnings\n(.*?)(?=\n## |\Z)', content, re.DOTALL)
 if mistakes_match:
-    bullets = extract_bullets(mistakes_match.group(1))
-    saved = save_entries(f"{learnings_dir}/mistakes.jsonl", bullets, "session")
+    mistakes.extend(extract_bullets(mistakes_match.group(1)))
+
+# From ## Challenges Encountered section
+challenges_match = re.search(r'## Challenges Encountered\n(.*?)(?=\n## |\Z)', content, re.DOTALL)
+if challenges_match:
+    mistakes.extend(extract_bullets(challenges_match.group(1)))
+
+if mistakes:
+    saved = save_entries(f"{learnings_dir}/mistakes.jsonl", mistakes, "session")
     if saved > 0:
         print(f"Extracted {saved} new mistakes")
 
-# === Extract Patterns (from various sections) ===
-pattern_sections = [
+# === Extract Patterns (learnings, insights, approaches) ===
+patterns = []
+
+# From **Learnings:** sections (most valuable source!)
+for match in re.finditer(r'\*\*Learnings:\*\*\n(.*?)(?=\n\*\*|\n###|\n##|\Z)', content, re.DOTALL):
+    patterns.extend(extract_bullets(match.group(1)))
+
+# From ## Architecture Decisions section
+arch_match = re.search(r'## Architecture Decisions\n(.*?)(?=\n## |\Z)', content, re.DOTALL)
+if arch_match:
+    patterns.extend(extract_bullets(arch_match.group(1)))
+
+# From ## Patterns Used, ## Solutions Applied sections (if they exist)
+for pattern_regex in [
     r'## Patterns Used\n(.*?)(?=\n## |\Z)',
     r'## Solutions Applied\n(.*?)(?=\n## |\Z)',
     r'## Key Approaches\n(.*?)(?=\n## |\Z)',
-    r'## What Worked\n(.*?)(?=\n## |\Z)',
-]
-patterns = []
-for pattern in pattern_sections:
-    match = re.search(pattern, content, re.DOTALL)
+]:
+    match = re.search(pattern_regex, content, re.DOTALL)
     if match:
         patterns.extend(extract_bullets(match.group(1)))
 
-# Also extract lines starting with "Pattern:" or "Solution:"
-patterns.extend(re.findall(r'(?:Pattern|Solution|Approach):\s*(.+)', content))
+# Also extract inline mentions
+patterns.extend(re.findall(r'(?:Pattern|Solution|Approach|Fix Applied):\s*(.+)', content))
 
 if patterns:
     saved = save_entries(f"{learnings_dir}/patterns.jsonl", patterns, "session")
@@ -3167,19 +3190,29 @@ if patterns:
         print(f"Extracted {saved} new patterns")
 
 # === Extract Successes (completed tasks) ===
-success_sections = [
+successes = []
+
+# From **Completed:** sections (numbered lists)
+for match in re.finditer(r'\*\*Completed:\*\*\n(.*?)(?=\n\*\*|\n###|\n##|\Z)', content, re.DOTALL):
+    successes.extend(extract_numbered_items(match.group(1)))
+    successes.extend(extract_bullets(match.group(1)))
+
+# From ## Completed Tasks, ## Achievements sections (if they exist)
+for pattern_regex in [
     r'## Completed Tasks\n(.*?)(?=\n## |\Z)',
     r'## Achievements\n(.*?)(?=\n## |\Z)',
     r'## Done\n(.*?)(?=\n## |\Z)',
-]
-successes = []
-for pattern in success_sections:
-    match = re.search(pattern, content, re.DOTALL)
+]:
+    match = re.search(pattern_regex, content, re.DOTALL)
     if match:
         successes.extend(extract_bullets(match.group(1)))
 
-# Also extract [x] completed checkboxes
+# Extract [x] completed checkboxes
 successes.extend(re.findall(r'\[x\]\s+(.+)', content, re.IGNORECASE))
+
+# From ## Session Summary sections (key accomplishments)
+for match in re.finditer(r'## Session \d+ Summary.*?\n(.*?)(?=\n## |\Z)', content, re.DOTALL):
+    successes.extend(extract_bullets(match.group(1)))
 
 if successes:
     saved = save_entries(f"{learnings_dir}/successes.jsonl", successes, "session")
