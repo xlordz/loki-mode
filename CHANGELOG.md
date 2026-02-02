@@ -5,6 +5,27 @@ All notable changes to Loki Mode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Executive Summary (v5.6 - v5.13)
+
+- **Multi-Channel Notifications** - Real-time Slack, Discord, and webhook alerts for session events
+- **Enterprise Authentication** - Optional token-based API security with SHA256 hashing
+- **Audit Logging** - Automatic JSONL audit trail with rotation for compliance
+- **Cross-Project Learning** - AI learns patterns and mistakes across all projects automatically
+- **Kanban Dashboard** - Web-based drag-and-drop task management with real-time updates
+- **GitHub Issue Automation** - Convert GitHub issues to PRDs and auto-start sessions
+- **VS Code Extension** - Integrated chat, logs, and session control in your IDE
+- **Docker Sandbox** - Secure isolated execution with seccomp profiles
+- **Docker Deployment** - Production-ready containerization with health checks
+
+---
+
+## [5.13.1] - 2026-02-02
+
+### Fixed
+- JSON escaping using Python for guaranteed correctness
+- POSIX-compatible boolean normalization for notifications
+- Curl timeout and error detection for webhook reliability
+
 ## [5.13.0] - 2026-02-02
 
 ### Added - Multi-Channel Notifications
