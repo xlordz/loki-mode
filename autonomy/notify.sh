@@ -12,12 +12,26 @@
 #   LOKI_NOTIFICATIONS        - Enable/disable all notifications (default: true)
 #===============================================================================
 
-# Notification settings
-NOTIFICATIONS_ENABLED=${LOKI_NOTIFICATIONS:-true}
+# Notification settings - normalize boolean values (POSIX compatible)
+_normalize_bool() {
+    local lower
+    lower=$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')
+    case "$lower" in
+        true|yes|1|on) echo "true" ;;
+        *) echo "false" ;;
+    esac
+}
+NOTIFICATIONS_ENABLED=$(_normalize_bool "${LOKI_NOTIFICATIONS:-true}")
 
 #===============================================================================
 # Internal Helper Functions
 #===============================================================================
+
+# JSON escape a string (handles quotes, newlines, backslashes)
+# Uses Python's json module for guaranteed correctness
+_json_escape() {
+    printf '%s' "$1" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read())[1:-1], end="")'
+}
 
 # Get ISO 8601 timestamp
 _get_timestamp() {
@@ -76,17 +90,21 @@ _notify_slack() {
     local event="$1"
     local title="$2"
     local message="$3"
-    local metadata="${4:-}"
 
     # Skip if no webhook URL configured
     [ -z "$LOKI_SLACK_WEBHOOK" ] && return 0
 
     local project
     project="$(_get_project_name)"
-    local timestamp
-    timestamp="$(_get_timestamp)"
     local color
     color="$(_get_slack_color "$event")"
+
+    # Escape strings for JSON
+    local escaped_title escaped_message escaped_event escaped_project
+    escaped_title="$(_json_escape "$title")"
+    escaped_message="$(_json_escape "$message")"
+    escaped_event="$(_json_escape "$event")"
+    escaped_project="$(_json_escape "$project")"
 
     # Build Slack payload with attachment
     local payload
@@ -94,11 +112,11 @@ _notify_slack() {
 {
     "attachments": [{
         "color": "$color",
-        "title": "Loki Mode: $title",
-        "text": "$message",
+        "title": "Loki Mode: $escaped_title",
+        "text": "$escaped_message",
         "fields": [
-            {"title": "Event", "value": "$event", "short": true},
-            {"title": "Project", "value": "$project", "short": true}
+            {"title": "Event", "value": "$escaped_event", "short": true},
+            {"title": "Project", "value": "$escaped_project", "short": true}
         ],
         "footer": "Loki Mode",
         "ts": $(date +%s)
@@ -107,8 +125,8 @@ _notify_slack() {
 PAYLOAD
 )
 
-    # Send in background, fail silently
-    (curl -s -X POST \
+    # Send in background with timeout, fail silently
+    (curl -s --fail --connect-timeout 5 --max-time 10 -X POST \
         -H "Content-Type: application/json" \
         -d "$payload" \
         "$LOKI_SLACK_WEBHOOK" \
@@ -123,7 +141,6 @@ _notify_discord() {
     local event="$1"
     local title="$2"
     local message="$3"
-    local metadata="${4:-}"
 
     # Skip if no webhook URL configured
     [ -z "$LOKI_DISCORD_WEBHOOK" ] && return 0
@@ -135,17 +152,24 @@ _notify_discord() {
     local color
     color="$(_get_discord_color "$event")"
 
+    # Escape strings for JSON
+    local escaped_title escaped_message escaped_event escaped_project
+    escaped_title="$(_json_escape "$title")"
+    escaped_message="$(_json_escape "$message")"
+    escaped_event="$(_json_escape "$event")"
+    escaped_project="$(_json_escape "$project")"
+
     # Build Discord embed payload
     local payload
     payload=$(cat <<PAYLOAD
 {
     "embeds": [{
-        "title": "Loki Mode: $title",
-        "description": "$message",
+        "title": "Loki Mode: $escaped_title",
+        "description": "$escaped_message",
         "color": $color,
         "fields": [
-            {"name": "Event", "value": "$event", "inline": true},
-            {"name": "Project", "value": "$project", "inline": true}
+            {"name": "Event", "value": "$escaped_event", "inline": true},
+            {"name": "Project", "value": "$escaped_project", "inline": true}
         ],
         "footer": {"text": "Loki Mode"},
         "timestamp": "$timestamp"
@@ -154,8 +178,8 @@ _notify_discord() {
 PAYLOAD
 )
 
-    # Send in background, fail silently
-    (curl -s -X POST \
+    # Send in background with timeout, fail silently
+    (curl -s --fail --connect-timeout 5 --max-time 10 -X POST \
         -H "Content-Type: application/json" \
         -d "$payload" \
         "$LOKI_DISCORD_WEBHOOK" \
@@ -170,7 +194,7 @@ _notify_webhook() {
     local event="$1"
     local title="$2"
     local message="$3"
-    local metadata="${4:-{\}}"
+    local metadata="${4:-{}}"
 
     # Skip if no webhook URL configured
     [ -z "$LOKI_WEBHOOK_URL" ] && return 0
@@ -179,6 +203,13 @@ _notify_webhook() {
     project="$(_get_project_name)"
     local timestamp
     timestamp="$(_get_timestamp)"
+
+    # Escape strings for JSON
+    local escaped_title escaped_message escaped_event escaped_project
+    escaped_title="$(_json_escape "$title")"
+    escaped_message="$(_json_escape "$message")"
+    escaped_event="$(_json_escape "$event")"
+    escaped_project="$(_json_escape "$project")"
 
     # Ensure metadata is valid JSON, default to empty object
     if [ -z "$metadata" ] || [ "$metadata" = "{}" ]; then
@@ -189,18 +220,18 @@ _notify_webhook() {
     local payload
     payload=$(cat <<PAYLOAD
 {
-    "event": "$event",
-    "project": "$project",
-    "title": "$title",
-    "message": "$message",
+    "event": "$escaped_event",
+    "project": "$escaped_project",
+    "title": "$escaped_title",
+    "message": "$escaped_message",
     "timestamp": "$timestamp",
     "metadata": $metadata
 }
 PAYLOAD
 )
 
-    # Send in background, fail silently
-    (curl -s -X POST \
+    # Send in background with timeout, fail silently
+    (curl -s --fail --connect-timeout 5 --max-time 10 -X POST \
         -H "Content-Type: application/json" \
         -d "$payload" \
         "$LOKI_WEBHOOK_URL" \
