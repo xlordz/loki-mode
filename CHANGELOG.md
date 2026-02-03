@@ -5,8 +5,10 @@ All notable changes to Loki Mode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Executive Summary (v5.5 - v5.15)
+## Executive Summary (v5.5 - v5.16)
 
+- **MCP Integration** - Model Context Protocol server with task queue, memory retrieval, and state management tools
+- **Hooks System** - Lifecycle hooks for SessionStart, PreToolUse, PostToolUse, Stop, and SessionEnd events
 - **Complete Memory System** - 3-tier memory with progressive disclosure, vector search, and token economics
 - **Voice Input Support** - Dictate PRDs using macOS Dictation, Whisper API, or local Whisper
 - **Multi-Channel Notifications** - Real-time Slack, Discord, and webhook alerts for session events
@@ -19,6 +21,93 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **HTTP/SSE API Server** - Full REST API matching CLI features with TypeScript client SDK
 - **Docker Sandbox** - Secure isolated execution with seccomp profiles
 - **Docker Deployment** - Production-ready containerization with health checks
+
+---
+
+## [5.16.0] - 2026-02-03
+
+### Added - MCP Integration and Hooks System
+
+**Major release: Full MCP server and lifecycle hooks for Claude Code integration.**
+
+#### MCP Server (mcp/)
+
+Model Context Protocol server exposing Loki Mode capabilities to Claude Code.
+
+**Tools (8 total):**
+- `loki_memory_retrieve` - Task-aware memory retrieval with query and task type
+- `loki_memory_store_pattern` - Store new semantic patterns with category and confidence
+- `loki_task_queue_list` - List all tasks in the queue
+- `loki_task_queue_add` - Add new tasks with title, description, priority, and phase
+- `loki_task_queue_update` - Update task status or priority
+- `loki_state_get` - Get current Loki Mode state, metrics, and memory stats
+- `loki_metrics_efficiency` - Get tool usage metrics and efficiency ratios
+- `loki_consolidate_memory` - Run episodic-to-semantic consolidation
+
+**Resources:**
+- `loki://state/continuity` - CONTINUITY.md content
+- `loki://memory/index` - Memory index (Layer 1)
+- `loki://queue/pending` - Pending tasks from the queue
+
+**Prompts:**
+- `loki_start` - Initialize a Loki Mode session with optional PRD
+- `loki_phase_report` - Generate a status report for the current phase
+
+**Configuration:**
+- `.mcp.json` - MCP server configuration for Claude Code
+- Transport: STDIO (default) or HTTP mode
+- Automatic PYTHONPATH setup for memory module access
+
+#### Hooks System (.loki/hooks/)
+
+Lifecycle hooks that run automatically at specific points in Claude Code's workflow.
+
+**Hook Scripts:**
+- `session-init.sh` (SessionStart) - Initialize session, load memory context
+- `validate-bash.sh` (PreToolUse) - Block dangerous commands, audit logging
+- `quality-gate.sh` (Stop) - Run quality checks before completion
+- `track-metrics.sh` (PostToolUse) - Track tool usage metrics (async)
+- `store-episode.sh` (SessionEnd) - Store session as episodic memory
+
+**Security Features:**
+- Blocked command patterns: rm -rf /, fork bombs, dd to devices, curl|bash
+- Audit trail: All bash commands logged to `.loki/logs/bash-audit.jsonl`
+- Quality gates: Check for uncommitted changes, new TODOs
+
+**Configuration:**
+- `.claude/settings.json` - Hook event configuration
+- Supports matchers for tool filtering (Bash, Edit, Write, etc.)
+- Async mode for non-blocking metric collection
+
+#### Files Added
+- `mcp/__init__.py` - MCP package
+- `mcp/server.py` - Main MCP server with tools, resources, prompts
+- `mcp/tools.py` - Task queue helper functions
+- `mcp/resources.py` - Resource helper functions
+- `mcp/requirements.txt` - MCP SDK dependency
+- `.mcp.json` - MCP server configuration
+- `.loki/hooks/session-init.sh` - SessionStart hook
+- `.loki/hooks/validate-bash.sh` - PreToolUse security hook
+- `.loki/hooks/quality-gate.sh` - Stop quality gate hook
+- `.loki/hooks/track-metrics.sh` - PostToolUse metrics hook
+- `.loki/hooks/store-episode.sh` - SessionEnd episode storage
+- `.claude/settings.json` - Hook configuration
+- `tests/test-hooks.sh` - Hooks test suite (10 tests)
+- `tests/test-mcp-server.sh` - MCP server test suite (12 tests)
+
+#### Usage
+
+**Enable MCP Server:**
+```bash
+# Add to Claude Code (auto-configured via .mcp.json)
+claude mcp add loki-mode
+
+# Or manually run
+python -m mcp.server                    # STDIO mode
+python -m mcp.server --transport http   # HTTP mode
+```
+
+**Hooks are automatic** - No configuration needed. Scripts in `.loki/hooks/` run at configured lifecycle events.
 
 ---
 

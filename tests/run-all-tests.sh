@@ -61,6 +61,10 @@ run_test "Memory Retrieval Tests" "$SCRIPT_DIR/test-memory-retrieval.sh"
 run_test "Memory Layers Tests" "$SCRIPT_DIR/test-memory-layers.sh"
 run_test "Memory CLI Tests" "$SCRIPT_DIR/test-memory-cli.sh"
 
+# Hooks and MCP Tests
+run_test "Hooks System Tests" "$SCRIPT_DIR/test-hooks.sh"
+run_test "MCP Server Tests" "$SCRIPT_DIR/test-mcp-server.sh"
+
 # Linting
 run_test "ShellCheck Linting" "$SCRIPT_DIR/run-shellcheck.sh"
 
