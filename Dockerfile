@@ -30,10 +30,10 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && rm -rf /var/lib/apt/lists/* \
     && npm cache clean --force
 
-# Install GitHub CLI directly from releases (latest version, not from apt)
+# Install GitHub CLI directly from releases (pinned version for reliability)
 # This avoids CVE-2024-52308 in older Ubuntu-packaged versions
+ARG GH_VERSION=2.65.0
 RUN ARCH=$(dpkg --print-architecture) && \
-    GH_VERSION=$(curl -s https://api.github.com/repos/cli/cli/releases/latest | jq -r .tag_name | sed 's/v//') && \
     curl -fsSL "https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_${ARCH}.tar.gz" -o /tmp/gh.tar.gz && \
     tar -xzf /tmp/gh.tar.gz -C /tmp && \
     mv /tmp/gh_${GH_VERSION}_linux_${ARCH}/bin/gh /usr/local/bin/gh && \
