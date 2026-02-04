@@ -3,7 +3,7 @@
 **Load 1-3 modules based on your current task. Do not load all modules.**
 
 > **Full documentation:** For comprehensive details, see `references/` directory:
-> - `references/agents.md` - Complete 37 agent type specifications
+> - `references/agent-types.md` - Complete 41 agent type specifications
 > - `references/openai-patterns.md` - OpenAI Agents SDK patterns
 > - `references/lab-research-patterns.md` - DeepMind + Anthropic research
 > - `references/production-patterns.md` - HN 2025 production insights
@@ -80,7 +80,7 @@
 
 ### agents.md
 **When:** Understanding agent types, structured prompting
-- 37 agent type overview
+- 41 agent type overview
 - Structured prompting format (GOAL/CONSTRAINTS/CONTEXT/OUTPUT)
 - Agent handoffs and callbacks
 - Routing mode optimization

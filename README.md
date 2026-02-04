@@ -3,7 +3,7 @@
 **The First Truly Autonomous Multi-Agent Startup System**
 
 [![Claude Code](https://img.shields.io/badge/Claude-Code-orange)](https://claude.ai)
-[![Agent Types](https://img.shields.io/badge/Agent%20Types-37-blue)]()
+[![Agent Types](https://img.shields.io/badge/Agent%20Types-41-blue)]()
 [![Loki Mode](https://img.shields.io/badge/Loki%20Mode-98.78%25%20Pass%401-blueviolet)](benchmarks/results/)
 [![HumanEval](https://img.shields.io/badge/HumanEval-98.17%25%20Pass%401-brightgreen)](benchmarks/results/)
 [![SWE-bench](https://img.shields.io/badge/SWE--bench-99.67%25%20Patch%20Gen-brightgreen)](benchmarks/results/)
@@ -29,7 +29,7 @@
 
 ![Loki Mode Presentation](docs/loki-mode-presentation.gif)
 
-*9 slides: Problem, Solution, 37 Agents, RARV Cycle, Benchmarks, Multi-Provider, Full Lifecycle*
+*9 slides: Problem, Solution, 41 Agents, RARV Cycle, Benchmarks, Multi-Provider, Full Lifecycle*
 
 **[Download PPTX](docs/loki-mode-presentation.pptx)** for offline viewing
 
@@ -172,7 +172,7 @@ See [benchmarks/results/](benchmarks/results/) for full methodology and solution
 
 ## What is Loki Mode?
 
-Loki Mode is a multi-provider AI skill that orchestrates **37 specialized AI agent types** across **6 swarms** to autonomously build, test, deploy, and scale complete startups. Works with **Claude Code**, **OpenAI Codex CLI**, and **Google Gemini CLI**. It dynamically spawns only the agents you need—**5-10 for simple projects, 100+ for complex startups**—working in parallel with continuous self-verification.
+Loki Mode is a multi-provider AI skill that orchestrates **41 specialized AI agent types** across **7 swarms** to autonomously build, test, deploy, and scale complete startups. Works with **Claude Code**, **OpenAI Codex CLI**, and **Google Gemini CLI**. It dynamically spawns only the agents you need—**5-10 for simple projects, 100+ for complex startups**—working in parallel with continuous self-verification.
 
 ```
 PRD → Research → Architecture → Development → Testing → Deployment → Marketing → Revenue
@@ -190,7 +190,7 @@ PRD → Research → Architecture → Development → Testing → Deployment →
 |----------------|---------------------|
 | **Single agent** writes code linearly | **100+ agents** work in parallel across engineering, ops, business, data, product, and growth |
 | **Manual deployment** required | **Autonomous deployment** to AWS, GCP, Azure, Vercel, Railway with blue-green and canary strategies |
-| **No testing** or basic unit tests | **14 automated quality gates**: security scans, load tests, accessibility audits, code reviews |
+| **No testing** or basic unit tests | **7 automated quality gates**: input/output guardrails, static analysis, blind review, anti-sycophancy, severity blocking, test coverage |
 | **Code only** - you handle the rest | **Full business operations**: marketing, sales, legal, HR, finance, investor relations |
 | **Stops on errors** | **Self-healing**: circuit breakers, dead letter queues, exponential backoff, automatic recovery |
 | **No visibility** into progress | **Real-time dashboard** with agent monitoring, task queues, and live status updates |
@@ -216,9 +216,9 @@ PRD → Research → Architecture → Development → Testing → Deployment →
 | **CLI (v4.1.0)** | `loki` command for start/stop/pause/status | [CLI Commands](#cli-commands-v410) |
 | **Config Files** | YAML configuration support | [autonomy/config.example.yaml](autonomy/config.example.yaml) |
 | **Dashboard** | Realtime Kanban board, agent monitoring | [Dashboard Guide](docs/dashboard-guide.md) |
-| **37 Agent Types** | Engineering, Ops, Business, Data, Product, Growth | [Agent Definitions](references/agent-types.md) |
+| **41 Agent Types** | Engineering, Ops, Business, Data, Product, Growth, Orchestration | [Agent Definitions](references/agent-types.md) |
 | **RARV Cycle** | Reason-Act-Reflect-Verify workflow | [Core Workflow](references/core-workflow.md) |
-| **Quality Gates** | 7-gate review system with anti-sycophancy | [Quality Control](references/quality-control.md) |
+| **Quality Gates** | 7-gate system: guardrails, static analysis, blind review, anti-sycophancy, severity blocking, test coverage | [Quality Control](references/quality-control.md) |
 | **Memory System (v5.15.0)** | Complete 3-tier memory with progressive disclosure | [Memory Architecture](references/memory-system.md) |
 | **Parallel Workflows** | Git worktree-based parallelism | [Parallel Workflows](skills/parallel-workflows.md) |
 | **GitHub Integration** | Issue import, PR creation, status sync | [GitHub Integration](skills/github-integration.md) |
@@ -477,9 +477,9 @@ Config search order: `.loki/config.yaml` (project) -> `~/.config/loki-mode/confi
 
 ---
 
-## Agent Swarms (37 Types)
+## Agent Swarms (41 Types)
 
-Loki Mode has **37 predefined agent types** organized into **6 specialized swarms**. The orchestrator spawns only what you need—simple projects use 5-10 agents, complex startups spawn 100+.
+Loki Mode has **41 predefined agent types** organized into **7 specialized swarms**. The orchestrator spawns only what you need—simple projects use 5-10 agents, complex startups spawn 100+.
 
 <img width="5309" height="979" alt="Agent Swarms Visualization" src="https://github.com/user-attachments/assets/7d18635d-a606-401f-8d9f-430e6e4ee689" />
 
@@ -504,7 +504,59 @@ Loki Mode has **37 predefined agent types** organized into **6 specialized swarm
 ### **Review (3 types)**
 `review-code` `review-business` `review-security`
 
-See [references/agents.md](references/agents.md) for complete agent type definitions.
+### **Orchestration (4 types)**
+`orch-planner` `orch-sub-planner` `orch-judge` `orch-coordinator`
+
+<details>
+<summary><strong>View All 41 Agent Types with Capabilities</strong></summary>
+
+| Swarm | Agent | Capabilities |
+|-------|-------|--------------|
+| **Engineering** | `eng-frontend` | React/Vue/Svelte, TypeScript, Tailwind, accessibility, responsive design |
+| | `eng-backend` | Node/Python/Go, REST/GraphQL, auth, business logic, middleware |
+| | `eng-database` | PostgreSQL/MySQL/MongoDB, migrations, query optimization, indexing |
+| | `eng-mobile` | React Native/Flutter/Swift/Kotlin, offline-first, push notifications |
+| | `eng-api` | OpenAPI specs, SDK generation, versioning, webhooks, rate limiting |
+| | `eng-qa` | Unit/integration/E2E tests, coverage, automation, test data |
+| | `eng-perf` | Profiling, benchmarking, optimization, caching, load testing |
+| | `eng-infra` | Docker, K8s manifests, IaC, networking, security hardening |
+| **Operations** | `ops-devops` | CI/CD pipelines, GitHub Actions, GitLab CI, Jenkins |
+| | `ops-sre` | Reliability, SLOs/SLIs, capacity planning, runbooks |
+| | `ops-security` | SAST/DAST, pen testing, vulnerability management |
+| | `ops-monitor` | Observability, Datadog/Grafana, alerting, dashboards |
+| | `ops-incident` | Incident response, RCA, post-mortems, communication |
+| | `ops-release` | Versioning, changelogs, blue-green, canary, rollbacks |
+| | `ops-cost` | Cloud cost optimization, right-sizing, FinOps |
+| | `ops-compliance` | SOC2, GDPR, HIPAA, PCI-DSS, audit preparation |
+| **Business** | `biz-marketing` | Landing pages, SEO, content, email campaigns, social media |
+| | `biz-sales` | CRM setup, outreach, demos, proposals, pipeline |
+| | `biz-finance` | Billing (Stripe), invoicing, metrics, runway, pricing |
+| | `biz-legal` | ToS, privacy policy, contracts, IP protection |
+| | `biz-support` | Help docs, FAQs, ticket system, chatbot, knowledge base |
+| | `biz-hr` | Job posts, recruiting, onboarding, culture docs |
+| | `biz-investor` | Pitch decks, investor updates, data room, cap table |
+| | `biz-partnerships` | BD outreach, integrations, co-marketing, API partnerships |
+| **Data** | `data-ml` | Model training, MLOps, feature engineering, inference |
+| | `data-eng` | ETL pipelines, data warehousing, dbt, Airflow |
+| | `data-analytics` | Product analytics, A/B tests, dashboards, insights |
+| **Product** | `prod-pm` | Backlog grooming, prioritization, roadmap, specs |
+| | `prod-design` | Design system, Figma, UX patterns, prototypes |
+| | `prod-techwriter` | API docs, guides, tutorials, release notes |
+| **Growth** | `growth-hacker` | Growth experiments, viral loops, referral programs |
+| | `growth-community` | Community building, Discord/Slack, ambassador programs |
+| | `growth-success` | Customer success, health scoring, churn prevention |
+| | `growth-lifecycle` | Email lifecycle, in-app messaging, re-engagement |
+| **Review** | `review-code` | Code quality, design patterns, SOLID, maintainability |
+| | `review-business` | Requirements alignment, business logic, edge cases |
+| | `review-security` | Vulnerabilities, auth/authz, OWASP Top 10 |
+| **Orchestration** | `orch-planner` | Task decomposition, dependency analysis, work distribution |
+| | `orch-sub-planner` | Domain-specific planning, recursive task breakdown |
+| | `orch-judge` | Cycle continuation decisions, goal assessment, escalation |
+| | `orch-coordinator` | Cross-stream coordination, merge decisions, conflict resolution |
+
+</details>
+
+See [references/agent-types.md](references/agent-types.md) for complete agent type definitions.
 
 ---
 
@@ -543,7 +595,7 @@ references/                    # Deep documentation (23KB+ files)
 | **2. Architecture** | Tech stack selection with self-reflection |
 | **3. Infrastructure** | Provision cloud, CI/CD, monitoring |
 | **4. Development** | Implement with TDD, parallel code review |
-| **5. QA** | 14 quality gates, security audit, load testing |
+| **5. QA** | 7 quality gates, security audit, load testing |
 | **6. Deployment** | Blue-green deploy, auto-rollback on errors |
 | **7. Business** | Marketing, sales, legal, support setup |
 | **8. Growth** | Continuous optimization, A/B testing, feedback loops |

@@ -39,7 +39,7 @@ skills/                     # On-demand skill modules (v3.0 architecture)
   testing.md                # Playwright, E2E, property-based testing
   production.md             # HN patterns, CI/CD, context management
   troubleshooting.md        # Common issues, red flags, fallbacks
-  agents.md                 # 37 agent types, structured prompting
+  agents.md                 # 41 agent types, structured prompting
   artifacts.md              # Generation, code transformation
   patterns-advanced.md      # OptiMind, k8s-valkey, Constitutional AI
   parallel-workflows.md     # Git worktrees, parallel streams, auto-merge
@@ -52,7 +52,7 @@ references/                 # Detailed documentation (19 files)
   tool-orchestration.md     # ToolOrchestra-inspired efficiency & rewards
   memory-system.md          # Episodic/semantic memory architecture
   quality-control.md        # Code review, anti-sycophancy, guardrails
-  agent-types.md            # 37 specialized agent definitions
+  agent-types.md            # 41 specialized agent definitions
   sdlc-phases.md            # Full SDLC workflow
   task-queue.md             # Queue system, circuit breakers
   core-workflow.md          # RARV cycle, autonomy rules

@@ -1,6 +1,6 @@
 # Agent Dispatch & Structured Prompting
 
-> **Full agent type definitions:** See `references/agents.md` for complete 37 agent role specifications across 7 swarms (Engineering, Operations, Business, Data, Product, Growth, Review).
+> **Full agent type definitions:** See `references/agent-types.md` for complete 41 agent role specifications across 7 swarms (Engineering, Operations, Business, Data, Product, Growth, Review, Orchestration).
 
 ---
 
@@ -13,7 +13,7 @@
 - `Bash` - Command execution
 - `platform-orchestrator` - Deployment and service management
 
-**The 37 agent types are ROLES defined through prompts.** Create specialized behavior:
+**The 41 agent types are ROLES defined through prompts.** Create specialized behavior:
 
 ```python
 # Security reviewer = general-purpose + security-focused prompt
