@@ -13,22 +13,6 @@
     <style>
         /* Vercel/Linear Design Language */
         :root {
-            --bg-primary: #09090b;
-            --bg-secondary: #0c0c0f;
-            --bg-tertiary: #111114;
-            --bg-card: #18181b;
-            --bg-hover: #1f1f23;
-            --accent: #8b5cf6;
-            --accent-light: #a78bfa;
-            --text-primary: #fafafa;
-            --text-secondary: #a1a1aa;
-            --text-muted: #52525b;
-            --border: rgba(255, 255, 255, 0.06);
-            --border-light: rgba(255, 255, 255, 0.1);
-            --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        [data-theme="light"] {
             --bg-primary: #fafafa;
             --bg-secondary: #f4f4f5;
             --bg-tertiary: #e4e4e7;
@@ -41,6 +25,22 @@
             --text-muted: #a1a1aa;
             --border: #e4e4e7;
             --border-light: #d4d4d8;
+            --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        [data-theme="dark"] {
+            --bg-primary: #09090b;
+            --bg-secondary: #0c0c0f;
+            --bg-tertiary: #111114;
+            --bg-card: #18181b;
+            --bg-hover: #1f1f23;
+            --accent: #8b5cf6;
+            --accent-light: #a78bfa;
+            --text-primary: #fafafa;
+            --text-secondary: #a1a1aa;
+            --text-muted: #52525b;
+            --border: rgba(255, 255, 255, 0.06);
+            --border-light: rgba(255, 255, 255, 0.1);
         }
 
         * {
@@ -342,7 +342,7 @@
                         <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
                         <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
                     </svg>
-                    <span id="theme-label">Dark</span>
+                    <span id="theme-label">Light</span>
                 </button>
             </div>
         </header>

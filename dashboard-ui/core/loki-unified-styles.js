@@ -974,8 +974,8 @@ export class UnifiedThemeManager {
     const saved = localStorage.getItem(UnifiedThemeManager.STORAGE_KEY);
     if (saved && THEMES[saved]) return saved;
 
-    // Dark-first: default to dark unless system explicitly prefers light
-    return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    // Light-first: default to light unless system explicitly prefers dark
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   }
 
   /**

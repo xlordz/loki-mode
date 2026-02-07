@@ -94,64 +94,45 @@ function generateStandaloneHTML(bundleCode) {
   <style>
     /* CSS Reset and Base Styles */
     :root {
-      /* Dark theme (default) */
-      --loki-bg-primary: #09090b;
-      --loki-bg-secondary: #0c0c0f;
-      --loki-bg-tertiary: #111114;
-      --loki-bg-card: #18181b;
-      --loki-bg-hover: #1f1f23;
-      --loki-text-primary: #fafafa;
-      --loki-text-secondary: #a1a1aa;
-      --loki-text-muted: #52525b;
-      --loki-accent: #8b5cf6;
-      --loki-accent-hover: #a78bfa;
-      --loki-border: rgba(255, 255, 255, 0.06);
-      --loki-border-light: rgba(255, 255, 255, 0.1);
-      --loki-success: #22c55e;
-      --loki-warning: #eab308;
-      --loki-error: #ef4444;
-      --loki-info: #3b82f6;
+      /* Light theme (default) */
+      --loki-bg-primary: #fafafa;
+      --loki-bg-secondary: #f4f4f5;
+      --loki-bg-tertiary: #e4e4e7;
+      --loki-bg-card: #ffffff;
+      --loki-bg-hover: #f0f0f3;
+      --loki-text-primary: #18181b;
+      --loki-text-secondary: #52525b;
+      --loki-text-muted: #a1a1aa;
+      --loki-accent: #7c3aed;
+      --loki-accent-hover: #6d28d9;
+      --loki-border: #e4e4e7;
+      --loki-border-light: #d4d4d8;
+      --loki-success: #16a34a;
+      --loki-warning: #ca8a04;
+      --loki-error: #dc2626;
+      --loki-info: #2563eb;
       --loki-transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    @media (prefers-color-scheme: light) {
+    @media (prefers-color-scheme: dark) {
       :root {
-        --loki-bg-primary: #fafafa;
-        --loki-bg-secondary: #f4f4f5;
-        --loki-bg-tertiary: #e4e4e7;
-        --loki-bg-card: #ffffff;
-        --loki-bg-hover: #f0f0f3;
-        --loki-text-primary: #18181b;
-        --loki-text-secondary: #52525b;
-        --loki-text-muted: #a1a1aa;
-        --loki-accent: #7c3aed;
-        --loki-accent-hover: #6d28d9;
-        --loki-border: #e4e4e7;
-        --loki-border-light: #d4d4d8;
-        --loki-success: #16a34a;
-        --loki-warning: #ca8a04;
-        --loki-error: #dc2626;
-        --loki-info: #2563eb;
+        --loki-bg-primary: #09090b;
+        --loki-bg-secondary: #0c0c0f;
+        --loki-bg-tertiary: #111114;
+        --loki-bg-card: #18181b;
+        --loki-bg-hover: #1f1f23;
+        --loki-text-primary: #fafafa;
+        --loki-text-secondary: #a1a1aa;
+        --loki-text-muted: #52525b;
+        --loki-accent: #8b5cf6;
+        --loki-accent-hover: #a78bfa;
+        --loki-border: rgba(255, 255, 255, 0.06);
+        --loki-border-light: rgba(255, 255, 255, 0.1);
+        --loki-success: #22c55e;
+        --loki-warning: #eab308;
+        --loki-error: #ef4444;
+        --loki-info: #3b82f6;
       }
-    }
-
-    [data-loki-theme="dark"] {
-      --loki-bg-primary: #09090b;
-      --loki-bg-secondary: #0c0c0f;
-      --loki-bg-tertiary: #111114;
-      --loki-bg-card: #18181b;
-      --loki-bg-hover: #1f1f23;
-      --loki-text-primary: #fafafa;
-      --loki-text-secondary: #a1a1aa;
-      --loki-text-muted: #52525b;
-      --loki-accent: #8b5cf6;
-      --loki-accent-hover: #a78bfa;
-      --loki-border: rgba(255, 255, 255, 0.06);
-      --loki-border-light: rgba(255, 255, 255, 0.1);
-      --loki-success: #22c55e;
-      --loki-warning: #eab308;
-      --loki-error: #ef4444;
-      --loki-info: #3b82f6;
     }
 
     [data-loki-theme="light"] {
@@ -171,6 +152,25 @@ function generateStandaloneHTML(bundleCode) {
       --loki-warning: #ca8a04;
       --loki-error: #dc2626;
       --loki-info: #2563eb;
+    }
+
+    [data-loki-theme="dark"] {
+      --loki-bg-primary: #09090b;
+      --loki-bg-secondary: #0c0c0f;
+      --loki-bg-tertiary: #111114;
+      --loki-bg-card: #18181b;
+      --loki-bg-hover: #1f1f23;
+      --loki-text-primary: #fafafa;
+      --loki-text-secondary: #a1a1aa;
+      --loki-text-muted: #52525b;
+      --loki-accent: #8b5cf6;
+      --loki-accent-hover: #a78bfa;
+      --loki-border: rgba(255, 255, 255, 0.06);
+      --loki-border-light: rgba(255, 255, 255, 0.1);
+      --loki-success: #22c55e;
+      --loki-warning: #eab308;
+      --loki-error: #ef4444;
+      --loki-info: #3b82f6;
     }
 
     * {
@@ -216,9 +216,7 @@ function generateStandaloneHTML(bundleCode) {
     .sidebar {
       display: flex;
       flex-direction: column;
-      background: rgba(255, 255, 255, 0.02);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
+      background: var(--loki-bg-card);
       border-right: 1px solid var(--loki-border);
       overflow-y: auto;
     }
@@ -278,13 +276,13 @@ function generateStandaloneHTML(bundleCode) {
 
     .nav-link:hover {
       color: var(--loki-text-primary);
-      background: rgba(255, 255, 255, 0.04);
+      background: var(--loki-bg-hover);
     }
 
     .nav-link.active {
-      color: #fafafa;
-      background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(139, 92, 246, 0.08));
-      border-color: rgba(139, 92, 246, 0.15);
+      color: var(--loki-accent);
+      background: rgba(124, 58, 237, 0.08);
+      border-color: rgba(124, 58, 237, 0.12);
     }
 
     .nav-link svg {
@@ -435,8 +433,8 @@ function generateStandaloneHTML(bundleCode) {
     /* Scrollbar */
     ::-webkit-scrollbar { width: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 3px; }
-    ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
+    ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.2); }
   </style>
 </head>
 <body>
@@ -498,7 +496,7 @@ function generateStandaloneHTML(bundleCode) {
           <input type="text" class="api-url-input" id="api-url" placeholder="API URL">
           <button class="api-btn" id="connect-btn">Go</button>
           <button class="theme-toggle" id="theme-toggle">
-            <span id="theme-label">Light</span>
+            <span id="theme-label">Dark</span>
           </button>
         </div>
       </div>

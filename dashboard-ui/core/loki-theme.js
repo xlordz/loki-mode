@@ -406,15 +406,15 @@ export class LokiElement extends HTMLElement {
         ${tokens}
       }
 
-      /* Dark theme (default) */
+      /* Light theme (default) */
       :host {
-        ${generateThemeCSS('dark')}
+        ${generateThemeCSS('light')}
       }
 
-      /* Light theme via system preference */
-      @media (prefers-color-scheme: light) {
+      /* Dark theme via system preference */
+      @media (prefers-color-scheme: dark) {
         :host {
-          ${generateThemeCSS('light')}
+          ${generateThemeCSS('dark')}
         }
       }
 
