@@ -5,6 +5,20 @@ All notable changes to Loki Mode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.26.2] - 2026-02-07
+
+### Fixed
+- Dashboard: Removed full-viewport min-height from section pages (whitespace gap)
+- Shell: TARGET_DIR initialized for parallel mode
+- Shell: Source guard on self-copy exec block prevents sourcing from launching orchestrator
+- Shell: RETURN trap leak in import loop replaced with explicit cleanup
+- Shell: Python code injection via shell interpolation fixed (7 sites)
+- UX: loki version checks script directory first (not stale installed copy)
+- UX: loki start without PRD warns and prompts for confirmation
+- UX: loki resume shows clean message when no session active
+
+---
+
 ## [5.26.1] - 2026-02-07
 
 ### Fixed
