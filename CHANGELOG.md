@@ -5,6 +5,83 @@ All notable changes to Loki Mode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.27.0] - 2026-02-07
+
+### Fixed (57 bugs from comprehensive 10-agent audit with 3-member council review)
+
+**Critical (5)**
+- Shell: PAUSE file deleted before `handle_pause()` checks it (pause never worked)
+- Shell: `LOKI_HUMAN_INPUT` never cleared after use (same directive repeated every iteration)
+- Python: Naive vs tz-aware datetime comparison crashes memory consolidation pipeline
+- Python: Episode filename mismatch (`{id}.json` vs `task-{id}.json`) breaks consolidation
+- Python: Local `mcp/` package shadows pip `mcp` SDK (circular import, MCP server can't start)
+
+**High (13)**
+- Dashboard: `time_range` parameter completely ignored in event filtering
+- Dashboard: Default bind `0.0.0.0` changed to `127.0.0.1` for security
+- Dashboard: `agent_id` sanitization added to signal file writes
+- Dashboard: Memory browser Close/Consolidate/Refresh buttons now functional
+- Dashboard: Invalid nested CSS from `getBaseStyles()` inside `:host {}` fixed in 5 components
+- Shell: Queue format mismatch between GitHub import and init normalized
+- Shell: Force-review approval now writes COMPLETED marker, report, memory consolidation
+- Shell: `loki api start` creates logs directory before redirect
+- Shell: Completion council state now records verdict AFTER anti-sycophancy override
+- VSCode: Dashboard auto-start port changed from 9898 to 57374
+- VSCode: Session tree provider uses correct parser for `/status` response
+- Python: `id(kwargs)` timing replaced with per-tool-name stack (fixes memory leak)
+- Docker: Missing COPY for `providers/`, `memory/`, `events/` in Dockerfile
+
+**Medium (30)**
+- Shell: Non-atomic dashboard-state.json writes (now uses temp file + mv)
+- Shell: PRD paths with special chars properly escaped in JSON
+- Shell: Wrong Gemini package name (`@anthropic-ai` -> `@google/gemini-cli`)
+- Shell: Codex flag updated from legacy to `--full-auto`
+- Shell: Gemini flag updated from `--yolo` to `--approval-mode=yolo`
+- Shell: `shift 2` crash on missing option value guarded
+- Shell: Single quotes in user input no longer break inline Python
+- Shell: `--project` filter now passed in recursive `show all` calls
+- Shell: Unescaped user input in notification JSON properly escaped
+- Shell: `validate-bash.sh` `$` anchors removed (was bypassed by `rm -rf /*`)
+- Shell: `track-metrics.sh` TOOL_NAME properly JSON-escaped
+- Shell: `emit.sh` failed `shift 3` no longer re-processes args
+- Shell: `quality-gate.sh` TODOS no longer becomes "0\n0"
+- Shell: Council `COUNCIL_SIZE>3` now assigns "generalist" role instead of empty
+- Dashboard: `get_episode()` and `get_skill()` check directory existence
+- Dashboard: Inconsistent LOKI_DIR resolution unified via helper function
+- Dashboard: `stopPolling()` no longer kills shared singleton polling
+- Dashboard: Council polling pauses when tab hidden
+- Dashboard: Agent JSON in onclick replaced with data attributes
+- Dashboard: Full DOM rebuild every 3s skipped when data unchanged
+- JS: `detach()` now uses stored function reference for removeEventListener
+- JS: `.toUpperCase()` guarded against non-string values
+- Docker: Named volume no longer shadows bind-mounted `.loki/`
+- Docker: Sandbox Dockerfile missing COPY for `memory/`, `events/` added
+- npm: `learning/` added to package.json files whitelist
+- npm: `learning/__pycache__/` excluded from npm package
+- Python: Dashboard `control.py` default port aligned to 57374
+- Python: Namespace-unaware direct path access in retrieval.py fixed
+- Python: In-place vector normalization no longer corrupts stored embeddings
+- Python: Integer division `// 1000` changed to float division for durations
+
+**Low (9)**
+- Shell: Orphaned install process PIDs now tracked and cleaned up
+- Dashboard: `evidence_file.read_text()` wrapped in try/except
+- Dashboard: `kill_agent()` returns proper HTTP 404/500 on failure
+- Dashboard: 5 components now have `customElements.get()` guard
+- Python: Lock files cleaned up after use in memory storage
+- Python: MCP version now read from VERSION file dynamically
+- Shell: Trailing newline in validate-bash.sh audit log fixed
+- Shell: Key names in emit.sh now JSON-escaped
+- Shell: `validate-bash.sh` audit logging uses printf instead of echo
+
+### Process
+- 10 parallel Opus agents audited entire codebase as product owners
+- 8 parallel Opus validation agents confirmed 48 TRUE, 1 PARTIALLY TRUE, 0 FALSE
+- 10 parallel fix agents implemented all fixes (no file conflicts)
+- 3-member council review (Correctness/Security/Regression) approved all 10 agents
+
+---
+
 ## [5.26.2] - 2026-02-07
 
 ### Fixed

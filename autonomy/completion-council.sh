@@ -226,6 +226,7 @@ council_vote() {
             1) role="requirements_verifier" ;;
             2) role="test_auditor" ;;
             3) role="devils_advocate" ;;
+            *) role="generalist" ;;
         esac
 
         log_info "Council member $member/$COUNCIL_SIZE ($role) reviewing..."
@@ -255,7 +256,24 @@ council_vote() {
         ((member++))
     done
 
-    # Record vote results
+    # Anti-sycophancy check: if unanimous APPROVE, run devil's advocate
+    if [ $approve_count -eq $COUNCIL_SIZE ] && [ $COUNCIL_SIZE -ge 3 ]; then
+        log_warn "Unanimous approval detected - running anti-sycophancy check..."
+        local contrarian_verdict
+        contrarian_verdict=$(council_devils_advocate "$evidence_file" "$vote_dir")
+        local contrarian_vote
+        contrarian_vote=$(echo "$contrarian_verdict" | grep -oE "VOTE:\s*(APPROVE|REJECT)" | grep -oE "APPROVE|REJECT" | head -1)
+
+        if [ "$contrarian_vote" = "REJECT" ]; then
+            log_warn "Anti-sycophancy: Devil's advocate REJECTED unanimous approval"
+            log_warn "Overriding to require one more iteration for verification"
+            approve_count=$((approve_count - 1))
+        else
+            log_info "Anti-sycophancy: Devil's advocate confirmed approval"
+        fi
+    fi
+
+    # Record vote results (AFTER anti-sycophancy check so verdict reflects any override)
     _COUNCIL_STATE_FILE="$COUNCIL_STATE_DIR/state.json" \
     _COUNCIL_SIZE="$COUNCIL_SIZE" \
     _COUNCIL_APPROVE="$approve_count" \
@@ -290,23 +308,6 @@ state.setdefault('verdicts', []).append({
 with open(state_file, 'w') as f:
     json.dump(state, f, indent=2)
 " || log_warn "Failed to record council vote results"
-
-    # Anti-sycophancy check: if unanimous APPROVE, run devil's advocate
-    if [ $approve_count -eq $COUNCIL_SIZE ] && [ $COUNCIL_SIZE -ge 3 ]; then
-        log_warn "Unanimous approval detected - running anti-sycophancy check..."
-        local contrarian_verdict
-        contrarian_verdict=$(council_devils_advocate "$evidence_file" "$vote_dir")
-        local contrarian_vote
-        contrarian_vote=$(echo "$contrarian_verdict" | grep -oE "VOTE:\s*(APPROVE|REJECT)" | grep -oE "APPROVE|REJECT" | head -1)
-
-        if [ "$contrarian_vote" = "REJECT" ]; then
-            log_warn "Anti-sycophancy: Devil's advocate REJECTED unanimous approval"
-            log_warn "Overriding to require one more iteration for verification"
-            approve_count=$((approve_count - 1))
-        else
-            log_info "Anti-sycophancy: Devil's advocate confirmed approval"
-        fi
-    fi
 
     echo ""
     log_info "Council verdict: $approve_count APPROVE / $reject_count REJECT (threshold: $COUNCIL_THRESHOLD)"

@@ -1165,7 +1165,10 @@ export class KeyboardHandler {
    * @param {HTMLElement} element
    */
   attach(element) {
-    element.addEventListener('keydown', (e) => this.handleEvent(e));
+    if (!this._boundHandler) {
+      this._boundHandler = (e) => this.handleEvent(e);
+    }
+    element.addEventListener('keydown', this._boundHandler);
   }
 
   /**
@@ -1173,7 +1176,9 @@ export class KeyboardHandler {
    * @param {HTMLElement} element
    */
   detach(element) {
-    element.removeEventListener('keydown', (e) => this.handleEvent(e));
+    if (this._boundHandler) {
+      element.removeEventListener('keydown', this._boundHandler);
+    }
   }
 }
 

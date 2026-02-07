@@ -582,6 +582,8 @@ else
     # shellcheck disable=SC2178
     WORKTREE_PATHS=""
 fi
+# Track background install PIDs for cleanup (indexed array, works on all bash versions)
+WORKTREE_INSTALL_PIDS=()
 
 # Colors
 RED='\033[0;31m'
@@ -1052,9 +1054,15 @@ import_github_issues() {
     local pending_file=".loki/queue/pending.json"
     local task_count=0
 
-    # Ensure pending.json exists
+    # Ensure pending.json exists with correct format for GitHub import
     if [ ! -f "$pending_file" ]; then
         echo '{"tasks":[]}' > "$pending_file"
+    elif jq -e 'type == "array"' "$pending_file" &>/dev/null; then
+        # Normalize bare array format to {"tasks":[...]} for GitHub import compatibility
+        local _tmp_normalize
+        _tmp_normalize=$(mktemp)
+        jq '{tasks: .}' "$pending_file" > "$_tmp_normalize" && mv "$_tmp_normalize" "$pending_file"
+        rm -f "$_tmp_normalize"
     fi
 
     # Parse issues and add to pending queue
@@ -1468,6 +1476,8 @@ create_worktree() {
                 cargo build --quiet 2>/dev/null || true
             fi
         ) &
+        # Capture install PID for cleanup on exit
+        WORKTREE_INSTALL_PIDS+=($!)
 
         log_info "Created worktree: $worktree_path"
         return 0
@@ -1775,6 +1785,14 @@ spawn_feature_stream() {
 # Cleanup all worktrees on exit
 cleanup_parallel_streams() {
     log_header "Cleaning Up Parallel Streams"
+
+    # Kill background install processes
+    for pid in "${WORKTREE_INSTALL_PIDS[@]}"; do
+        if kill -0 "$pid" 2>/dev/null; then
+            kill "$pid" 2>/dev/null || true
+        fi
+    done
+    WORKTREE_INSTALL_PIDS=()
 
     # Kill all sessions
     for stream in "${!WORKTREE_PIDS[@]}"; do
@@ -2294,11 +2312,12 @@ write_dashboard_state() {
     local failed_tasks="[]"
     local review_tasks="[]"
 
-    [ -f ".loki/queue/pending.json" ] && pending_tasks=$(cat ".loki/queue/pending.json" 2>/dev/null || echo "[]")
-    [ -f ".loki/queue/in-progress.json" ] && in_progress_tasks=$(cat ".loki/queue/in-progress.json" 2>/dev/null || echo "[]")
-    [ -f ".loki/queue/completed.json" ] && completed_tasks=$(cat ".loki/queue/completed.json" 2>/dev/null || echo "[]")
-    [ -f ".loki/queue/failed.json" ] && failed_tasks=$(cat ".loki/queue/failed.json" 2>/dev/null || echo "[]")
-    [ -f ".loki/queue/review.json" ] && review_tasks=$(cat ".loki/queue/review.json" 2>/dev/null || echo "[]")
+    # Read queue files, normalizing {"tasks":[...]} format to plain array
+    [ -f ".loki/queue/pending.json" ] && pending_tasks=$(jq 'if type == "object" then .tasks // [] else . end' ".loki/queue/pending.json" 2>/dev/null || echo "[]")
+    [ -f ".loki/queue/in-progress.json" ] && in_progress_tasks=$(jq 'if type == "object" then .tasks // [] else . end' ".loki/queue/in-progress.json" 2>/dev/null || echo "[]")
+    [ -f ".loki/queue/completed.json" ] && completed_tasks=$(jq 'if type == "object" then .tasks // [] else . end' ".loki/queue/completed.json" 2>/dev/null || echo "[]")
+    [ -f ".loki/queue/failed.json" ] && failed_tasks=$(jq 'if type == "object" then .tasks // [] else . end' ".loki/queue/failed.json" 2>/dev/null || echo "[]")
+    [ -f ".loki/queue/review.json" ] && review_tasks=$(jq 'if type == "object" then .tasks // [] else . end' ".loki/queue/review.json" 2>/dev/null || echo "[]")
 
     # Get agents state
     local agents="[]"
@@ -2351,11 +2370,12 @@ write_dashboard_state() {
         council_state=$(cat ".loki/council/state.json" 2>/dev/null || echo '{"enabled":false}')
     fi
 
-    # Write comprehensive JSON state
+    # Write comprehensive JSON state (atomic via temp file + mv)
     local project_name=$(basename "$(pwd)")
     local project_path=$(pwd)
+    local _tmp_state="${output_file}.tmp"
 
-    cat > "$output_file" << EOF
+    cat > "$_tmp_state" << EOF
 {
   "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
   "version": "$version",
@@ -2396,6 +2416,7 @@ write_dashboard_state() {
   "council": $council_state
 }
 EOF
+    mv "$_tmp_state" "$output_file"
 }
 
 #===============================================================================
@@ -2419,13 +2440,15 @@ track_iteration_start() {
         "provider=${PROVIDER_NAME:-claude}" \
         "prd=${prd:-Codebase Analysis}"
 
-    # Create task entry
+    # Create task entry (escape PRD path for safe JSON embedding)
+    local prd_escaped
+    prd_escaped=$(printf '%s' "${prd:-Codebase Analysis}" | sed 's/\\/\\\\/g; s/"/\\"/g; s/\t/\\t/g')
     local task_json=$(cat <<EOF
 {
   "id": "$task_id",
   "type": "iteration",
   "title": "Iteration $iteration",
-  "description": "PRD: ${prd:-Codebase Analysis}",
+  "description": "PRD: ${prd_escaped}",
   "status": "in_progress",
   "priority": "medium",
   "startedAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
@@ -4317,6 +4340,9 @@ build_prompt() {
     local human_directive=""
     if [ -n "${LOKI_HUMAN_INPUT:-}" ]; then
         human_directive="HUMAN_DIRECTIVE (PRIORITY): $LOKI_HUMAN_INPUT Execute this directive BEFORE continuing normal tasks."
+        # Clear after consumption so it doesn't repeat every iteration
+        unset LOKI_HUMAN_INPUT
+        rm -f "${TARGET_DIR:-.}/.loki/HUMAN_INPUT.md"
     fi
 
     # Queue task injection (from dashboard or API)
@@ -4883,8 +4909,8 @@ check_human_intervention() {
     if [ -f "$loki_dir/PAUSE" ]; then
         log_warn "PAUSE file detected - pausing execution"
         notify_intervention_needed "Execution paused via PAUSE file"
-        rm -f "$loki_dir/PAUSE"
         handle_pause
+        rm -f "$loki_dir/PAUSE"
         return 1
     fi
 
@@ -4933,6 +4959,12 @@ check_human_intervention() {
         rm -f "$loki_dir/signals/COUNCIL_REVIEW_REQUESTED"
         if type council_vote &>/dev/null && council_vote; then
             log_header "COMPLETION COUNCIL: FORCE REVIEW - PROJECT COMPLETE"
+            # Complete the missing steps: COMPLETED marker, memory consolidation, report
+            touch "$loki_dir/COMPLETED"
+            log_info "Running memory consolidation..."
+            run_memory_consolidation
+            notify_all_complete
+            save_state ${RETRY_COUNT:-0} "council_force_approved" 0
             return 2  # Stop
         fi
         log_info "Council force-review: voted to continue"

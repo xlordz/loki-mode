@@ -11,6 +11,7 @@ METRICS_DIR="$CWD/.loki/metrics"
 mkdir -p "$METRICS_DIR"
 
 TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-echo "{\"timestamp\":\"$TIMESTAMP\",\"tool\":\"$TOOL_NAME\",\"event\":\"PostToolUse\"}" >> "$METRICS_DIR/tool-usage.jsonl"
+tool_escaped=$(printf '%s' "$TOOL_NAME" | sed 's/\\/\\\\/g; s/"/\\"/g')
+echo "{\"timestamp\":\"$TIMESTAMP\",\"tool\":\"$tool_escaped\",\"event\":\"PostToolUse\"}" >> "$METRICS_DIR/tool-usage.jsonl"
 
 exit 0

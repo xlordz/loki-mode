@@ -29,7 +29,7 @@ fi
 
 # Check for TODO/FIXME in recent changes
 if [ -d "$CWD/.git" ]; then
-    TODOS=$(git -C "$CWD" diff HEAD~1 2>/dev/null | grep -c "TODO\|FIXME" || echo "0")
+    TODOS=$(git -C "$CWD" diff HEAD~1 2>/dev/null | grep -c "TODO\|FIXME" 2>/dev/null) || TODOS=0
     if [ "$TODOS" -gt 0 ]; then
         GATE_RESULTS+=("new_todos: $TODOS")
     fi

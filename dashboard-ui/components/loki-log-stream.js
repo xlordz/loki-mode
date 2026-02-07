@@ -299,9 +299,10 @@ export class LokiLogStream extends LokiElement {
   render() {
     const styles = `
       <style>
+        ${this.getBaseStyles()}
+
         :host {
           display: block;
-          ${this.getBaseStyles()}
         }
 
         .terminal-container {
@@ -543,6 +544,8 @@ export class LokiLogStream extends LokiElement {
 }
 
 // Register the component
-customElements.define('loki-log-stream', LokiLogStream);
+if (!customElements.get('loki-log-stream')) {
+  customElements.define('loki-log-stream', LokiLogStream);
+}
 
 export default LokiLogStream;

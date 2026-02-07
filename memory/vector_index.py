@@ -167,8 +167,8 @@ class VectorIndex:
         # Normalize query
         query_norm = query / (np.linalg.norm(query) + 1e-10)
 
-        # Stack embeddings into matrix for efficient computation
-        embeddings_matrix = np.vstack(self.embeddings)
+        # Stack normalized embeddings into matrix for efficient computation
+        embeddings_matrix = np.vstack(self._normalized_embeddings)
 
         # Compute cosine similarities
         similarities = np.dot(embeddings_matrix, query_norm)
@@ -345,14 +345,18 @@ class VectorIndex:
 
     def _normalize_vectors(self) -> None:
         """
-        Normalize all vectors in the index for cosine similarity.
+        Normalize copies of all vectors for cosine similarity search.
 
         This is called automatically before search operations.
+        Uses copies to avoid corrupting the original stored embeddings.
         """
-        for i, embedding in enumerate(self.embeddings):
+        self._normalized_embeddings = []
+        for embedding in self.embeddings:
             norm = np.linalg.norm(embedding)
             if norm > 0:
-                self.embeddings[i] = embedding / norm
+                self._normalized_embeddings.append(embedding / norm)
+            else:
+                self._normalized_embeddings.append(embedding.copy())
         self._normalized = True
 
     def _cosine_similarity(self, a: np.ndarray, b: np.ndarray) -> float:

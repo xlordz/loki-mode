@@ -10,13 +10,13 @@ CWD=$(echo "$INPUT" | python3 -c "import sys,json; print(json.load(sys.stdin).ge
 
 # Dangerous command patterns
 BLOCKED_PATTERNS=(
-    "^rm -rf /$"
-    "^rm -rf ~$"
-    "^rm -rf \\\$HOME$"
+    "^rm -rf /"
+    "^rm -rf ~"
+    "^rm -rf \\\$HOME"
     "> /dev/sd"
     "^mkfs "
     "^dd if=/dev/zero"
-    "^chmod -R 777 /$"
+    "^chmod -R 777 /"
 )
 
 # Check for blocked patterns
@@ -38,7 +38,8 @@ done
 # Log command to audit trail
 LOG_DIR="$CWD/.loki/logs"
 mkdir -p "$LOG_DIR"
-echo "{\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"command\":$(echo "$COMMAND" | python3 -c 'import sys,json; print(json.dumps(sys.stdin.read()))')}" >> "$LOG_DIR/bash-audit.jsonl"
+printf '%s' "{\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"command\":$(echo "$COMMAND" | python3 -c 'import sys,json; print(json.dumps(sys.stdin.read()))')}" >> "$LOG_DIR/bash-audit.jsonl"
+echo >> "$LOG_DIR/bash-audit.jsonl"
 
 # Allow command
 cat << EOF

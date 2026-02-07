@@ -749,29 +749,31 @@ class MemoryRetrieval:
         until = until or datetime.now()
         results: List[Dict[str, Any]] = []
 
-        # Search episodic memories by date directory
-        episodic_path = self.base_path / "episodic"
-        if episodic_path.exists():
-            for date_dir in episodic_path.iterdir():
-                if not date_dir.is_dir():
-                    continue
+        # Search episodic memories by date directory (via storage layer)
+        date_dirs = self.storage.list_files("episodic", "*")
+        for date_dir in date_dirs:
+            if not date_dir.is_dir():
+                continue
 
-                try:
-                    dir_date = datetime.strptime(date_dir.name, "%Y-%m-%d")
-                except ValueError:
-                    continue
+            try:
+                dir_date = datetime.strptime(date_dir.name, "%Y-%m-%d")
+            except ValueError:
+                continue
 
-                if since.date() <= dir_date.date() <= until.date():
-                    for episode_file in date_dir.glob("*.json"):
-                        if episode_file.name == "index.json":
-                            continue
+            if since.date() <= dir_date.date() <= until.date():
+                episode_files = self.storage.list_files(
+                    f"episodic/{date_dir.name}", "*.json"
+                )
+                for episode_file in episode_files:
+                    if episode_file.name == "index.json":
+                        continue
 
-                        data = self.storage.read_json(
-                            f"episodic/{date_dir.name}/{episode_file.name}"
-                        )
-                        if data:
-                            data["_source"] = "episodic"
-                            results.append(data)
+                    data = self.storage.read_json(
+                        f"episodic/{date_dir.name}/{episode_file.name}"
+                    )
+                    if data:
+                        data["_source"] = "episodic"
+                        results.append(data)
 
         # Filter semantic patterns by last_used
         patterns_data = self.storage.read_json("semantic/patterns.json") or {}
@@ -1327,16 +1329,19 @@ class MemoryRetrieval:
     ) -> List[Dict[str, Any]]:
         """Keyword search in episodic memories."""
         results: List[Dict[str, Any]] = []
-        episodic_path = self.base_path / "episodic"
+        date_dirs = self.storage.list_files("episodic", "*")
 
-        if not episodic_path.exists():
+        if not date_dirs:
             return results
 
-        for date_dir in sorted(episodic_path.iterdir(), reverse=True):
+        for date_dir in sorted(date_dirs, reverse=True):
             if not date_dir.is_dir():
                 continue
 
-            for episode_file in date_dir.glob("*.json"):
+            episode_files = self.storage.list_files(
+                f"episodic/{date_dir.name}", "*.json"
+            )
+            for episode_file in episode_files:
                 if episode_file.name == "index.json":
                     continue
 

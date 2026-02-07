@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { DEFAULT_API_BASE_URL } from '../utils/constants';
-import { parseSessionResponse } from '../api/validators';
+import { parseStatusResponse } from '../api/validators';
 
 /**
  * Represents the current Loki Mode session state
@@ -389,20 +389,21 @@ export class SessionTreeProvider implements vscode.TreeDataProvider<SessionItem>
             const response = await fetch(`${this.apiEndpoint}/status`);
             if (response.ok) {
                 const rawData = await response.json();
-                const data = parseSessionResponse(rawData);
+                const data = parseStatusResponse(rawData);
+                // Map /status response fields to LokiSession interface
+                const isRunning = data.state === 'running' || data.running === true;
+                const isPaused = data.state === 'paused' || data.paused === true;
+                let status: 'idle' | 'running' | 'paused' | 'error' = 'idle';
+                if (isPaused) { status = 'paused'; }
+                else if (isRunning) { status = 'running'; }
                 this.session = {
-                    active: data.active ?? false,
-                    prdPath: data.prdPath,
-                    prdName: data.prdName,
-                    provider: data.provider ?? 'claude',
-                    phase: data.phase ?? 'Idle',
-                    startedAt: data.startedAt,
-                    pausedAt: data.pausedAt,
-                    status: (data.status as 'idle' | 'running' | 'paused' | 'error') ?? 'idle',
-                    errorMessage: data.errorMessage,
+                    active: isRunning || isPaused,
+                    provider: (data.provider as 'claude' | 'codex' | 'gemini') ?? 'claude',
+                    phase: data.currentPhase ?? 'Idle',
+                    status,
                     currentTask: data.currentTask,
-                    completedTasks: data.completedTasks ?? 0,
-                    totalTasks: data.totalTasks ?? 0
+                    completedTasks: 0,
+                    totalTasks: data.pendingTasks ?? 0
                 };
                 this.updateDurationTimer();
             } else {

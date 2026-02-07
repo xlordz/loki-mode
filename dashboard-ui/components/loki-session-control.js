@@ -132,14 +132,22 @@ export class LokiSessionControl extends LokiElement {
   }
 
   _startPolling() {
-    this._api.startPolling((status) => {
-      this._updateFromStatus(status);
-    });
+    this._ownPollInterval = setInterval(async () => {
+      try {
+        const status = await this._api.getStatus();
+        this._updateFromStatus(status);
+      } catch (error) {
+        this._status.connected = false;
+        this._status.mode = 'offline';
+        this.render();
+      }
+    }, 3000);
   }
 
   _stopPolling() {
-    if (this._api) {
-      this._api.stopPolling();
+    if (this._ownPollInterval) {
+      clearInterval(this._ownPollInterval);
+      this._ownPollInterval = null;
     }
   }
 
@@ -215,9 +223,10 @@ export class LokiSessionControl extends LokiElement {
 
     const styles = `
       <style>
+        ${this.getBaseStyles()}
+
         :host {
           display: block;
-          ${this.getBaseStyles()}
         }
 
         .control-panel {
@@ -444,7 +453,7 @@ export class LokiSessionControl extends LokiElement {
 
         <div class="status-row">
           <span class="status-label">Complexity</span>
-          <span class="status-value">${(this._status.complexity || '--').toUpperCase()}</span>
+          <span class="status-value">${String(this._status.complexity || '--').toUpperCase()}</span>
         </div>
 
         <div class="status-row">
@@ -524,6 +533,8 @@ export class LokiSessionControl extends LokiElement {
 }
 
 // Register the component
-customElements.define('loki-session-control', LokiSessionControl);
+if (!customElements.get('loki-session-control')) {
+  customElements.define('loki-session-control', LokiSessionControl);
+}
 
 export default LokiSessionControl;

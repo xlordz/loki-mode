@@ -263,7 +263,7 @@ class MemoryEngine:
 
         # Store episode
         self.storage.ensure_directory(f"episodic/{date_str}")
-        self.storage.write_json(f"episodic/{date_str}/{episode_id}.json", trace_dict)
+        self.storage.write_json(f"episodic/{date_str}/task-{episode_id}.json", trace_dict)
 
         # Update timeline with action summary
         self._update_timeline_with_episode(trace_dict)
@@ -292,7 +292,7 @@ class MemoryEngine:
             # Search all directories
             return self._search_episode(episode_id)
 
-        data = self.storage.read_json(f"episodic/{date_str}/{episode_id}.json")
+        data = self.storage.read_json(f"episodic/{date_str}/task-{episode_id}.json")
         if data:
             return self._dict_to_episode(data)
         return None
@@ -834,9 +834,9 @@ class MemoryEngine:
             if not date_dir.is_dir():
                 continue
 
-            episode_path = date_dir / f"{episode_id}.json"
+            episode_path = date_dir / f"task-{episode_id}.json"
             if episode_path.exists():
-                data = self.storage.read_json(f"episodic/{date_dir.name}/{episode_id}.json")
+                data = self.storage.read_json(f"episodic/{date_dir.name}/task-{episode_id}.json")
                 if data:
                     return self._dict_to_episode(data)
 

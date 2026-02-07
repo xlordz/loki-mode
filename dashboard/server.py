@@ -9,9 +9,10 @@ import json
 import logging
 import os
 from contextlib import asynccontextmanager
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from pathlib import Path as _Path
 from typing import Any, Optional
+import re
 
 from fastapi import (
     Depends,
@@ -208,7 +209,8 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Add CORS middleware (configure CORS_ALLOWED_ORIGINS for production)
+# Add CORS middleware - allow_origins=* is safe because server binds to
+# 127.0.0.1 by default. Set LOKI_DASHBOARD_HOST to override if LAN access needed.
 _cors_origins = os.environ.get("CORS_ALLOWED_ORIGINS", "*").split(",")
 app.add_middleware(
     CORSMiddleware,
@@ -232,7 +234,7 @@ async def health_check() -> dict[str, str]:
 @app.get("/api/status", response_model=StatusResponse)
 async def get_status() -> StatusResponse:
     """Get system status from .loki/ session files."""
-    loki_dir = _Path(os.environ.get("LOKI_DIR", ".loki"))
+    loki_dir = _get_loki_dir()
     uptime = (datetime.now() - start_time).total_seconds()
 
     # Read dashboard-state.json (written by run.sh every 2 seconds)
@@ -513,7 +515,7 @@ async def list_tasks(
     status: Optional[str] = Query(None),
 ):
     """List tasks from session state files."""
-    loki_dir = _Path(os.environ.get("LOKI_DIR", ".loki"))
+    loki_dir = _get_loki_dir()
     state_file = loki_dir / "dashboard-state.json"
     all_tasks = []
 
@@ -1120,7 +1122,24 @@ async def get_audit_summary(days: int = 7):
 # File-based Session Endpoints (reads from .loki/ flat files)
 # =============================================================================
 
-_LOKI_DIR = _Path(os.environ.get("LOKI_DIR", ".loki"))
+def _get_loki_dir() -> _Path:
+    """Get LOKI_DIR, refreshing from env on each call for consistency."""
+    return _Path(os.environ.get("LOKI_DIR", ".loki"))
+
+
+_SAFE_ID_RE = re.compile(r'^[a-zA-Z0-9_-]+$')
+
+
+def _sanitize_agent_id(agent_id: str) -> str:
+    """Validate agent_id contains only safe characters for file paths."""
+    if not agent_id or ".." in agent_id or not _SAFE_ID_RE.match(agent_id):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid agent_id: must contain only alphanumeric characters, hyphens, and underscores",
+        )
+    return agent_id
+
+_LOKI_DIR = _get_loki_dir()
 
 
 @app.get("/api/memory/summary")
@@ -1203,6 +1222,8 @@ async def list_episodes(limit: int = 50):
 async def get_episode(episode_id: str):
     """Get a specific episodic memory entry."""
     ep_dir = _LOKI_DIR / "memory" / "episodic"
+    if not ep_dir.exists():
+        raise HTTPException(status_code=404, detail="Episode not found")
     # Try direct filename match
     for f in ep_dir.glob("*.json"):
         try:
@@ -1256,6 +1277,8 @@ async def list_skills():
 async def get_skill(skill_id: str):
     """Get a specific procedural skill."""
     skills_dir = _LOKI_DIR / "memory" / "skills"
+    if not skills_dir.exists():
+        raise HTTPException(status_code=404, detail="Skill not found")
     for f in skills_dir.glob("*.json"):
         try:
             data = json.loads(f.read_text())
@@ -1442,18 +1465,47 @@ async def get_tool_efficiency(limit: int = 50):
     return tools[:limit]
 
 
+def _parse_time_range(time_range: str) -> Optional[datetime]:
+    """Parse a time range string (e.g., '1h', '24h', '7d') into a cutoff datetime."""
+    match = re.match(r'^(\d+)([hdm])$', time_range)
+    if not match:
+        return None
+    value, unit = int(match.group(1)), match.group(2)
+    if unit == 'h':
+        delta = timedelta(hours=value)
+    elif unit == 'd':
+        delta = timedelta(days=value)
+    elif unit == 'm':
+        delta = timedelta(minutes=value)
+    else:
+        return None
+    return datetime.now(timezone.utc) - delta
+
+
 def _read_events(time_range: str = "7d") -> list:
     """Read events from .loki/events.jsonl with time filter."""
     events_file = _LOKI_DIR / "events.jsonl"
     if not events_file.exists():
         return []
 
+    cutoff = _parse_time_range(time_range)
     events = []
     try:
         for line in events_file.read_text().strip().split("\n"):
             if line.strip():
                 try:
-                    events.append(json.loads(line))
+                    event = json.loads(line)
+                    # Filter by time_range if cutoff was parsed successfully
+                    if cutoff and "timestamp" in event:
+                        try:
+                            ts = datetime.fromisoformat(
+                                event["timestamp"].replace("Z", "+00:00")
+                            )
+                            if ts < cutoff:
+                                continue
+                        except (ValueError, TypeError):
+                            pass  # Keep events with unparseable timestamps
+                    events.append(event)
                 except json.JSONDecodeError:
                     pass
     except Exception:
@@ -1550,7 +1602,10 @@ async def get_council_verdicts(limit: int = 20):
                 # Read evidence
                 evidence_file = vote_dir / "evidence.md"
                 if evidence_file.exists():
-                    verdict_detail["evidence_preview"] = evidence_file.read_text()[:500]
+                    try:
+                        verdict_detail["evidence_preview"] = evidence_file.read_text()[:500]
+                    except Exception:
+                        verdict_detail["evidence_preview"] = ""
                 # Read member votes
                 members = []
                 for member_file in sorted(vote_dir.glob("member-*.txt")):
@@ -1668,20 +1723,34 @@ async def kill_agent(agent_id: str):
         raise HTTPException(404, f"Agent {agent_id} not found")
 
     pid = target.get("pid")
-    if pid:
-        try:
-            os.kill(int(pid), 15)  # SIGTERM
-            target["status"] = "terminated"
-            agents_file.write_text(json.dumps(agents, indent=2))
-            return {"success": True, "message": f"Agent {agent_id} terminated"}
-        except OSError as e:
-            return {"success": False, "message": f"Failed to kill agent: {e}"}
-    return {"success": False, "message": "Agent has no PID"}
+    if not pid:
+        raise HTTPException(
+            status_code=404, detail=f"Agent {agent_id} has no PID"
+        )
+    try:
+        os.kill(int(pid), 15)  # SIGTERM
+        target["status"] = "terminated"
+        agents_file.write_text(json.dumps(agents, indent=2))
+        return {"success": True, "message": f"Agent {agent_id} terminated"}
+    except ProcessLookupError:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Process {pid} not found for agent {agent_id}",
+        )
+    except PermissionError as e:
+        raise HTTPException(
+            status_code=500, detail=f"Permission denied killing agent: {e}"
+        )
+    except OSError as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to kill agent: {e}"
+        )
 
 
 @app.post("/api/agents/{agent_id}/pause")
 async def pause_agent(agent_id: str):
     """Pause a specific agent by writing a pause signal."""
+    agent_id = _sanitize_agent_id(agent_id)
     signal_dir = _LOKI_DIR / "signals"
     signal_dir.mkdir(parents=True, exist_ok=True)
     (signal_dir / f"PAUSE_AGENT_{agent_id}").write_text(
@@ -1693,6 +1762,7 @@ async def pause_agent(agent_id: str):
 @app.post("/api/agents/{agent_id}/resume")
 async def resume_agent(agent_id: str):
     """Resume a paused agent."""
+    agent_id = _sanitize_agent_id(agent_id)
     signal_file = _LOKI_DIR / "signals" / f"PAUSE_AGENT_{agent_id}"
     try:
         signal_file.unlink(missing_ok=True)
@@ -1823,7 +1893,8 @@ def run_server(host: str = None, port: int = None) -> None:
     """Run the dashboard server."""
     import uvicorn
     if host is None:
-        host = os.environ.get("LOKI_DASHBOARD_HOST", "0.0.0.0")
+        # Default to localhost-only; CORS * is safe since not exposed to LAN
+        host = os.environ.get("LOKI_DASHBOARD_HOST", "127.0.0.1")
     if port is None:
         port = int(os.environ.get("LOKI_DASHBOARD_PORT", "57374"))
     uvicorn.run(app, host=host, port=port)

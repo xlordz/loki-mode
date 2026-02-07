@@ -942,7 +942,7 @@ cmd_provider_set() {
                 echo "Install: npm install -g @openai/codex"
                 ;;
             gemini)
-                echo "Install: npm install -g @anthropic-ai/gemini-cli"
+                echo "Install: npm install -g @google/gemini-cli"
                 ;;
         esac
         echo ""
@@ -1026,7 +1026,7 @@ cmd_provider_info() {
             echo "Name:        Codex CLI"
             echo "Vendor:      OpenAI"
             echo "CLI:         codex"
-            echo "Flag:        exec --dangerously-bypass-approvals-and-sandbox"
+            echo "Flag:        --full-auto"
             echo ""
             echo "Features:"
             echo "  - Autonomous mode"
@@ -1038,7 +1038,7 @@ cmd_provider_info() {
             echo "Name:        Gemini CLI"
             echo "Vendor:      Google"
             echo "CLI:         gemini"
-            echo "Flag:        --yolo"
+            echo "Flag:        --approval-mode=yolo"
             echo ""
             echo "Features:"
             echo "  - Autonomous mode"
@@ -1572,7 +1572,7 @@ cmd_issue_parse() {
                 ;;
             --format)
                 format="${2:-yaml}"
-                shift 2
+                if [ $# -ge 2 ]; then shift 2; else shift; fi
                 ;;
             --format=*)
                 format="${1#*=}"
@@ -1580,7 +1580,7 @@ cmd_issue_parse() {
                 ;;
             --output|-o)
                 output_file="${2:-}"
-                shift 2
+                if [ $# -ge 2 ]; then shift 2; else shift; fi
                 ;;
             --output=*)
                 output_file="${1#*=}"
@@ -2291,7 +2291,7 @@ cmd_api() {
             fi
 
             # Start server
-            mkdir -p "$LOKI_DIR"
+            mkdir -p "$LOKI_DIR/logs"
             nohup node "$api_server" --port "$port" > "$LOKI_DIR/logs/api.log" 2>&1 &
             local new_pid=$!
             echo "$new_pid" > "$pid_file"
@@ -2612,6 +2612,8 @@ send_slack_notification() {
     project_name=$(basename "$(pwd)")
     local timestamp
     timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    local message_escaped
+    message_escaped=$(printf '%s' "$message" | sed 's/\\/\\\\/g; s/"/\\"/g; s/	/\\t/g')
 
     # Build Slack payload with blocks for better formatting
     local payload
@@ -2629,7 +2631,7 @@ send_slack_notification() {
             "type": "section",
             "text": {
                 "type": "mrkdwn",
-                "text": "$message"
+                "text": "$message_escaped"
             }
         },
         {
@@ -2666,6 +2668,8 @@ send_discord_notification() {
     project_name=$(basename "$(pwd)")
     local timestamp
     timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    local message_escaped
+    message_escaped=$(printf '%s' "$message" | sed 's/\\/\\\\/g; s/"/\\"/g; s/	/\\t/g')
 
     # Build Discord embed payload
     local payload
@@ -2674,7 +2678,7 @@ send_discord_notification() {
     "embeds": [
         {
             "title": "Loki Mode: $event_type",
-            "description": "$message",
+            "description": "$message_escaped",
             "color": 5814783,
             "footer": {
                 "text": "Project: $project_name | $timestamp"
@@ -2705,6 +2709,8 @@ send_webhook_notification() {
     project_name=$(basename "$(pwd)")
     local timestamp
     timestamp=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+    local message_escaped
+    message_escaped=$(printf '%s' "$message" | sed 's/\\/\\\\/g; s/"/\\"/g; s/	/\\t/g')
 
     # Build generic JSON payload
     local payload
@@ -2712,7 +2718,7 @@ send_webhook_notification() {
 {
     "source": "loki-mode",
     "event": "$event_type",
-    "message": "$message",
+    "message": "$message_escaped",
     "project": "$project_name",
     "timestamp": "$timestamp",
     "cwd": "$(pwd)"
@@ -3085,11 +3091,11 @@ if count == 0:
                     ;;
 
                 all)
-                    cmd_memory show patterns --limit "$limit"
+                    cmd_memory show patterns --limit "$limit" --project "$project"
                     echo ""
-                    cmd_memory show mistakes --limit "$limit"
+                    cmd_memory show mistakes --limit "$limit" --project "$project"
                     echo ""
-                    cmd_memory show successes --limit "$limit"
+                    cmd_memory show successes --limit "$limit" --project "$project"
                     ;;
 
                 *)
@@ -3110,12 +3116,13 @@ if count == 0:
             echo -e "${BOLD}Search Results for: $query${NC}"
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
+            local query_escaped="${query//\'/\'\\\'\'}"
             python3 -c "
 import json
 import os
 
 learnings_dir = '$learnings_dir'
-query = '$query'.lower()
+query = '${query_escaped}'.lower()
 
 for filename in ['patterns.jsonl', 'mistakes.jsonl', 'successes.jsonl']:
     filepath = os.path.join(learnings_dir, filename)

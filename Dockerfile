@@ -5,7 +5,7 @@
 FROM ubuntu:24.04
 
 LABEL maintainer="Lokesh Mure"
-LABEL version="5.26.2"
+LABEL version="5.27.0"
 LABEL description="Multi-agent autonomous startup system for Claude Code, Codex CLI, and Gemini CLI"
 
 # Prevent interactive prompts during install
@@ -62,6 +62,9 @@ COPY autonomy/ ./autonomy/
 COPY skills/ ./skills/
 COPY references/ ./references/
 COPY docs/ ./docs/
+COPY providers/ ./providers/
+COPY memory/ ./memory/
+COPY events/ ./events/
 COPY dashboard/ ./dashboard/
 
 # Install dashboard Python dependencies

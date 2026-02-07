@@ -5,7 +5,7 @@ FastAPI-based session control endpoints for the Loki Mode dashboard.
 Provides start/stop/pause/resume functionality and real-time status updates.
 
 Usage:
-    uvicorn dashboard.control:app --host 0.0.0.0 --port 8420
+    uvicorn dashboard.control:app --host 0.0.0.0 --port 57374
     # Or run with the CLI:
     loki dashboard start
 """
@@ -510,5 +510,5 @@ async def asyncio_sleep(seconds: float):
 # Run with uvicorn if executed directly
 if __name__ == "__main__":
     import uvicorn
-    port = int(os.environ.get("LOKI_DASHBOARD_PORT", "8420"))
+    port = int(os.environ.get("LOKI_DASHBOARD_PORT", "57374"))
     uvicorn.run(app, host="0.0.0.0", port=port)

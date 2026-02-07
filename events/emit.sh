@@ -25,7 +25,7 @@ mkdir -p "$EVENTS_DIR"
 TYPE="${1:-state}"
 SOURCE="${2:-cli}"
 ACTION="${3:-unknown}"
-shift 3 2>/dev/null || true
+if [ $# -ge 3 ]; then shift 3; else shift $#; fi
 
 # Generate event ID and timestamp
 EVENT_ID=$(head -c 4 /dev/urandom | od -An -tx1 | tr -d ' \n')
@@ -36,9 +36,10 @@ PAYLOAD="{\"action\":\"$ACTION\""
 for arg in "$@"; do
     key="${arg%%=*}"
     value="${arg#*=}"
-    # Escape quotes in value
-    value=$(echo "$value" | sed 's/"/\\"/g')
-    PAYLOAD="$PAYLOAD,\"$key\":\"$value\""
+    # Escape special characters for JSON
+    key_escaped=$(printf '%s' "$key" | sed 's/\\/\\\\/g; s/"/\\"/g')
+    value=$(printf '%s' "$value" | sed 's/\\/\\\\/g; s/"/\\"/g')
+    PAYLOAD="$PAYLOAD,\"$key_escaped\":\"$value\""
 done
 PAYLOAD="$PAYLOAD}"
 

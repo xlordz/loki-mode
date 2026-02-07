@@ -49,6 +49,7 @@ export class LokiCouncilDashboard extends LokiElement {
     this._convergence = [];
     this._agents = [];
     this._selectedAgent = null;
+    this._lastDataHash = null;
   }
 
   connectedCallback() {
@@ -81,12 +82,30 @@ export class LokiCouncilDashboard extends LokiElement {
 
   _startPolling() {
     this._pollInterval = setInterval(() => this._loadData(), 3000);
+    this._visibilityHandler = () => {
+      if (document.hidden) {
+        if (this._pollInterval) {
+          clearInterval(this._pollInterval);
+          this._pollInterval = null;
+        }
+      } else {
+        if (!this._pollInterval) {
+          this._loadData();
+          this._pollInterval = setInterval(() => this._loadData(), 3000);
+        }
+      }
+    };
+    document.addEventListener('visibilitychange', this._visibilityHandler);
   }
 
   _stopPolling() {
     if (this._pollInterval) {
       clearInterval(this._pollInterval);
       this._pollInterval = null;
+    }
+    if (this._visibilityHandler) {
+      document.removeEventListener('visibilitychange', this._visibilityHandler);
+      this._visibilityHandler = null;
     }
   }
 
@@ -114,6 +133,17 @@ export class LokiCouncilDashboard extends LokiElement {
     } catch (err) {
       this._error = err.message;
     }
+
+    // Skip full re-render if data hasn't changed (avoids disrupting user interaction)
+    const dataHash = JSON.stringify({
+      s: this._councilState,
+      v: this._verdicts,
+      c: this._convergence,
+      a: this._agents,
+      e: this._error,
+    });
+    if (dataHash === this._lastDataHash) return;
+    this._lastDataHash = dataHash;
 
     this.render();
   }
@@ -374,11 +404,11 @@ export class LokiCouncilDashboard extends LokiElement {
       return '<div class="empty-state">No agents registered.</div>';
     }
 
-    return `
+    const html = `
       <div class="agents-list">
-        ${this._agents.map(agent => `
+        ${this._agents.map((agent, idx) => `
           <div class="agent-card ${this._selectedAgent?.id === agent.id ? 'agent-selected' : ''}"
-               onclick="this.getRootNode().host._selectAgent(${JSON.stringify(agent).replace(/"/g, '&quot;')})">
+               data-agent-index="${idx}">
             <div class="agent-header">
               <span class="agent-name">${agent.name || agent.id || 'Unknown'}</span>
               <span class="agent-status ${agent.alive ? 'status-alive' : 'status-dead'}">
@@ -393,14 +423,14 @@ export class LokiCouncilDashboard extends LokiElement {
             ${this._selectedAgent?.id === agent.id ? `
               <div class="agent-actions">
                 ${agent.alive ? `
-                  <button class="btn btn-sm btn-warn" onclick="event.stopPropagation(); this.getRootNode().host._pauseAgent('${agent.id || agent.name}')">
+                  <button class="btn btn-sm btn-warn" data-action="pause" data-agent-id="${agent.id || agent.name}">
                     Pause
                   </button>
-                  <button class="btn btn-sm btn-danger" onclick="event.stopPropagation(); this.getRootNode().host._killAgent('${agent.id || agent.name}')">
+                  <button class="btn btn-sm btn-danger" data-action="kill" data-agent-id="${agent.id || agent.name}">
                     Kill
                   </button>
                 ` : `
-                  <button class="btn btn-sm btn-primary" onclick="event.stopPropagation(); this.getRootNode().host._resumeAgent('${agent.id || agent.name}')">
+                  <button class="btn btn-sm btn-primary" data-action="resume" data-agent-id="${agent.id || agent.name}">
                     Resume
                   </button>
                 `}
@@ -410,6 +440,30 @@ export class LokiCouncilDashboard extends LokiElement {
         `).join('')}
       </div>
     `;
+
+    // Defer event binding until after render inserts this HTML
+    requestAnimationFrame(() => {
+      const s = this.shadowRoot;
+      if (!s) return;
+      s.querySelectorAll('.agent-card[data-agent-index]').forEach(card => {
+        const idx = parseInt(card.dataset.agentIndex, 10);
+        const agent = this._agents[idx];
+        if (!agent) return;
+        card.addEventListener('click', () => this._selectAgent(agent));
+        card.querySelectorAll('[data-action]').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const action = btn.dataset.action;
+            const agentId = btn.dataset.agentId;
+            if (action === 'pause') this._pauseAgent(agentId);
+            else if (action === 'kill') this._killAgent(agentId);
+            else if (action === 'resume') this._resumeAgent(agentId);
+          });
+        });
+      });
+    });
+
+    return html;
   }
 
   _formatTime(timestamp) {

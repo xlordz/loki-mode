@@ -91,7 +91,7 @@ export class LokiApiClient {
 
     /**
      * Create a new API client
-     * @param baseUrl - Base URL of the Loki server (default: http://localhost:9898)
+     * @param baseUrl - Base URL of the Loki server (default: http://localhost:57374)
      * @param config - Additional configuration options
      */
     constructor(baseUrl?: string, config?: Partial<Omit<ApiClientConfig, 'baseUrl'>>) {

@@ -203,9 +203,10 @@ export class LokiTaskBoard extends LokiElement {
   render() {
     const styles = `
       <style>
+        ${this.getBaseStyles()}
+
         :host {
           display: block;
-          ${this.getBaseStyles()}
         }
 
         .board-container {
@@ -599,6 +600,8 @@ export class LokiTaskBoard extends LokiElement {
 }
 
 // Register the component
-customElements.define('loki-task-board', LokiTaskBoard);
+if (!customElements.get('loki-task-board')) {
+  customElements.define('loki-task-board', LokiTaskBoard);
+}
 
 export default LokiTaskBoard;

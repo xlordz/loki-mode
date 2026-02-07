@@ -518,9 +518,10 @@ export class LokiMemoryBrowser extends LokiElement {
   render() {
     const styles = `
       <style>
+        ${this.getBaseStyles()}
+
         :host {
           display: block;
-          ${this.getBaseStyles()}
         }
 
         .memory-browser {
@@ -1008,6 +1009,24 @@ export class LokiMemoryBrowser extends LokiElement {
         }
       });
     });
+
+    // Close detail button
+    const closeBtn = this.shadowRoot.getElementById('close-detail');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', () => this._closeDetail());
+    }
+
+    // Consolidate button
+    const consolidateBtn = this.shadowRoot.getElementById('consolidate-btn');
+    if (consolidateBtn) {
+      consolidateBtn.addEventListener('click', () => this._triggerConsolidation());
+    }
+
+    // Refresh button
+    const refreshBtn = this.shadowRoot.getElementById('refresh-btn');
+    if (refreshBtn) {
+      refreshBtn.addEventListener('click', () => this._loadData());
+    }
   }
 
   _handleItemClick(card) {
@@ -1036,28 +1055,12 @@ export class LokiMemoryBrowser extends LokiElement {
     if (targetIndex >= 0 && targetIndex < cards.length) {
       cards[targetIndex].focus();
     }
-
-    // Close detail button
-    const closeBtn = this.shadowRoot.getElementById('close-detail');
-    if (closeBtn) {
-      closeBtn.addEventListener('click', () => this._closeDetail());
-    }
-
-    // Consolidate button
-    const consolidateBtn = this.shadowRoot.getElementById('consolidate-btn');
-    if (consolidateBtn) {
-      consolidateBtn.addEventListener('click', () => this._triggerConsolidation());
-    }
-
-    // Refresh button
-    const refreshBtn = this.shadowRoot.getElementById('refresh-btn');
-    if (refreshBtn) {
-      refreshBtn.addEventListener('click', () => this._loadData());
-    }
   }
 }
 
 // Register the component
-customElements.define('loki-memory-browser', LokiMemoryBrowser);
+if (!customElements.get('loki-memory-browser')) {
+  customElements.define('loki-memory-browser', LokiMemoryBrowser);
+}
 
 export default LokiMemoryBrowser;

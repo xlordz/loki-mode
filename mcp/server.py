@@ -246,8 +246,8 @@ logger = logging.getLogger('loki-mcp')
 # EVENT EMISSION - Non-blocking tool call events
 # ============================================================
 
-# Track tool call start times for duration calculation
-_tool_call_start_times: Dict[str, float] = {}
+# Track tool call start times for duration calculation (per-tool stack)
+_tool_call_start_times: Dict[str, List[float]] = {}
 
 
 def _emit_tool_event_async(tool_name: str, action: str, **kwargs) -> None:
@@ -261,13 +261,15 @@ def _emit_tool_event_async(tool_name: str, action: str, **kwargs) -> None:
     """
     import time
 
-    # Track timing for learning signals
-    call_id = f"{tool_name}_{id(kwargs)}"
+    # Track timing for learning signals using a per-tool-name stack
     if action == 'start':
-        _tool_call_start_times[call_id] = time.time()
+        _tool_call_start_times.setdefault(tool_name, []).append(time.time())
     elif action == 'complete':
-        # Calculate execution time and emit learning signal
-        start_time = _tool_call_start_times.pop(call_id, None)
+        # Pop the most recent start time for this tool
+        start_time = None
+        times = _tool_call_start_times.get(tool_name)
+        if times:
+            start_time = times.pop()
         if start_time:
             execution_time_ms = int((time.time() - start_time) * 1000)
             _emit_learning_signal_async(
@@ -359,7 +361,7 @@ def _emit_learning_signal_async(
                     tool_name=tool_name,
                     action=f"mcp_tool_call",
                     pattern_name=f"mcp_{tool_name}_success",
-                    duration_seconds=execution_time_ms // 1000,
+                    duration_seconds=execution_time_ms / 1000,
                     context={'parameters': parameters or {}},
                 )
 
@@ -411,15 +413,35 @@ def _emit_context_relevance_signal(
 
 
 try:
-    from mcp.server.fastmcp import FastMCP
+    # The local mcp/ package shadows the pip-installed mcp SDK.
+    # Temporarily remove the parent directory from sys.path so that
+    # "from mcp.server.fastmcp" resolves to the pip package, not this file.
+    _parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    _path_modified = False
+    if _parent_dir in sys.path:
+        sys.path.remove(_parent_dir)
+        _path_modified = True
+    try:
+        from mcp.server.fastmcp import FastMCP
+    finally:
+        # Restore parent dir at end of path so other local imports still work
+        if _path_modified:
+            sys.path.append(_parent_dir)
 except ImportError:
     logger.error("MCP SDK not installed. Run: pip install mcp")
     sys.exit(1)
 
+# Read version from VERSION file instead of hardcoding
+try:
+    with open(os.path.join(os.path.dirname(__file__), '..', 'VERSION')) as _vf:
+        _version = _vf.read().strip()
+except Exception:
+    _version = "unknown"
+
 # Initialize FastMCP server
 mcp = FastMCP(
     "loki-mode",
-    version="5.25.0",
+    version=_version,
     description="Loki Mode autonomous agent orchestration"
 )
 

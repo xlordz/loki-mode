@@ -51,6 +51,9 @@ docs/screenshots/
 **/test_*.py
 **/tests/
 
+# Learning module build artifacts
+learning/__pycache__/
+
 # Dashboard frontend source (keep server.py only)
 dashboard/frontend/
 dashboard/.venv/

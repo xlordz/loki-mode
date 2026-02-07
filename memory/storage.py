@@ -172,6 +172,10 @@ class MemoryStorage:
             if lock_file is not None:
                 fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
                 lock_file.close()
+                try:
+                    os.remove(lock_path)
+                except OSError:
+                    pass
 
     def _atomic_write(self, path: Path, data: dict) -> None:
         """
@@ -340,8 +344,11 @@ class MemoryStorage:
             # Check if date is before filter
             if since:
                 try:
-                    dir_date = datetime.strptime(date_dir.name, "%Y-%m-%d")
-                    if dir_date < since.replace(hour=0, minute=0, second=0, microsecond=0):
+                    dir_date = datetime.strptime(date_dir.name, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+                    since_cmp = since.replace(hour=0, minute=0, second=0, microsecond=0)
+                    if since_cmp.tzinfo is None:
+                        since_cmp = since_cmp.replace(tzinfo=timezone.utc)
+                    if dir_date < since_cmp:
                         continue
                 except ValueError:
                     continue

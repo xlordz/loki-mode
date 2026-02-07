@@ -5,7 +5,7 @@
 /**
  * Default API server port
  */
-export const DEFAULT_API_PORT = 9898;
+export const DEFAULT_API_PORT = 57374;
 
 /**
  * Default API host

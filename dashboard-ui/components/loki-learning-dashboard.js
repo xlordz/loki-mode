@@ -662,9 +662,10 @@ export class LokiLearningDashboard extends LokiElement {
   render() {
     const styles = `
       <style>
+        ${this.getBaseStyles()}
+
         :host {
           display: block;
-          ${this.getBaseStyles()}
         }
 
         .learning-dashboard {
@@ -1393,6 +1394,8 @@ export class LokiLearningDashboard extends LokiElement {
 }
 
 // Register the component
-customElements.define('loki-learning-dashboard', LokiLearningDashboard);
+if (!customElements.get('loki-learning-dashboard')) {
+  customElements.define('loki-learning-dashboard', LokiLearningDashboard);
+}
 
 export default LokiLearningDashboard;
