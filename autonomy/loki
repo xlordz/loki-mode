@@ -318,6 +318,7 @@ show_help() {
     echo "  import           Import GitHub issues as tasks"
     echo "  config [cmd]     Manage configuration (show|init|edit|path)"
     echo "  memory [cmd]     Cross-project learnings (list|show|search|stats)"
+    echo "  compound [cmd]   Knowledge compounding (list|show|search|run|stats)"
     echo "  council [cmd]    Completion council (status|verdicts|convergence|force-review|report)"
     echo "  dogfood          Show self-development statistics"
     echo "  reset [target]   Reset session state (all|retries|failed)"
@@ -3546,6 +3547,9 @@ main() {
         memory)
             cmd_memory "$@"
             ;;
+        compound)
+            cmd_compound "$@"
+            ;;
         council)
             cmd_council "$@"
             ;;
@@ -4537,6 +4541,282 @@ except Exception as e:
             echo -e "${RED}Unknown memory command: $subcommand${NC}"
             echo "Run 'loki memory help' for usage."
             exit 1
+            ;;
+    esac
+}
+
+# Knowledge Compounding - Structured Solutions (v5.30.0)
+# Inspired by Compound Engineering Plugin's docs/solutions/ with YAML frontmatter
+cmd_compound() {
+    local subcommand="${1:-help}"
+    shift 2>/dev/null || true
+
+    local solutions_dir="${HOME}/.loki/solutions"
+
+    case "$subcommand" in
+        list|ls)
+            echo -e "${BOLD}Compound Solutions${NC}"
+            echo ""
+
+            if [ ! -d "$solutions_dir" ]; then
+                echo "  No solutions yet. Solutions are created automatically during"
+                echo "  Loki sessions or manually with 'loki compound run'."
+                echo ""
+                echo "  Location: $solutions_dir"
+                return
+            fi
+
+            local total=0
+            for category in security performance architecture testing debugging deployment general; do
+                local cat_dir="$solutions_dir/$category"
+                if [ -d "$cat_dir" ]; then
+                    local count=$(find "$cat_dir" -name "*.md" 2>/dev/null | wc -l | tr -d ' ')
+                    if [ "$count" -gt 0 ]; then
+                        printf "  %-16s ${GREEN}%d${NC} solutions\n" "$category" "$count"
+                        total=$((total + count))
+                    fi
+                fi
+            done
+
+            if [ "$total" -eq 0 ]; then
+                echo "  No solutions yet."
+            else
+                echo ""
+                echo "  Total: ${total} solutions"
+            fi
+            echo ""
+            echo "  Location: $solutions_dir"
+            echo ""
+            echo "  Use 'loki compound show <category>' to view solutions"
+            ;;
+
+        show)
+            local category="${1:-}"
+            if [ -z "$category" ]; then
+                echo -e "${RED}Error: Specify a category${NC}"
+                echo "Categories: security, performance, architecture, testing, debugging, deployment, general"
+                return 1
+            fi
+
+            local cat_dir="$solutions_dir/$category"
+            if [ ! -d "$cat_dir" ]; then
+                echo "No solutions in category: $category"
+                return
+            fi
+
+            echo -e "${BOLD}Solutions: $category${NC}"
+            echo ""
+
+            for file in "$cat_dir"/*.md; do
+                [ -f "$file" ] || continue
+                # Extract title from YAML frontmatter
+                local title=$(grep '^title:' "$file" 2>/dev/null | head -1 | sed 's/title: *"//;s/"$//')
+                local confidence=$(grep '^confidence:' "$file" 2>/dev/null | head -1 | sed 's/confidence: *//')
+                local project=$(grep '^source_project:' "$file" 2>/dev/null | head -1 | sed 's/source_project: *"//;s/"$//')
+                echo -e "  ${GREEN}*${NC} ${title:-$(basename "$file" .md)}"
+                [ -n "$confidence" ] && echo -e "    confidence: ${confidence}  project: ${project:-unknown}"
+            done
+            echo ""
+            ;;
+
+        search)
+            local query="${1:-}"
+            if [ -z "$query" ]; then
+                echo -e "${RED}Error: Specify a search query${NC}"
+                echo "Usage: loki compound search <query>"
+                return 1
+            fi
+
+            echo -e "${BOLD}Searching solutions for: ${query}${NC}"
+            echo ""
+
+            if [ ! -d "$solutions_dir" ]; then
+                echo "No solutions directory found."
+                return
+            fi
+
+            local found=0
+            while IFS= read -r file; do
+                local title=$(grep '^title:' "$file" 2>/dev/null | head -1 | sed 's/title: *"//;s/"$//')
+                local category=$(grep '^category:' "$file" 2>/dev/null | head -1 | sed 's/category: *//')
+                echo -e "  [${CYAN}${category}${NC}] ${title:-$(basename "$file" .md)}"
+                echo -e "    ${DIM}${file}${NC}"
+                found=$((found + 1))
+            done < <(grep -rl "$query" "$solutions_dir" 2>/dev/null || true)
+
+            if [ "$found" -eq 0 ]; then
+                echo "  No solutions matching: $query"
+            else
+                echo ""
+                echo "  Found: ${found} solutions"
+            fi
+            ;;
+
+        run)
+            echo -e "${BOLD}Compounding learnings into solutions...${NC}"
+            echo ""
+
+            local learnings_dir="${HOME}/.loki/learnings"
+            if [ ! -d "$learnings_dir" ]; then
+                echo "  No learnings directory found at: $learnings_dir"
+                echo "  Run a Loki session first to generate learnings."
+                return
+            fi
+
+            python3 << 'COMPOUND_RUN_SCRIPT'
+import json, os, re
+from datetime import datetime, timezone
+from collections import defaultdict
+learnings_dir = os.path.expanduser("~/.loki/learnings")
+solutions_dir = os.path.expanduser("~/.loki/solutions")
+CATEGORIES = ["security", "performance", "architecture", "testing", "debugging", "deployment", "general"]
+CATEGORY_KEYWORDS = {
+    "security": ["auth", "login", "password", "token", "injection", "xss", "csrf", "cors", "secret", "encrypt", "permission"],
+    "performance": ["cache", "query", "n+1", "memory", "leak", "slow", "timeout", "pool", "index", "optimize", "bundle"],
+    "architecture": ["pattern", "solid", "coupling", "abstraction", "module", "interface", "design", "refactor", "structure"],
+    "testing": ["test", "mock", "fixture", "coverage", "assert", "spec", "e2e", "playwright", "jest", "flaky"],
+    "debugging": ["debug", "error", "trace", "log", "stack", "crash", "exception", "breakpoint", "inspect"],
+    "deployment": ["deploy", "docker", "ci", "cd", "pipeline", "kubernetes", "nginx", "ssl", "domain", "env", "config"],
+}
+def load_jsonl(filepath):
+    entries = []
+    if not os.path.exists(filepath): return entries
+    with open(filepath, 'r') as f:
+        for line in f:
+            try:
+                entry = json.loads(line)
+                if 'description' in entry: entries.append(entry)
+            except: continue
+    return entries
+def classify_category(description):
+    desc_lower = description.lower()
+    scores = {cat: sum(1 for kw in kws if kw in desc_lower) for cat, kws in CATEGORY_KEYWORDS.items()}
+    best = max(scores, key=scores.get)
+    return best if scores[best] > 0 else "general"
+def slugify(text):
+    return re.sub(r'[^a-z0-9]+', '-', text.lower().strip()).strip('-')[:80]
+def solution_exists(solutions_dir, title_slug):
+    for cat in CATEGORIES:
+        cat_dir = os.path.join(solutions_dir, cat)
+        if os.path.exists(cat_dir) and os.path.exists(os.path.join(cat_dir, f"{title_slug}.md")):
+            return True
+    return False
+patterns = load_jsonl(os.path.join(learnings_dir, "patterns.jsonl"))
+mistakes = load_jsonl(os.path.join(learnings_dir, "mistakes.jsonl"))
+successes = load_jsonl(os.path.join(learnings_dir, "successes.jsonl"))
+print(f"  Loaded: {len(patterns)} patterns, {len(mistakes)} mistakes, {len(successes)} successes")
+grouped = defaultdict(list)
+for entry in patterns + mistakes + successes:
+    grouped[classify_category(entry.get('description', ''))].append(entry)
+created = 0
+now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+for category, entries in grouped.items():
+    if len(entries) < 2: continue
+    cat_dir = os.path.join(solutions_dir, category)
+    os.makedirs(cat_dir, exist_ok=True)
+    best_entry = max(entries, key=lambda e: len(e.get('description', '')))
+    title = best_entry['description'][:120]
+    slug = slugify(title)
+    if solution_exists(solutions_dir, slug): continue
+    all_words = ' '.join(e.get('description', '') for e in entries).lower()
+    tags = []
+    for kw_list in CATEGORY_KEYWORDS.values():
+        for kw in kw_list:
+            if kw in all_words and kw not in tags: tags.append(kw)
+    tags = tags[:8]
+    symptoms = [e.get('description', '')[:200] for e in entries
+                if any(w in e.get('description', '').lower() for w in ['error', 'fail', 'bug', 'crash', 'issue'])][:4]
+    if not symptoms: symptoms = [entries[0].get('description', '')[:200]]
+    solution_lines = [f"- {e.get('description', '')}" for e in entries
+                      if not any(w in e.get('description', '').lower() for w in ['error', 'fail', 'bug', 'crash'])]
+    if not solution_lines: solution_lines = [f"- {entries[0].get('description', '')}"]
+    project = best_entry.get('project', os.path.basename(os.getcwd()))
+    filepath = os.path.join(cat_dir, f"{slug}.md")
+    with open(filepath, 'w') as f:
+        f.write(f"---\ntitle: \"{title}\"\ncategory: {category}\ntags: [{', '.join(tags)}]\nsymptoms:\n")
+        for s in symptoms: f.write(f'  - "{s}"\n')
+        f.write(f'root_cause: "Identified from {len(entries)} related learnings"\n')
+        f.write(f'prevention: "See solution details below"\nconfidence: {min(0.5 + 0.1 * len(entries), 0.95):.2f}\n')
+        f.write(f'source_project: "{project}"\ncreated: "{now}"\napplied_count: 0\n---\n\n')
+        f.write("## Solution\n\n" + '\n'.join(solution_lines) + '\n\n')
+        f.write(f"## Context\n\nCompounded from {len(entries)} learnings from project: {project}\n")
+    created += 1
+    print(f"  Created: {category}/{slug}.md")
+if created > 0: print(f"\n  Compounded {created} new solution files to {solutions_dir}")
+else: print("  No new solutions to compound (need 2+ related learnings per category)")
+COMPOUND_RUN_SCRIPT
+            ;;
+
+        stats)
+            echo -e "${BOLD}Compound Solution Statistics${NC}"
+            echo ""
+
+            if [ ! -d "$solutions_dir" ]; then
+                echo "  No solutions directory found."
+                return
+            fi
+
+            local total=0
+            local newest=""
+            local oldest=""
+
+            for category in security performance architecture testing debugging deployment general; do
+                local cat_dir="$solutions_dir/$category"
+                if [ -d "$cat_dir" ]; then
+                    local count=$(find "$cat_dir" -name "*.md" 2>/dev/null | wc -l | tr -d ' ')
+                    total=$((total + count))
+                fi
+            done
+
+            echo "  Total solutions: ${total}"
+
+            if [ "$total" -gt 0 ]; then
+                # Find newest and oldest
+                newest=$(find "$solutions_dir" -name "*.md" -exec stat -f '%m %N' {} \; 2>/dev/null | sort -rn | head -1 | cut -d' ' -f2-)
+                oldest=$(find "$solutions_dir" -name "*.md" -exec stat -f '%m %N' {} \; 2>/dev/null | sort -n | head -1 | cut -d' ' -f2-)
+
+                if [ -n "$newest" ]; then
+                    local newest_title=$(grep '^title:' "$newest" 2>/dev/null | head -1 | sed 's/title: *"//;s/"$//')
+                    echo "  Newest: ${newest_title:-$(basename "$newest" .md)}"
+                fi
+                if [ -n "$oldest" ]; then
+                    local oldest_title=$(grep '^title:' "$oldest" 2>/dev/null | head -1 | sed 's/title: *"//;s/"$//')
+                    echo "  Oldest: ${oldest_title:-$(basename "$oldest" .md)}"
+                fi
+            fi
+
+            echo ""
+            echo "  Location: $solutions_dir"
+            ;;
+
+        help|--help|-h)
+            echo -e "${BOLD}loki compound${NC} - Knowledge compounding system"
+            echo ""
+            echo "Extracts structured solutions from cross-project learnings."
+            echo "Solutions are stored as markdown files with YAML frontmatter"
+            echo "at ~/.loki/solutions/{category}/ and fed back into future planning."
+            echo ""
+            echo "Usage: loki compound <command>"
+            echo ""
+            echo "Commands:"
+            echo "  list              List all solutions by category"
+            echo "  show <category>   Show solutions in a category"
+            echo "  search <query>    Search across all solutions"
+            echo "  run               Manually compound current learnings into solutions"
+            echo "  stats             Solution statistics"
+            echo "  help              Show this help"
+            echo ""
+            echo "Categories: security, performance, architecture, testing,"
+            echo "            debugging, deployment, general"
+            echo ""
+            echo "Solutions are created automatically at session end and"
+            echo "loaded during the REASON phase for relevant tasks."
+            ;;
+
+        *)
+            echo -e "${RED}Unknown compound command: $subcommand${NC}"
+            echo "Run 'loki compound help' for usage."
+            return 1
             ;;
     esac
 }

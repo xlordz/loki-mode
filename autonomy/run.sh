@@ -3599,6 +3599,264 @@ print("Learning extraction complete")
 EXTRACT_SCRIPT
 }
 
+# ============================================================================
+# Knowledge Compounding - Structured Solutions (v5.30.0)
+# Inspired by Compound Engineering Plugin's docs/solutions/ with YAML frontmatter
+# ============================================================================
+
+compound_session_to_solutions() {
+    # Compound JSONL learnings into structured solution markdown files
+    local learnings_dir="${HOME}/.loki/learnings"
+    local solutions_dir="${HOME}/.loki/solutions"
+
+    if [ ! -d "$learnings_dir" ]; then
+        return
+    fi
+
+    log_info "Compounding learnings into structured solutions..."
+
+    python3 << 'COMPOUND_SCRIPT'
+import json
+import os
+import re
+import hashlib
+from datetime import datetime, timezone
+from collections import defaultdict
+
+learnings_dir = os.path.expanduser("~/.loki/learnings")
+solutions_dir = os.path.expanduser("~/.loki/solutions")
+
+# Fixed categories
+CATEGORIES = ["security", "performance", "architecture", "testing", "debugging", "deployment", "general"]
+
+# Category keyword mapping
+CATEGORY_KEYWORDS = {
+    "security": ["auth", "login", "password", "token", "injection", "xss", "csrf", "cors", "secret", "encrypt", "permission", "role", "session", "cookie", "oauth", "jwt"],
+    "performance": ["cache", "query", "n+1", "memory", "leak", "slow", "timeout", "pool", "index", "optimize", "bundle", "lazy", "render", "batch"],
+    "architecture": ["pattern", "solid", "coupling", "abstraction", "module", "interface", "design", "refactor", "structure", "layer", "separation", "dependency"],
+    "testing": ["test", "mock", "fixture", "coverage", "assert", "spec", "e2e", "playwright", "jest", "flaky", "snapshot"],
+    "debugging": ["debug", "error", "trace", "log", "stack", "crash", "exception", "breakpoint", "inspect", "diagnose"],
+    "deployment": ["deploy", "docker", "ci", "cd", "pipeline", "kubernetes", "k8s", "nginx", "ssl", "domain", "env", "config", "build"],
+}
+
+def load_jsonl(filepath):
+    entries = []
+    if not os.path.exists(filepath):
+        return entries
+    with open(filepath, 'r') as f:
+        for line in f:
+            try:
+                entry = json.loads(line)
+                if 'description' in entry:
+                    entries.append(entry)
+            except:
+                continue
+    return entries
+
+def classify_category(description):
+    desc_lower = description.lower()
+    scores = {}
+    for cat, keywords in CATEGORY_KEYWORDS.items():
+        scores[cat] = sum(1 for kw in keywords if kw in desc_lower)
+    best = max(scores, key=scores.get)
+    return best if scores[best] > 0 else "general"
+
+def slugify(text):
+    slug = re.sub(r'[^a-z0-9]+', '-', text.lower().strip())
+    return slug.strip('-')[:80]
+
+def solution_exists(solutions_dir, title_slug):
+    for cat in CATEGORIES:
+        cat_dir = os.path.join(solutions_dir, cat)
+        if os.path.exists(cat_dir):
+            if os.path.exists(os.path.join(cat_dir, f"{title_slug}.md")):
+                return True
+    return False
+
+# Load all learnings
+patterns = load_jsonl(os.path.join(learnings_dir, "patterns.jsonl"))
+mistakes = load_jsonl(os.path.join(learnings_dir, "mistakes.jsonl"))
+successes = load_jsonl(os.path.join(learnings_dir, "successes.jsonl"))
+
+# Group by category
+grouped = defaultdict(list)
+for entry in patterns + mistakes + successes:
+    cat = classify_category(entry.get('description', ''))
+    grouped[cat].append(entry)
+
+created = 0
+now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+for category, entries in grouped.items():
+    if len(entries) < 2:
+        continue  # Need at least 2 related entries to compound
+
+    # Create category directory
+    cat_dir = os.path.join(solutions_dir, category)
+    os.makedirs(cat_dir, exist_ok=True)
+
+    # Group similar entries (simple: by shared keywords)
+    # Take the most descriptive entry as the title
+    best_entry = max(entries, key=lambda e: len(e.get('description', '')))
+    title = best_entry['description'][:120]
+    slug = slugify(title)
+
+    if solution_exists(solutions_dir, slug):
+        continue  # Already compounded
+
+    # Extract tags from all entries
+    all_words = ' '.join(e.get('description', '') for e in entries).lower()
+    tags = []
+    for kw_list in CATEGORY_KEYWORDS.values():
+        for kw in kw_list:
+            if kw in all_words and kw not in tags:
+                tags.append(kw)
+    tags = tags[:8]  # Limit to 8 tags
+
+    # Build symptoms from mistake entries
+    symptoms = []
+    for e in entries:
+        desc = e.get('description', '')
+        if any(w in desc.lower() for w in ['error', 'fail', 'bug', 'crash', 'issue', 'problem']):
+            symptoms.append(desc[:200])
+    symptoms = symptoms[:4]
+    if not symptoms:
+        symptoms = [entries[0].get('description', '')[:200]]
+
+    # Build solution content from pattern/success entries
+    solution_lines = []
+    for e in entries:
+        desc = e.get('description', '')
+        if not any(w in desc.lower() for w in ['error', 'fail', 'bug', 'crash']):
+            solution_lines.append(f"- {desc}")
+    if not solution_lines:
+        solution_lines = [f"- {entries[0].get('description', '')}"]
+
+    project = best_entry.get('project', os.path.basename(os.getcwd()))
+
+    # Write solution file
+    filepath = os.path.join(cat_dir, f"{slug}.md")
+    with open(filepath, 'w') as f:
+        f.write(f"---\n")
+        f.write(f'title: "{title}"\n')
+        f.write(f"category: {category}\n")
+        f.write(f"tags: [{', '.join(tags)}]\n")
+        f.write(f"symptoms:\n")
+        for s in symptoms:
+            f.write(f'  - "{s}"\n')
+        f.write(f'root_cause: "Identified from {len(entries)} related learnings across sessions"\n')
+        f.write(f'prevention: "See solution details below"\n')
+        f.write(f"confidence: {min(0.5 + 0.1 * len(entries), 0.95):.2f}\n")
+        f.write(f'source_project: "{project}"\n')
+        f.write(f'created: "{now}"\n')
+        f.write(f"applied_count: 0\n")
+        f.write(f"---\n\n")
+        f.write(f"## Solution\n\n")
+        f.write('\n'.join(solution_lines) + '\n\n')
+        f.write(f"## Context\n\n")
+        f.write(f"Compounded from {len(entries)} learnings ")
+        f.write(f"({len([e for e in entries if e in patterns])} patterns, ")
+        f.write(f"{len([e for e in entries if e in mistakes])} mistakes, ")
+        f.write(f"{len([e for e in entries if e in successes])} successes) ")
+        f.write(f"from project: {project}\n")
+
+    created += 1
+
+if created > 0:
+    print(f"Compounded {created} new solution files to {solutions_dir}")
+else:
+    print("No new solutions to compound (need 2+ related learnings per category)")
+COMPOUND_SCRIPT
+}
+
+load_solutions_context() {
+    # Load relevant structured solutions for the current task context
+    local context="$1"
+    local solutions_dir="${HOME}/.loki/solutions"
+    local output_file=".loki/state/relevant-solutions.json"
+
+    if [ ! -d "$solutions_dir" ]; then
+        echo '{"solutions":[]}' > "$output_file" 2>/dev/null || true
+        return
+    fi
+
+    export LOKI_SOL_CONTEXT="$context"
+    python3 << 'SOLUTIONS_SCRIPT'
+import json
+import os
+import re
+
+solutions_dir = os.path.expanduser("~/.loki/solutions")
+context = os.environ.get("LOKI_SOL_CONTEXT", "").lower()
+context_words = set(context.split())
+
+results = []
+
+for category in os.listdir(solutions_dir):
+    cat_dir = os.path.join(solutions_dir, category)
+    if not os.path.isdir(cat_dir):
+        continue
+    for filename in os.listdir(cat_dir):
+        if not filename.endswith('.md'):
+            continue
+        filepath = os.path.join(cat_dir, filename)
+        try:
+            with open(filepath, 'r') as f:
+                content = f.read()
+        except:
+            continue
+
+        # Parse YAML frontmatter
+        fm_match = re.match(r'^---\n(.*?)\n---', content, re.DOTALL)
+        if not fm_match:
+            continue
+
+        fm = fm_match.group(1)
+        title = re.search(r'title:\s*"([^"]*)"', fm)
+        tags_match = re.search(r'tags:\s*\[([^\]]*)\]', fm)
+        root_cause = re.search(r'root_cause:\s*"([^"]*)"', fm)
+        prevention = re.search(r'prevention:\s*"([^"]*)"', fm)
+        symptoms = re.findall(r'^\s*-\s*"([^"]*)"', fm, re.MULTILINE)
+
+        title_str = title.group(1) if title else filename.replace('.md', '')
+        tags = [t.strip() for t in tags_match.group(1).split(',')] if tags_match else []
+
+        # Score by matching
+        score = 0
+        for tag in tags:
+            if tag.lower() in context:
+                score += 2
+        for symptom in symptoms:
+            for word in symptom.lower().split():
+                if word in context_words and len(word) > 3:
+                    score += 3
+        if category in context:
+            score += 1
+
+        if score > 0:
+            results.append({
+                "score": score,
+                "category": category,
+                "title": title_str,
+                "root_cause": root_cause.group(1) if root_cause else "",
+                "prevention": prevention.group(1) if prevention else "",
+                "file": filepath
+            })
+
+# Sort by score, take top 3
+results.sort(key=lambda x: x["score"], reverse=True)
+top = results[:3]
+
+output = {"solutions": top}
+os.makedirs(".loki/state", exist_ok=True)
+with open(".loki/state/relevant-solutions.json", 'w') as f:
+    json.dump(output, f, indent=2)
+
+if top:
+    print(f"Loaded {len(top)} relevant solutions from cross-project knowledge base")
+SOLUTIONS_SCRIPT
+}
+
 start_dashboard() {
     log_header "Starting Loki Dashboard"
 
@@ -5429,8 +5687,10 @@ main() {
     # Load relevant learnings for this project context
     if [ -n "$PRD_PATH" ] && [ -f "$PRD_PATH" ]; then
         get_relevant_learnings "$(cat "$PRD_PATH" | head -100)"
+        load_solutions_context "$(cat "$PRD_PATH" | head -100)"
     else
         get_relevant_learnings "general development"
+        load_solutions_context "general development"
     fi
 
     # Log session start for audit
@@ -5487,6 +5747,9 @@ main() {
 
     # Extract and save learnings from this session
     extract_learnings_from_session
+
+    # Compound learnings into structured solution files (v5.30.0)
+    compound_session_to_solutions
 
     # Log session end for audit
     audit_log "SESSION_END" "result=$result,prd=$PRD_PATH"

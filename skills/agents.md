@@ -91,37 +91,50 @@ Success: Endpoint works, tests pass, matches OpenAPI spec.
 
 ---
 
-## Parallel Review Pattern
+## Specialist Review Pattern (v5.30.0)
 
-**Code review uses 3 parallel reviewers with different focus areas:**
+**Code review uses 3 specialist reviewers selected from a pool of 5 named experts.**
+
+See `quality-gates.md` for full specialist definitions, selection rules, and prompt templates.
+
+**Pool:** security-sentinel, performance-oracle, architecture-strategist, test-coverage-auditor, dependency-analyst
+
+**Selection:** architecture-strategist always included + top 2 by trigger keyword match against diff.
 
 ```python
-# Launch all 3 in ONE message (parallel execution)
+# Launch all 3 in ONE message (parallel, blind)
 Task(
     subagent_type="general-purpose",
-    model="opus",
-    description="Review: correctness",
-    prompt="Review for bugs, logic errors, edge cases. Files: {files}"
+    model="sonnet",
+    description="Review: Architecture Strategist",
+    prompt="You are Architecture Strategist. Review ONLY for: SOLID violations, "
+           "coupling, wrong patterns, missing abstractions. Files: {files}. Diff: {diff}. "
+           "Output: VERDICT (PASS/FAIL) + FINDINGS with severity."
 )
 Task(
     subagent_type="general-purpose",
-    model="opus",
-    description="Review: security",
-    prompt="Review for vulnerabilities, injection, auth issues. Files: {files}"
+    model="sonnet",
+    description="Review: Security Sentinel",
+    prompt="You are Security Sentinel. Review ONLY for: injection, XSS, auth bypass, "
+           "secrets, input validation, OWASP Top 10. Files: {files}. Diff: {diff}. "
+           "Output: VERDICT (PASS/FAIL) + FINDINGS with severity."
 )
 Task(
     subagent_type="general-purpose",
-    model="opus",
-    description="Review: performance",
-    prompt="Review for N+1 queries, memory leaks, slow operations. Files: {files}"
+    model="sonnet",
+    description="Review: {selected_specialist}",
+    prompt="You are {name}. Review ONLY for: {focus}. "
+           "Files: {files}. Diff: {diff}. "
+           "Output: VERDICT (PASS/FAIL) + FINDINGS with severity."
 )
 ```
 
 **Rules:**
-- ALWAYS use opus for reviews
-- ALWAYS launch all 3 in single message
+- ALWAYS use sonnet for reviews (balanced quality/cost)
+- ALWAYS launch all 3 in single message (parallel, blind)
 - WAIT for all 3 before aggregating
-- IF unanimous approval: run Devil's Advocate reviewer
+- IF unanimous PASS: run Devil's Advocate reviewer (anti-sycophancy)
+- Critical/High = BLOCK, Medium = TODO, Low = informational
 
 ---
 

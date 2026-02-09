@@ -263,22 +263,97 @@ velocity_quality_balance:
 
 ---
 
-## Blind Review System
+## Specialist Review Pool (v5.30.0)
 
-**Launch 3 reviewers in parallel in a single message:**
+5 named expert reviewers. Select 3 per review based on change type.
+
+**Inspired by:** Compound Engineering Plugin's 14 named review agents -- specialized expertise catches more issues than generic reviewers.
+
+| Specialist | Focus Area | Trigger Keywords |
+|-----------|-----------|-----------------|
+| **security-sentinel** | OWASP Top 10, injection, auth, secrets, input validation | auth, login, password, token, api, sql, query, cookie, cors, csrf |
+| **performance-oracle** | N+1 queries, memory leaks, caching, bundle size, lazy loading | database, query, cache, render, loop, fetch, load, index, join, pool |
+| **architecture-strategist** | SOLID, coupling, cohesion, patterns, abstraction, dependency direction | *(always included -- design quality affects everything)* |
+| **test-coverage-auditor** | Missing tests, edge cases, error paths, boundary conditions | test, spec, coverage, assert, mock, fixture, expect, describe |
+| **dependency-analyst** | Outdated packages, CVEs, bloat, unused deps, license issues | package, import, require, dependency, npm, pip, yarn, lock |
+
+### Selection Rules
+
+1. **architecture-strategist** is ALWAYS one of the 3 slots
+2. Score remaining 4 specialists by counting trigger keyword matches in the diff content and changed file names
+3. Top 2 scoring specialists fill the remaining slots
+4. **Tie-breaker priority:** security-sentinel > test-coverage-auditor > performance-oracle > dependency-analyst
+5. **No triggers match at all:** Default to security-sentinel + test-coverage-auditor
+
+### Dispatch Pattern
+
+Launch all 3 in ONE message. Each reviewer sees ONLY the diff -- NOT other reviewers' findings (blind review preserved).
 
 ```python
-# ALWAYS launch all 3 in ONE message
-Task(model="sonnet", description="Code review: correctness", prompt="Review for bugs...")
-Task(model="sonnet", description="Code review: security", prompt="Review for vulnerabilities...")
-Task(model="sonnet", description="Code review: performance", prompt="Review for efficiency...")
+# ALWAYS launch all 3 in ONE message (parallel, blind)
+Task(
+    model="sonnet",
+    description="Review: Architecture Strategist",
+    prompt="""You are Architecture Strategist. Your SOLE focus is design quality.
+
+    Review ONLY for: SOLID violations, excessive coupling, wrong patterns,
+    missing abstractions, dependency direction issues, god classes/functions.
+
+    Files changed: {files}
+    Diff: {diff}
+
+    Output format:
+    VERDICT: PASS or FAIL
+    FINDINGS:
+    - [severity] description (file:line)
+    Severity levels: Critical, High, Medium, Low"""
+)
+
+Task(
+    model="sonnet",
+    description="Review: Security Sentinel",
+    prompt="""You are Security Sentinel. Your SOLE focus is security vulnerabilities.
+
+    Review ONLY for: injection (SQL, XSS, command, template), auth bypass,
+    secrets in code, missing input validation, OWASP Top 10, insecure defaults.
+
+    Files changed: {files}
+    Diff: {diff}
+
+    Output format:
+    VERDICT: PASS or FAIL
+    FINDINGS:
+    - [severity] description (file:line)
+    Severity levels: Critical, High, Medium, Low"""
+)
+
+Task(
+    model="sonnet",
+    description="Review: {3rd_selected_specialist}",
+    prompt="""You are {specialist_name}. Your SOLE focus is {focus_area}.
+
+    Review ONLY for: {specific_checks}
+
+    Files changed: {files}
+    Diff: {diff}
+
+    Output format:
+    VERDICT: PASS or FAIL
+    FINDINGS:
+    - [severity] description (file:line)
+    Severity levels: Critical, High, Medium, Low"""
+)
 ```
 
-**Rules:**
+### Rules (unchanged from blind review)
+
 - ALWAYS use sonnet for reviews (balanced quality/cost)
 - NEVER aggregate before all 3 complete
 - ALWAYS re-run ALL 3 after fixes
-- If unanimous approval -> run Devil's Advocate
+- If unanimous PASS -> run Devil's Advocate (anti-sycophancy check)
+- Critical/High findings = BLOCK (must fix before merge)
+- Medium findings = TODO (track but don't block)
+- Low findings = informational only
 
 ---
 

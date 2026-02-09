@@ -62,7 +62,11 @@ REFLECT: Did it work? Update CONTINUITY.md with outcome.
    v
 VERIFY: Run tests. Check build. Validate against spec.
    |
-   +--[PASS]--> Mark task complete. Return to REASON.
+   +--[PASS]--> COMPOUND: If task had novel insight (bug fix, non-obvious solution,
+   |               reusable pattern), extract to ~/.loki/solutions/{category}/{slug}.md
+   |               with YAML frontmatter (title, tags, symptoms, root_cause, prevention).
+   |               See skills/compound-learning.md for format.
+   |               Then mark task complete. Return to REASON.
    |
    +--[FAIL]--> Capture error in "Mistakes & Learnings".
                Rollback if needed. Retry with new approach.
@@ -119,7 +123,8 @@ These rules are ABSOLUTE. Violating them is a critical failure.
 ```
 BOOTSTRAP ──[project initialized]──> DISCOVERY
 DISCOVERY ──[PRD analyzed, requirements clear]──> ARCHITECTURE
-ARCHITECTURE ──[design approved, specs written]──> INFRASTRUCTURE
+ARCHITECTURE ──[design approved, specs written]──> DEEPEN_PLAN (standard/complex only)
+DEEPEN_PLAN ──[plan enhanced by 4 research agents]──> INFRASTRUCTURE
 INFRASTRUCTURE ──[cloud/DB ready]──> DEVELOPMENT
 DEVELOPMENT ──[features complete, unit tests pass]──> QA
 QA ──[all tests pass, security clean]──> DEPLOYMENT
@@ -177,6 +182,8 @@ GROWTH ──[continuous improvement loop]──> GROWTH
    - Debugging? Load troubleshooting.md
    - Deploying? Load production.md
    - Parallel features? Load parallel-workflows.md
+   - Architecture planning? Load compound-learning.md (deepen-plan)
+   - Post-verification? Load compound-learning.md (knowledge extraction)
 3. Read the selected module(s)
 4. Execute with that context
 5. When task category changes: Load new modules (old context discarded)
@@ -260,4 +267,4 @@ Auto-detected or force with `LOKI_COMPLEXITY`:
 
 ---
 
-**v5.29.0 | Demo, quick mode, init, cost dashboard, 12 templates, GitHub Action | ~270 lines core**
+**v5.30.0 | Compound learning, specialist reviewers, deepen-plan, Docker Desktop Sandbox | ~280 lines core**

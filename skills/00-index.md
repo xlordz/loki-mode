@@ -27,6 +27,7 @@
 | Scale patterns (50+ agents) | `parallel-workflows.md` + `references/cursor-learnings.md` |
 | GitHub issues, PRs, syncing | `github-integration.md` |
 | Multi-provider (Codex, Gemini) | `providers.md` |
+| Plan deepening, knowledge extraction | `compound-learning.md` |
 
 ## Module Descriptions
 
@@ -107,6 +108,13 @@
 - Sync task status back to GitHub issues
 - Filter by labels, milestone, assignee
 - Requires `gh` CLI authenticated
+
+### compound-learning.md (v5.30.0)
+**When:** After architecture phase (deepen plan), after verification (extract learnings)
+- Deepen-plan: 4 parallel research agents enhance plans before implementation
+- Knowledge compounding: Extract structured solutions from task outcomes
+- Solution retrieval: Load relevant cross-project solutions during REASON phase
+- Composable phases: plan, deepen, work, review, compound
 
 ### providers.md (v5.0.0)
 **When:** Using non-Claude providers (Codex, Gemini), understanding degraded mode
