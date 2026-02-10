@@ -5,6 +5,12 @@ All notable changes to Loki Mode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.32.1] - 2026-02-10
+
+### Fixed
+- action.yml: Add ANTHROPIC_API_KEY verification step with clear error message
+- action.yml: Fail fast when API key is missing instead of silent failure at runtime
+
 ## [5.32.0] - 2026-02-10
 
 ### Added

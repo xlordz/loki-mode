@@ -76,6 +76,23 @@ runs:
           echo "Installed Claude Code CLI: $(claude --version 2>/dev/null || echo 'unknown')"
         fi
 
+    - name: Verify API key
+      if: inputs.provider == 'claude'
+      shell: bash
+      run: |
+        if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
+          echo "::error::ANTHROPIC_API_KEY is not set. Add it as a repository secret and pass it via env: in your workflow."
+          echo ""
+          echo "Example workflow configuration:"
+          echo "  - uses: asklokesh/loki-mode@v5"
+          echo "    with:"
+          echo "      github_token: \${{ secrets.GITHUB_TOKEN }}"
+          echo "    env:"
+          echo "      ANTHROPIC_API_KEY: \${{ secrets.ANTHROPIC_API_KEY }}"
+          exit 1
+        fi
+        echo "ANTHROPIC_API_KEY is set"
+
     - name: Get PR diff
       id: pr-diff
       if: inputs.mode == 'review'
