@@ -466,7 +466,7 @@ const FEATURE_MATRIX = {
  */
 async function createTestComponent(tagName) {
   const el = document.createElement(tagName);
-  el.setAttribute('api-url', 'http://localhost:8420');
+  el.setAttribute('api-url', 'http://localhost:57374');
   document.body.appendChild(el);
 
   // Wait for component to render

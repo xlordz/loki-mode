@@ -10,7 +10,7 @@ Kanban-style task board with drag-and-drop support.
 
 ```html
 <loki-task-board
-  api-url="http://localhost:8420"
+  api-url="http://localhost:57374"
   project-id="1"
   theme="dark"
   readonly
@@ -18,7 +18,7 @@ Kanban-style task board with drag-and-drop support.
 ```
 
 **Attributes:**
-- `api-url` - API base URL (default: http://localhost:8420)
+- `api-url` - API base URL (default: http://localhost:57374)
 - `project-id` - Filter tasks by project ID
 - `theme` - 'light' or 'dark' (default: auto-detect)
 - `readonly` - Disable drag-drop and editing
@@ -34,14 +34,14 @@ Control panel for Loki Mode session with start/stop/pause buttons.
 
 ```html
 <loki-session-control
-  api-url="http://localhost:8420"
+  api-url="http://localhost:57374"
   theme="dark"
   compact
 ></loki-session-control>
 ```
 
 **Attributes:**
-- `api-url` - API base URL (default: http://localhost:8420)
+- `api-url` - API base URL (default: http://localhost:57374)
 - `theme` - 'light' or 'dark' (default: auto-detect)
 - `compact` - Show compact version
 
@@ -57,7 +57,7 @@ Real-time log display with filtering and auto-scroll.
 
 ```html
 <loki-log-stream
-  api-url="http://localhost:8420"
+  api-url="http://localhost:57374"
   max-lines="500"
   auto-scroll
   theme="dark"
@@ -65,7 +65,7 @@ Real-time log display with filtering and auto-scroll.
 ```
 
 **Attributes:**
-- `api-url` - API base URL (default: http://localhost:8420)
+- `api-url` - API base URL (default: http://localhost:57374)
 - `max-lines` - Maximum number of log lines to keep (default: 500)
 - `auto-scroll` - Enable auto-scroll to bottom
 - `theme` - 'light' or 'dark' (default: auto-detect)
@@ -85,14 +85,14 @@ Browser for the Loki Mode memory system.
 
 ```html
 <loki-memory-browser
-  api-url="http://localhost:8420"
+  api-url="http://localhost:57374"
   theme="dark"
   tab="summary"
 ></loki-memory-browser>
 ```
 
 **Attributes:**
-- `api-url` - API base URL (default: http://localhost:8420)
+- `api-url` - API base URL (default: http://localhost:57374)
 - `theme` - 'light' or 'dark' (default: auto-detect)
 - `tab` - Initial tab ('summary' | 'episodes' | 'patterns' | 'skills')
 
@@ -172,7 +172,7 @@ Unified API client for Loki Mode.
 ```javascript
 import { getApiClient, ApiEvents } from './core/loki-api-client.js';
 
-const api = getApiClient({ baseUrl: 'http://localhost:8420' });
+const api = getApiClient({ baseUrl: 'http://localhost:57374' });
 
 // Connect to WebSocket for real-time updates
 await api.connect();
@@ -234,7 +234,7 @@ themeStore.subscribe(console.log);
   LokiTheme.init();
 </script>
 
-<loki-task-board api-url="http://localhost:8420"></loki-task-board>
+<loki-task-board api-url="http://localhost:57374"></loki-task-board>
 <loki-session-control></loki-session-control>
 ```
 

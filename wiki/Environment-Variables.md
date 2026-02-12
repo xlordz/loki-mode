@@ -69,6 +69,10 @@ rm -rf /,dd if=,mkfs,:(){ :|:& };:
 | `LOKI_ENTERPRISE_AUTH` | `false` | Enable token authentication |
 | `LOKI_ENTERPRISE_AUDIT` | `false` | Force audit on (legacy, audit is now on by default) |
 | `LOKI_AUDIT_DISABLED` | `false` | Disable audit logging (overridden by LOKI_ENTERPRISE_AUDIT=true) |
+| `LOKI_AUDIT_SYSLOG_HOST` | - | Syslog server hostname for audit forwarding |
+| `LOKI_AUDIT_SYSLOG_PORT` | `514` | Syslog server port |
+| `LOKI_AUDIT_SYSLOG_PROTO` | `udp` | Syslog protocol (`udp` or `tcp`) |
+| `LOKI_AUDIT_NO_INTEGRITY` | `false` | Disable SHA-256 chain hashing on audit entries |
 
 ### OIDC / SSO Authentication (optional)
 
@@ -79,6 +83,21 @@ rm -rf /,dd if=,mkfs,:(){ :|:& };:
 | `LOKI_OIDC_AUDIENCE` | *(client_id)* | Expected JWT audience claim. Defaults to OIDC_CLIENT_ID if not set |
 
 OIDC is enabled when both `LOKI_OIDC_ISSUER` and `LOKI_OIDC_CLIENT_ID` are set. It works alongside token auth -- both methods can be active simultaneously. OIDC-authenticated users receive full access (`["*"]` scopes).
+
+### Branch Protection & Monitoring (v5.38.0)
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `LOKI_BRANCH_PROTECTION` | `false` | Auto-create feature branches for agent sessions |
+| `LOKI_GEMINI_RPM` | `15` | Gemini provider rate limit (requests per minute) |
+
+---
+
+## Budget Control (v5.37.0)
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `LOKI_BUDGET_LIMIT` | - | Maximum cost in USD (e.g., `5.00`). Session stops when exceeded |
 
 ---
 
@@ -286,4 +305,20 @@ export LOKI_PARALLEL_MODE=true
 export LOKI_MAX_WORKTREES=5
 export LOKI_MAX_PARALLEL_SESSIONS=3
 export LOKI_AUTO_MERGE=true
+```
+
+### Monitoring Setup (v5.38.0)
+```bash
+# Prometheus scraping
+# Point Prometheus scrape target at http://localhost:57374/metrics
+
+# Syslog forwarding
+export LOKI_AUDIT_SYSLOG_HOST=syslog.example.com
+export LOKI_AUDIT_SYSLOG_PORT=514
+
+# Branch protection
+export LOKI_BRANCH_PROTECTION=true
+
+# Budget limit
+export LOKI_BUDGET_LIMIT=10.00
 ```

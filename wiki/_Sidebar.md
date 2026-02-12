@@ -29,6 +29,7 @@
 - [[Security]]
 - [[Audit Logging]]
 - [[Network Security]]
+- [[Prometheus Metrics]]
 
 ### Architecture
 - [[Architecture]]

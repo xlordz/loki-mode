@@ -15,7 +15,7 @@ import { THEMES } from '../core/loki-unified-styles.js';
 
 // Mock API client
 const mockApiClient = {
-  baseUrl: 'http://localhost:8420',
+  baseUrl: 'http://localhost:57374',
   getLearningMetrics: jest.fn(),
   getLearningTrends: jest.fn(),
   getLearningSignals: jest.fn(),
@@ -189,7 +189,7 @@ const MOCK_SIGNALS = [
 
 async function createDashboard(attributes = {}) {
   const el = document.createElement('loki-learning-dashboard');
-  el.setAttribute('api-url', 'http://localhost:8420');
+  el.setAttribute('api-url', 'http://localhost:57374');
 
   for (const [key, value] of Object.entries(attributes)) {
     el.setAttribute(key, value);

@@ -6,6 +6,32 @@ Complete installation instructions for all platforms and use cases.
 
 ---
 
+## What's New in v5.38.0
+
+### Enterprise Security (v5.36.0-v5.37.1)
+- TLS/HTTPS support for dashboard connections
+- OIDC/SSO authentication (Google, Azure AD, Okta)
+- RBAC roles (admin, operator, viewer, auditor)
+- WebSocket authentication for real-time connections
+- Syslog forwarding for SIEM integration
+- Non-root Docker with SETUID/SETGID removed
+- Salted token hashing and rate limiting
+
+### Monitoring & Observability (v5.38.0)
+- Prometheus/OpenMetrics `/metrics` endpoint with 9 metrics
+- `loki metrics` CLI command
+- Agent action audit trail at `.loki/logs/agent-audit.jsonl`
+- `loki audit` CLI with log/count subcommands
+- SHA-256 chain-hashed tamper-evident audit entries
+
+### Workflow Protection (v5.38.0)
+- Branch protection: agent sessions auto-create feature branches
+- PR creation via `gh` on session completion
+- OpenClaw bridge foundation for external integrations
+- Network security documentation (Docker/Kubernetes)
+
+---
+
 ## Table of Contents
 
 - [Quick Install (Recommended)](#quick-install-recommended)
@@ -700,7 +726,7 @@ loki start --pro<TAB>     # Should autocomplete to --provider
 The completion scripts support:
 
 * **Subcommands**
-  `start`, `stop`, `pause`, `resume`, `status`, `dashboard`, `import`, `council`, `memory`, `provider`, `config`, `help`, `completions`
+  `start`, `stop`, `pause`, `resume`, `status`, `dashboard`, `import`, `council`, `memory`, `provider`, `config`, `audit`, `metrics`, `watchdog`, `secrets`, `help`, `completions`
 
 * **Smart Context**
 
@@ -708,7 +734,7 @@ The completion scripts support:
   * `loki start <TAB>` defaults to file completion for PRD templates.
 
 * **Nested Commands**
-  Handles specific subcommands for `council`, `memory`, and `config`.
+  Handles specific subcommands for `council`, `memory`, `config`, `audit`, `metrics`, `watchdog`, and `secrets`.
 
 ---
 

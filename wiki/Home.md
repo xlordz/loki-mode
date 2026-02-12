@@ -53,6 +53,12 @@ Loki Mode is an enterprise-grade autonomous AI development orchestrator that:
 - **Staged Autonomy** - Approval gates for sensitive operations
 - **Completion Council** - 3-member voting system with anti-sycophancy checks
 - **Security Hardening** - Path traversal, XSS, injection, and memory leak protections
+- **TLS/HTTPS Dashboard** - Encrypted API and dashboard connections
+- **OIDC/SSO Authentication** - Enterprise identity provider integration
+- **RBAC Roles** - Admin, operator, viewer, auditor role model
+- **Prometheus Metrics** - OpenMetrics /metrics endpoint for monitoring
+- **Branch Protection** - Agent sessions auto-create feature branches with PRs
+- **Log Integrity** - SHA-256 chain-hashed tamper-evident audit entries
 
 ---
 

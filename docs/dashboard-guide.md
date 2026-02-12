@@ -1,4 +1,4 @@
-# Loki Mode Dashboard v5.25.0
+# Loki Mode Dashboard v5.38.0
 
 A production-ready realtime dashboard for monitoring and managing Loki Mode autonomous operations. Features a dark Vercel/Linear-inspired theme with purple accents, sidebar navigation, and overview cards.
 
@@ -35,7 +35,7 @@ The dashboard automatically syncs with Loki Mode when it's running, polling `das
 The sidebar provides navigation and system status at a glance.
 
 #### Logo & Version
-- Loki Mode branding with current version (v5.25.0)
+- Loki Mode branding with current version (v5.38.0)
 - Version updates automatically from server state
 
 #### Theme Toggle
@@ -398,6 +398,12 @@ Useful for:
 
 | Version | Changes |
 |---------|---------|
+| v5.38.0 | Prometheus /metrics endpoint, branch protection, agent audit trail, log integrity, OpenClaw bridge |
+| v5.37.0 | TLS/HTTPS, OIDC/SSO, RBAC roles, WebSocket auth, syslog forwarding, budget controls |
+| v5.36.0 | Auth wiring on destructive endpoints, rate limiting, salted hashing, non-root Docker |
+| v5.35.0 | CONTINUITY.md, 5-specialist code review, checkpoint VSCode UI |
+| v5.34.0 | Checkpoint system with git SHA tracking |
+| v5.30.0 | Knowledge compounding, deepen-plan phase, specialist reviewers |
 | v5.25.0 | Completion Council panel, dark Vercel/Linear theme with purple accents, enterprise security hardening |
 | v5.23.0 | Dashboard reads from .loki/ flat files, all web components functional |
 | v4.1.0 | Terminal output, quick actions, GitHub import modal, config file support |

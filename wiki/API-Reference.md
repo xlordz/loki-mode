@@ -33,6 +33,8 @@ The server is started automatically when you run `loki start` or `./autonomy/run
 | `LOKI_DASHBOARD_HOST` | `127.0.0.1` | Bind address (localhost-only by default) |
 | `LOKI_DIR` | `.loki` | State directory |
 | `LOKI_DASHBOARD_CORS` | `http://localhost:57374,http://127.0.0.1:57374` | Comma-separated allowed CORS origins |
+| `LOKI_TLS_CERT` | - | PEM certificate file path (enables HTTPS) |
+| `LOKI_TLS_KEY` | - | PEM private key file path (enables HTTPS) |
 
 ---
 
@@ -62,7 +64,7 @@ Get detailed session status. Reads from `.loki/` flat files (dashboard-state.jso
 ```json
 {
   "status": "running",
-  "version": "5.34.0",
+  "version": "5.38.0",
   "uptime_seconds": 1234.5,
   "active_sessions": 1,
   "running_agents": 3,
@@ -184,6 +186,13 @@ setInterval(() => ws.send(JSON.stringify({type: 'ping'})), 25000);
 | `task_updated` | Server->Client | Broadcast when task updated |
 | `task_moved` | Server->Client | Broadcast when task moved |
 | `project_created` | Server->Client | Broadcast when project created |
+
+**Authentication (v5.37.1):**
+When enterprise auth or OIDC is enabled, WebSocket connections require a token query parameter:
+```javascript
+const ws = new WebSocket('ws://localhost:57374/ws?token=loki_xxx...');
+```
+Note: Query-parameter auth is used because browsers cannot send Authorization headers on WebSocket upgrade requests. Configure reverse proxy log sanitization for the /ws path in production.
 
 ---
 
@@ -624,6 +633,136 @@ Get audit activity summary.
 
 ---
 
+### Prometheus Metrics (v5.38.0)
+
+#### `GET /metrics`
+Prometheus/OpenMetrics compatible metrics endpoint. Returns plain text in OpenMetrics format.
+
+**Response (text/plain):**
+```
+# HELP loki_session_status Current session status (0=stopped, 1=running, 2=paused)
+# TYPE loki_session_status gauge
+loki_session_status 1
+
+# HELP loki_iteration_current Current iteration number
+# TYPE loki_iteration_current gauge
+loki_iteration_current 12
+
+# HELP loki_iteration_max Maximum configured iterations
+# TYPE loki_iteration_max gauge
+loki_iteration_max 1000
+
+# HELP loki_tasks_total Number of tasks by status
+# TYPE loki_tasks_total gauge
+loki_tasks_total{status="pending"} 3
+loki_tasks_total{status="in_progress"} 1
+loki_tasks_total{status="completed"} 8
+loki_tasks_total{status="failed"} 0
+
+# HELP loki_agents_active Number of currently active agents
+# TYPE loki_agents_active gauge
+loki_agents_active 2
+
+# HELP loki_agents_total Total number of agents registered
+# TYPE loki_agents_total gauge
+loki_agents_total 5
+
+# HELP loki_cost_usd Estimated total cost in USD
+# TYPE loki_cost_usd gauge
+loki_cost_usd 1.234567
+
+# HELP loki_events_total Total number of events recorded
+# TYPE loki_events_total counter
+loki_events_total 142
+
+# HELP loki_uptime_seconds Seconds since session started
+# TYPE loki_uptime_seconds gauge
+loki_uptime_seconds 3601.5
+```
+
+**Usage with Prometheus:**
+```yaml
+# prometheus.yml
+scrape_configs:
+  - job_name: 'loki-mode'
+    scrape_interval: 15s
+    static_configs:
+      - targets: ['localhost:57374']
+```
+
+**Usage with curl:**
+```bash
+curl http://localhost:57374/metrics
+```
+
+---
+
+### Budget Endpoints (v5.37.0)
+
+#### `GET /api/budget`
+Get current budget status and cost limits.
+
+**Response:**
+```json
+{
+  "budget_limit": 5.00,
+  "budget_used": 1.25,
+  "budget_remaining": 3.75,
+  "budget_exceeded": false
+}
+```
+
+---
+
+### Health Process Endpoints (v5.37.0)
+
+#### `GET /api/health/processes`
+Get process supervision and watchdog status.
+
+**Response:**
+```json
+{
+  "main_process": {"pid": 12345, "alive": true},
+  "dashboard": {"pid": 12346, "alive": true},
+  "agents": [{"pid": 12347, "status": "running"}]
+}
+```
+
+---
+
+### Secrets Endpoints (v5.37.0)
+
+#### `GET /api/secrets/status`
+Get secret management status (Docker/K8s mount detection).
+
+**Response:**
+```json
+{
+  "docker_secrets": false,
+  "k8s_secrets": false,
+  "env_secrets": ["ANTHROPIC_API_KEY"]
+}
+```
+
+---
+
+### Auth Info Endpoint (v5.37.0)
+
+#### `GET /api/auth/info`
+Get information about enabled authentication methods.
+
+**Response:**
+```json
+{
+  "enterprise_auth": true,
+  "oidc_enabled": false,
+  "oidc_issuer": null,
+  "auth_methods": ["token"]
+}
+```
+
+---
+
 ## CORS
 
 CORS is restricted to localhost by default for security:
@@ -709,6 +848,15 @@ curl http://localhost:57374/api/cost
 curl -X POST http://localhost:57374/api/checkpoints \
   -H "Content-Type: application/json" \
   -d '{"message": "before refactor"}'
+
+# Prometheus metrics
+curl http://localhost:57374/metrics
+
+# Budget status
+curl http://localhost:57374/api/budget
+
+# Auth info
+curl http://localhost:57374/api/auth/info
 ```
 
 ### JavaScript

@@ -922,7 +922,7 @@ export declare class LokiElement extends HTMLElement {
  *
  * @element loki-task-board
  *
- * @attr {string} api-url - API base URL (default: http://localhost:8420)
+ * @attr {string} api-url - API base URL (default: http://localhost:57374)
  * @attr {string} project-id - Filter tasks by project ID
  * @attr {ThemeName} theme - Theme name (default: auto-detect)
  * @attr {boolean} readonly - Disable drag-drop and editing
@@ -964,7 +964,7 @@ export declare class LokiTaskBoard extends LokiElement {
  *
  * @element loki-session-control
  *
- * @attr {string} api-url - API base URL (default: http://localhost:8420)
+ * @attr {string} api-url - API base URL (default: http://localhost:57374)
  * @attr {ThemeName} theme - Theme name (default: auto-detect)
  * @attr {boolean} compact - Show compact version
  *
@@ -1010,7 +1010,7 @@ export declare class LokiSessionControl extends LokiElement {
  *
  * @element loki-log-stream
  *
- * @attr {string} api-url - API base URL (default: http://localhost:8420)
+ * @attr {string} api-url - API base URL (default: http://localhost:57374)
  * @attr {string} max-lines - Maximum log lines to keep (default: 500)
  * @attr {boolean} auto-scroll - Enable auto-scroll to bottom
  * @attr {ThemeName} theme - Theme name (default: auto-detect)
@@ -1056,7 +1056,7 @@ export declare class LokiLogStream extends LokiElement {
  *
  * @element loki-memory-browser
  *
- * @attr {string} api-url - API base URL (default: http://localhost:8420)
+ * @attr {string} api-url - API base URL (default: http://localhost:57374)
  * @attr {ThemeName} theme - Theme name (default: auto-detect)
  * @attr {'summary' | 'episodes' | 'patterns' | 'skills'} tab - Initial tab
  *
@@ -1096,7 +1096,7 @@ export declare class LokiMemoryBrowser extends LokiElement {
  *
  * @element loki-learning-dashboard
  *
- * @attr {string} api-url - API base URL (default: http://localhost:8420)
+ * @attr {string} api-url - API base URL (default: http://localhost:57374)
  * @attr {ThemeName} theme - Theme name (default: auto-detect)
  * @attr {'1h' | '24h' | '7d' | '30d'} time-range - Time range filter (default: '7d')
  * @attr {string} signal-type - Signal type filter (default: 'all')

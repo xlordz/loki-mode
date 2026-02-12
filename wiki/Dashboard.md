@@ -15,6 +15,8 @@ The Loki Mode dashboard features a dark Vercel/Linear-inspired design with purpl
 - Cross-project learnings view
 - Log streaming with filtering
 - Agent management (pause, resume, kill)
+- Prometheus/OpenMetrics endpoint for monitoring systems
+- TLS/HTTPS encrypted connections
 
 ---
 
@@ -95,6 +97,20 @@ Council monitoring with four tabs:
 
 The council uses a 3-member voting system with 2/3 majority required for completion decisions. When all members vote unanimously, an anti-sycophancy devil's advocate review is triggered to confirm the decision.
 
+### Prometheus Metrics
+
+The dashboard exposes a `/metrics` endpoint compatible with Prometheus, Grafana, and other monitoring systems. 9 metrics are available covering session status, iterations, tasks, agents, cost, events, and uptime.
+
+```bash
+# Fetch metrics
+curl http://localhost:57374/metrics
+
+# Or via CLI
+loki metrics
+```
+
+See [[API Reference]] for the full metrics schema.
+
 ---
 
 ## Dashboard CLI Commands
@@ -166,6 +182,9 @@ dashboard:
 |----------|---------|-------------|
 | `LOKI_DASHBOARD_PORT` | 57374 | Dashboard port |
 | `LOKI_DASHBOARD_HOST` | 127.0.0.1 | Dashboard host |
+| `LOKI_TLS_CERT` | - | PEM certificate path (enables HTTPS) |
+| `LOKI_TLS_KEY` | - | PEM private key path (enables HTTPS) |
+| `LOKI_DASHBOARD_CORS` | localhost | Comma-separated allowed CORS origins |
 
 ---
 
@@ -236,3 +255,4 @@ loki dashboard start
 - [[API Reference]] - HTTP API documentation
 - [[CLI Reference]] - Dashboard CLI commands
 - [[Cross-Project Learning]] - Learnings system
+- [[Enterprise Features]] - TLS, OIDC, RBAC, monitoring

@@ -63,7 +63,7 @@ loki enterprise token revoke ci-bot
 
 ```bash
 curl -H "Authorization: Bearer loki_xxx..." \
-     http://localhost:8420/api/status
+     http://localhost:57374/api/status
 ```
 
 ### Token Storage
@@ -73,16 +73,42 @@ Tokens are stored in `~/.loki/dashboard/tokens.json` with:
 - 0600 file permissions
 - Constant-time comparison (timing attack protection)
 
+### RBAC Roles (v5.37.1)
+
+Tokens can be assigned roles that map to permission scopes:
+
+| Role | Scopes | Description |
+|------|--------|-------------|
+| `admin` | `*` (all) | Full access to all endpoints |
+| `operator` | `control`, `read`, `write` | Start/stop sessions, manage tasks |
+| `viewer` | `read` | Read-only dashboard access |
+| `auditor` | `read`, `audit` | Read access plus audit log viewing |
+
+**Scope Hierarchy:**
+- `*` includes all scopes
+- `control` includes `write` and `read`
+- `write` includes `read`
+
+```bash
+# Generate token with role
+loki enterprise token generate ci-bot --role viewer
+
+# Generate token with custom scopes
+loki enterprise token generate admin-bot --scopes "*" --expires 90
+```
+
 ---
 
 ## Audit Logging
 
 Compliance-ready audit trails for all operations.
 
-### Enable Audit Logging
+### Configuration
+
+Audit logging is **enabled by default** since v5.37.0. To disable:
 
 ```bash
-export LOKI_ENTERPRISE_AUDIT=true
+export LOKI_AUDIT_DISABLED=true
 ```
 
 ### View Audit Logs
@@ -132,11 +158,11 @@ Logs are stored in JSONL format at `~/.loki/dashboard/audit/`:
 ```bash
 # Get audit entries
 curl -H "Authorization: Bearer $TOKEN" \
-     "http://localhost:8420/api/enterprise/audit?limit=100"
+     "http://localhost:57374/api/enterprise/audit?limit=100"
 
 # Get summary
 curl -H "Authorization: Bearer $TOKEN" \
-     "http://localhost:8420/api/enterprise/audit/summary"
+     "http://localhost:57374/api/enterprise/audit/summary"
 ```
 
 ### Log Rotation
@@ -145,6 +171,154 @@ Logs are automatically rotated:
 - Daily rotation
 - 30-day retention (configurable)
 - Compressed archives
+
+---
+
+## TLS/HTTPS (v5.37.0)
+
+Encrypt dashboard API and WebSocket connections.
+
+### Enable TLS
+
+```bash
+export LOKI_TLS_CERT=/path/to/cert.pem
+export LOKI_TLS_KEY=/path/to/key.pem
+loki dashboard start
+```
+
+Or via CLI flags:
+```bash
+loki dashboard start --tls-cert /path/to/cert.pem --tls-key /path/to/key.pem
+```
+
+### Self-Signed Certificate (Development)
+
+```bash
+openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -days 365 -nodes \
+  -subj "/CN=localhost"
+export LOKI_TLS_CERT=cert.pem
+export LOKI_TLS_KEY=key.pem
+```
+
+---
+
+## OIDC/SSO Authentication (v5.37.0)
+
+Enterprise identity provider integration (experimental).
+
+### Enable OIDC
+
+```bash
+# Google Workspace
+export LOKI_OIDC_ISSUER=https://accounts.google.com
+export LOKI_OIDC_CLIENT_ID=your-client-id.apps.googleusercontent.com
+
+# Azure AD
+export LOKI_OIDC_ISSUER=https://login.microsoftonline.com/{tenant}/v2.0
+export LOKI_OIDC_CLIENT_ID=your-application-id
+
+# Okta
+export LOKI_OIDC_ISSUER=https://your-org.okta.com
+export LOKI_OIDC_CLIENT_ID=your-client-id
+```
+
+OIDC works alongside token auth -- both methods can be active simultaneously. OIDC-authenticated users receive full access scopes.
+
+### OIDC Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `LOKI_OIDC_ISSUER` | - | OIDC issuer URL |
+| `LOKI_OIDC_CLIENT_ID` | - | OIDC client/application ID |
+| `LOKI_OIDC_AUDIENCE` | *(client_id)* | Expected JWT audience claim |
+
+---
+
+## Branch Protection (v5.38.0)
+
+Auto-create feature branches for agent sessions to prevent direct commits to main.
+
+### Enable Branch Protection
+
+```bash
+export LOKI_BRANCH_PROTECTION=true
+```
+
+When enabled:
+1. Agent sessions create a feature branch: `loki/session-<timestamp>-<pid>`
+2. All agent work happens on the feature branch
+3. On session end, a PR is created via `gh pr create` (if GitHub CLI is available)
+4. Manual review and merge to main
+
+### Agent Action Audit Trail
+
+All agent actions are logged to `.loki/logs/agent-audit.jsonl`:
+
+```json
+{
+  "timestamp": "2026-02-12T18:30:00Z",
+  "action": "git_commit",
+  "agent": "development",
+  "details": {"message": "Add authentication module", "files_changed": 3}
+}
+```
+
+View with CLI:
+```bash
+loki audit log
+loki audit count
+```
+
+---
+
+## Prometheus Monitoring (v5.38.0)
+
+OpenMetrics-compatible endpoint for monitoring with Prometheus, Grafana, or Datadog.
+
+### Endpoint
+
+```bash
+curl http://localhost:57374/metrics
+```
+
+### Available Metrics
+
+| Metric | Type | Description |
+|--------|------|-------------|
+| `loki_session_status` | gauge | 0=stopped, 1=running, 2=paused |
+| `loki_iteration_current` | gauge | Current iteration number |
+| `loki_iteration_max` | gauge | Max configured iterations |
+| `loki_tasks_total{status}` | gauge | Tasks by status |
+| `loki_agents_active` | gauge | Active agent count |
+| `loki_agents_total` | gauge | Total agents registered |
+| `loki_cost_usd` | gauge | Estimated cost in USD |
+| `loki_events_total` | counter | Total events recorded |
+| `loki_uptime_seconds` | gauge | Session uptime |
+
+### Prometheus Configuration
+
+```yaml
+# prometheus.yml
+scrape_configs:
+  - job_name: 'loki-mode'
+    scrape_interval: 15s
+    static_configs:
+      - targets: ['localhost:57374']
+```
+
+### Grafana Dashboard
+
+Import metrics into Grafana for visualization:
+1. Add Prometheus as a data source
+2. Create a new dashboard
+3. Add panels for key metrics (session status, cost, tasks)
+
+### CLI
+
+```bash
+loki metrics
+loki metrics | grep loki_cost_usd
+```
 
 ---
 
@@ -216,9 +390,9 @@ USER appuser
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s \
-  CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8420/health')"
+  CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:57374/health')"
 
-EXPOSE 8420
+EXPOSE 57374
 CMD ["python", "-m", "dashboard.server"]
 ```
 
@@ -256,7 +430,7 @@ loki projects sync
 Query tasks across all registered projects:
 
 ```bash
-curl "http://localhost:8420/api/registry/tasks?status=in_progress"
+curl "http://localhost:57374/api/registry/tasks?status=in_progress"
 ```
 
 ### Shared Learnings
@@ -269,7 +443,7 @@ loki memory list
 loki memory search "authentication"
 
 # API
-curl "http://localhost:8420/api/registry/learnings"
+curl "http://localhost:57374/api/registry/learnings"
 ```
 
 ---
@@ -353,17 +527,20 @@ services:
   loki-mode:
     image: asklokesh/loki-mode:latest
     ports:
-      - "8420:8420"
+      - "57374:57374"
       - "57374:57374"
     environment:
       - LOKI_ENTERPRISE_AUTH=true
       - LOKI_ENTERPRISE_AUDIT=true
       - LOKI_API_HOST=0.0.0.0
+      - LOKI_TLS_CERT=/certs/cert.pem
+      - LOKI_TLS_KEY=/certs/key.pem
+      - LOKI_BRANCH_PROTECTION=true
     volumes:
       - loki-data:/home/appuser/.loki
       - ./projects:/projects:ro
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8420/health')"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:57374/health')"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -393,7 +570,7 @@ spec:
       - name: loki-mode
         image: asklokesh/loki-mode:latest
         ports:
-        - containerPort: 8420
+        - containerPort: 57374
         - containerPort: 57374
         env:
         - name: LOKI_ENTERPRISE_AUTH
@@ -403,13 +580,13 @@ spec:
         livenessProbe:
           httpGet:
             path: /health/live
-            port: 8420
+            port: 57374
           initialDelaySeconds: 10
           periodSeconds: 30
         readinessProbe:
           httpGet:
             path: /health/ready
-            port: 8420
+            port: 57374
           initialDelaySeconds: 5
           periodSeconds: 10
 ```
@@ -428,6 +605,11 @@ spec:
 - [ ] Use `LOKI_STAGED_AUTONOMY` for sensitive ops
 - [ ] Rotate tokens regularly
 - [ ] Review audit logs periodically
+- [ ] Enable `LOKI_TLS_CERT` and `LOKI_TLS_KEY` for HTTPS
+- [ ] Configure `LOKI_OIDC_ISSUER` for SSO integration
+- [ ] Enable `LOKI_BRANCH_PROTECTION` for feature branch workflow
+- [ ] Set up `/metrics` endpoint monitoring
+- [ ] Configure syslog forwarding for SIEM integration
 
 ### Token Management
 

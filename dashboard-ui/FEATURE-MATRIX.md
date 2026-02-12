@@ -28,7 +28,7 @@ Kanban-style task board with drag-and-drop support.
 | Keyboard Nav | Navigate with arrow keys | Yes | Yes | Limited | Tab through cards |
 
 **Attributes:**
-- `api-url` - API base URL (default: http://localhost:8420)
+- `api-url` - API base URL (default: http://localhost:57374)
 - `project-id` - Filter by project
 - `theme` - Theme override
 - `readonly` - Disable editing

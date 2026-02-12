@@ -62,7 +62,7 @@ export LOKI_API_TOKEN=$(loki serve --generate-token)
 loki serve --host 0.0.0.0
 
 # Connect from another machine
-curl -H "Authorization: Bearer $LOKI_API_TOKEN" http://server:8420/health
+curl -H "Authorization: Bearer $LOKI_API_TOKEN" http://server:57374/health
 ```
 
 ## API Endpoints
@@ -148,7 +148,7 @@ curl -H "Authorization: Bearer $LOKI_API_TOKEN" http://server:8420/health
 ### Start a Session
 
 ```bash
-curl -X POST http://localhost:8420/api/sessions \
+curl -X POST http://localhost:57374/api/sessions \
   -H "Content-Type: application/json" \
   -d '{"provider": "claude", "prdPath": "./docs/prd.md"}'
 ```
@@ -156,7 +156,7 @@ curl -X POST http://localhost:8420/api/sessions \
 ### Subscribe to Events
 
 ```javascript
-const events = new EventSource('http://localhost:8420/api/events');
+const events = new EventSource('http://localhost:57374/api/events');
 
 events.addEventListener('task:completed', (e) => {
   const event = JSON.parse(e.data);
@@ -178,7 +178,7 @@ events.onerror = (err) => {
 ```typescript
 import { LokiClient } from './api/client.ts';
 
-const client = new LokiClient('http://localhost:8420');
+const client = new LokiClient('http://localhost:57374');
 
 // Start a session
 const { sessionId } = await client.startSession({
@@ -207,16 +207,16 @@ client.close();
 
 ```bash
 # Filter by session
-curl "http://localhost:8420/api/events?sessionId=session_123"
+curl "http://localhost:57374/api/events?sessionId=session_123"
 
 # Filter by event types
-curl "http://localhost:8420/api/events?types=task:completed,task:failed"
+curl "http://localhost:57374/api/events?types=task:completed,task:failed"
 
 # Filter log level
-curl "http://localhost:8420/api/events?minLevel=warn"
+curl "http://localhost:57374/api/events?minLevel=warn"
 
 # Replay recent history
-curl "http://localhost:8420/api/events?history=50"
+curl "http://localhost:57374/api/events?history=50"
 ```
 
 ## Development

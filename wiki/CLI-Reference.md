@@ -646,6 +646,143 @@ Checks for required tools (Node.js, Python 3, jq, git, curl), optional tools (Cl
 
 ---
 
+## Audit Commands
+
+### `loki audit`
+
+View agent action audit trail (v5.38.0).
+
+```bash
+loki audit [SUBCOMMAND]
+```
+
+**Subcommands:**
+
+| Command | Description |
+|---------|-------------|
+| `log` | Display recent agent action audit entries |
+| `count` | Show count of audit entries |
+| `help` | Show audit help |
+
+**Examples:**
+```bash
+# View recent audit entries
+loki audit log
+
+# Count total entries
+loki audit count
+
+# Help
+loki audit help
+```
+
+**Audit Log Location:** `.loki/logs/agent-audit.jsonl`
+
+**Tracked Actions:**
+
+| Action | Description |
+|--------|-------------|
+| `cli_invoke` | CLI command invocation |
+| `git_commit` | Git commit by agent |
+| `session_start` | Session started |
+| `session_stop` | Session stopped |
+
+---
+
+## Metrics Commands
+
+### `loki metrics`
+
+Fetch Prometheus/OpenMetrics metrics from dashboard (v5.38.0).
+
+```bash
+loki metrics [OPTIONS]
+```
+
+**Options:**
+| Option | Description |
+|--------|-------------|
+| `--host HOST` | Dashboard host (default: localhost) |
+| `--port PORT` | Dashboard port (default: 57374) |
+
+**Examples:**
+```bash
+# Display all metrics
+loki metrics
+
+# Filter specific metric
+loki metrics | grep loki_cost_usd
+
+# Custom host/port
+loki metrics --port 8080
+```
+
+**Available Metrics:**
+
+| Metric | Type | Description |
+|--------|------|-------------|
+| `loki_session_status` | gauge | Current status (0=stopped, 1=running, 2=paused) |
+| `loki_iteration_current` | gauge | Current iteration number |
+| `loki_iteration_max` | gauge | Maximum configured iterations |
+| `loki_tasks_total` | gauge | Tasks by status (pending, in_progress, completed, failed) |
+| `loki_agents_active` | gauge | Currently active agents |
+| `loki_agents_total` | gauge | Total registered agents |
+| `loki_cost_usd` | gauge | Estimated total cost in USD |
+| `loki_events_total` | counter | Total events recorded |
+| `loki_uptime_seconds` | gauge | Seconds since session started |
+
+---
+
+## Watchdog Commands
+
+### `loki watchdog`
+
+Process supervision and watchdog status (v5.37.0).
+
+```bash
+loki watchdog [SUBCOMMAND]
+```
+
+**Subcommands:**
+
+| Command | Description |
+|---------|-------------|
+| `status` | Show watchdog process status |
+| `help` | Show watchdog help |
+
+**Examples:**
+```bash
+loki watchdog status
+```
+
+---
+
+## Secrets Commands
+
+### `loki secrets`
+
+Secret management status (v5.37.0).
+
+```bash
+loki secrets [SUBCOMMAND]
+```
+
+**Subcommands:**
+
+| Command | Description |
+|---------|-------------|
+| `status` | Show secret mount status (Docker/K8s) |
+| `validate` | Validate secret configurations |
+| `help` | Show secrets help |
+
+**Examples:**
+```bash
+loki secrets status
+loki secrets validate
+```
+
+---
+
 ## Utility Commands
 
 ### `loki version`

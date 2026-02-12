@@ -13,6 +13,8 @@
 [![HumanEval](https://img.shields.io/badge/HumanEval-98.17%25%20Pass%401-brightgreen)](benchmarks/results/)
 [![SWE-bench](https://img.shields.io/badge/SWE--bench-99.67%25%20Patch%20Gen-brightgreen)](benchmarks/results/)
 
+**Current Version: v5.38.0**
+
 **[Documentation Website](https://asklokesh.github.io/loki-mode/)** | **[Architecture](https://asklokesh.github.io/loki-mode/blog/#architecture)** | **[Research](https://asklokesh.github.io/loki-mode/blog/#research)** | **[Comparisons](https://asklokesh.github.io/loki-mode/blog/#comparisons)**
 
 > **PRD → Deployed Product in Zero Human Intervention**
@@ -77,7 +79,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: asklokesh/loki-mode@v5
+      - uses: asklokesh/loki-mode@v5.38
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           mode: review          # review, fix, or test
@@ -214,6 +216,8 @@ PRD → Research → Architecture → Development → Testing → Deployment →
 | **Stops on errors** | **Self-healing**: circuit breakers, dead letter queues, exponential backoff, automatic recovery |
 | **No visibility** into progress | **Real-time dashboard** with agent monitoring, task queues, and live status updates |
 | **"Done" when code is written** | **Never "done"**: continuous optimization, A/B testing, customer feedback loops, perpetual improvement |
+| **No security controls** | **Enterprise-ready**: TLS/HTTPS, OIDC/SSO, RBAC, audit trails, SIEM integration, Prometheus metrics (v5.36.0-v5.38.0) |
+| **Direct commits to main** | **Branch protection**: auto-create feature branches, clean PR workflow, never touches main directly (v5.37.0) |
 
 ### **Core Advantages**
 
@@ -235,6 +239,14 @@ PRD → Research → Architecture → Development → Testing → Deployment →
 | **CLI (v4.1.0)** | `loki` command for start/stop/pause/status | [CLI Commands](#cli-commands-v410) |
 | **Config Files** | YAML configuration support | [autonomy/config.example.yaml](autonomy/config.example.yaml) |
 | **Dashboard** | Realtime Kanban board, agent monitoring | [Dashboard Guide](docs/dashboard-guide.md) |
+| **TLS/HTTPS (v5.36.0)** | Dashboard encryption with self-signed certs | [Network Security](docs/network-security.md) |
+| **OIDC/SSO (v5.36.0)** | Google, Azure AD, Okta authentication | [Authentication Guide](docs/authentication.md) |
+| **RBAC (v5.37.0)** | Admin, operator, viewer, auditor roles | [Authorization Guide](docs/authorization.md) |
+| **Metrics Export (v5.38.0)** | Prometheus/OpenMetrics `/metrics` endpoint | [Metrics Guide](docs/metrics.md) |
+| **Branch Protection (v5.37.0)** | Auto-create feature branches for PRs | [Git Workflow](docs/git-workflow.md) |
+| **Audit Trail (v5.37.0)** | Agent action logging with integrity chain | [Audit Logging](docs/audit-logging.md) |
+| **SIEM Integration (v5.38.0)** | Syslog forwarding for enterprise security | [SIEM Guide](docs/siem-integration.md) |
+| **OpenClaw Bridge (v5.38.0)** | Multi-agent coordination protocol | [OpenClaw Integration](docs/openclaw-integration.md) |
 | **41 Agent Types** | Engineering, Ops, Business, Data, Product, Growth, Orchestration | [Agent Definitions](references/agent-types.md) |
 | **RARV Cycle** | Reason-Act-Reflect-Verify workflow | [Core Workflow](references/core-workflow.md) |
 | **Quality Gates** | 7-gate system: guardrails, static analysis, blind review, anti-sycophancy, severity blocking, test coverage | [Quality Control](references/quality-control.md) |
@@ -245,6 +257,67 @@ PRD → Research → Architecture → Development → Testing → Deployment →
 | **Research Foundation** | OpenAI, DeepMind, Anthropic patterns | [Acknowledgements](docs/ACKNOWLEDGEMENTS.md) |
 | **Benchmarks** | HumanEval 98.78%, SWE-bench 99.67% | [Benchmark Results](benchmarks/results/) |
 | **Comparisons** | vs Auto-Claude, Cursor | [Auto-Claude](docs/auto-claude-comparison.md), [Cursor](docs/cursor-comparison.md) |
+
+---
+
+## Enterprise Security & Compliance (v5.36.0-v5.38.0)
+
+Loki Mode now includes production-ready security and compliance features for enterprise deployments:
+
+### **Authentication & Authorization**
+- **TLS/HTTPS Encryption**: Self-signed certificates for dashboard encryption (v5.36.0)
+- **OIDC/SSO Integration**: Support for Google, Azure AD, and Okta authentication (v5.36.0)
+- **RBAC Roles**: Four-tier role system (v5.37.0)
+  - **Admin**: Full control, configuration changes, user management
+  - **Operator**: Start/stop sessions, modify tasks, execute actions
+  - **Viewer**: Read-only dashboard access, view logs and metrics
+  - **Auditor**: Access audit logs, compliance reports, security events
+
+### **Observability & Monitoring**
+- **Prometheus/OpenMetrics**: `/metrics` endpoint for production monitoring (v5.38.0)
+  - Task completion rates, agent performance, memory usage
+  - Integration with Grafana, Datadog, New Relic
+- **Audit Trail**: SHA-256 integrity chain for all agent actions (v5.37.0)
+  - Tamper-evident logging with cryptographic verification
+  - Complete action history: who did what, when, and why
+- **SIEM Integration**: Syslog forwarding (RFC 5424) for enterprise security (v5.38.0)
+  - Send logs to Splunk, QRadar, ArcSight, Elastic SIEM
+  - Real-time security event detection and alerting
+
+### **Development Safety**
+- **Branch Protection**: Auto-create feature branches for all PR work (v5.37.0)
+  - Never commits directly to main/master
+  - Automatic branch naming: `loki/feature/<task-id>`
+  - Clean merge workflow with squash commits
+- **OpenClaw Bridge**: Multi-agent coordination protocol integration (v5.38.0)
+  - Standardized inter-agent communication
+  - Cross-system orchestration support
+
+### **Quick Start (Enterprise Mode)**
+
+```bash
+# Enable TLS/HTTPS
+export LOKI_TLS_ENABLED=true
+export LOKI_TLS_CERT=/path/to/cert.pem
+export LOKI_TLS_KEY=/path/to/key.pem
+
+# Configure OIDC
+export LOKI_OIDC_PROVIDER=google
+export LOKI_OIDC_CLIENT_ID=your-client-id
+export LOKI_OIDC_CLIENT_SECRET=your-client-secret
+
+# Enable audit logging
+export LOKI_AUDIT_ENABLED=true
+export LOKI_AUDIT_INTEGRITY_CHECK=true
+
+# Enable Prometheus metrics
+export LOKI_METRICS_ENABLED=true
+
+# Start with enterprise features
+loki start --enterprise ./my-prd.md
+```
+
+For detailed configuration, see [docs/network-security.md](docs/network-security.md), [docs/authentication.md](docs/authentication.md), and [docs/authorization.md](docs/authorization.md).
 
 ---
 
@@ -309,9 +382,11 @@ Last Updated: 2026-01-04 20:45:32
 
 # Or open manually
 open http://localhost:57374
+# HTTPS mode (v5.36.0+):
+open https://localhost:57374
 ```
 
-The dashboard at `http://localhost:57374` auto-refreshes via WebSocket. Works with any modern browser.
+The dashboard at `http://localhost:57374` (or `https://localhost:57374` with TLS enabled) auto-refreshes via WebSocket. Works with any modern browser.
 
 ---
 
@@ -464,18 +539,23 @@ graph TB
     PROVIDERS --> AGENTS
 
     subgraph INFRA["Infrastructure"]
-        DASHBOARD["Dashboard<br/>(FastAPI + Web UI)"]
+        DASHBOARD["Dashboard<br/>(FastAPI + Web UI)<br/>TLS/HTTPS, OIDC, RBAC"]
         MEMORY["Memory System<br/>(Episodic/Semantic/Procedural)"]
         COUNCIL["Completion Council<br/>(3-member voting)"]
         QUEUE["Task Queue<br/>(.loki/queue/)"]
+        METRICS["Metrics Export<br/>(Prometheus/OpenMetrics)"]
+        AUDIT["Audit Trail<br/>(SHA-256 integrity chain)"]
     end
 
     AGENTS --> QUEUE
     VERIFY --> COUNCIL
     REFLECT --> MEMORY
     COMPOUND --> MEMORY
+    AGENTS --> AUDIT
     DASHBOARD -.->|"reads"| QUEUE
     DASHBOARD -.->|"reads"| MEMORY
+    DASHBOARD -.->|"reads"| AUDIT
+    DASHBOARD -.->|"exposes"| METRICS
 ```
 
 **Key components:**
@@ -484,7 +564,9 @@ graph TB
 - **Agent Swarms** -- 41 specialized agent types across 7 swarms, spawned on demand based on project complexity.
 - **Completion Council** -- 3 members vote on whether the project is done. Anti-sycophancy devil's advocate on unanimous votes.
 - **Memory System** -- Episodic traces, semantic patterns, procedural skills. Progressive disclosure reduces context usage by 60-80%.
-- **Dashboard** -- FastAPI server reading `.loki/` flat files, with real-time web UI for task queue, agents, logs, and council state.
+- **Dashboard** -- FastAPI server reading `.loki/` flat files, with real-time web UI for task queue, agents, logs, and council state. Now with TLS/HTTPS, OIDC/SSO, and RBAC (v5.36.0-v5.37.0).
+- **Metrics Export** -- Prometheus/OpenMetrics endpoint for production monitoring (v5.38.0).
+- **Audit Trail** -- SHA-256 integrity chain for tamper-evident logging of all agent actions (v5.37.0).
 
 ---
 
@@ -503,6 +585,10 @@ The `loki` CLI provides easy access to all Loki Mode features:
 | `loki import` | Import GitHub issues as tasks |
 | `loki config show` | Show configuration |
 | `loki config init` | Create config file from template |
+| `loki audit logs` | View audit trail (v5.37.0) |
+| `loki audit verify` | Verify log integrity chain (v5.37.0) |
+| `loki metrics` | Display Prometheus metrics (v5.38.0) |
+| `loki syslog test` | Test SIEM integration (v5.38.0) |
 | `loki version` | Show version |
 
 ### Configuration File
@@ -622,6 +708,9 @@ IMPLEMENT → REVIEW (parallel) → AGGREGATE → FIX → RE-REVIEW → COMPLETE
 ├── metrics/        # Efficiency tracking and reward signals
 ├── messages/       # Inter-agent communication
 ├── logs/           # Audit logs
+├── audit/          # Audit trail with SHA-256 integrity chain (v5.37.0)
+├── security/       # TLS certificates, OIDC configs (v5.36.0)
+├── rbac/           # Role definitions and permissions (v5.37.0)
 ├── config/         # Configuration files
 ├── prompts/        # Agent role prompts
 ├── artifacts/      # Releases, reports, backups
@@ -710,6 +799,13 @@ LOKI_MAX_WAIT=7200 \
 | `LOKI_BASE_WAIT` | 60 | Base wait time in seconds |
 | `LOKI_MAX_WAIT` | 3600 | Maximum wait time (1 hour) |
 | `LOKI_SKIP_PREREQS` | false | Skip prerequisite checks |
+| `LOKI_TLS_ENABLED` | false | Enable HTTPS/TLS for dashboard (v5.36.0) |
+| `LOKI_OIDC_PROVIDER` | - | OIDC provider: google, azure, okta (v5.36.0) |
+| `LOKI_RBAC_ENABLED` | false | Enable role-based access control (v5.37.0) |
+| `LOKI_AUDIT_ENABLED` | false | Enable audit logging with integrity chain (v5.37.0) |
+| `LOKI_METRICS_ENABLED` | false | Enable Prometheus /metrics endpoint (v5.38.0) |
+| `LOKI_SYSLOG_ENABLED` | false | Enable syslog forwarding to SIEM (v5.38.0) |
+| `LOKI_BRANCH_PROTECTION` | true | Auto-create feature branches (v5.37.0) |
 
 ### **Circuit Breakers**
 
@@ -778,6 +874,27 @@ npx vibe-kanban
 - Multi-project dashboard
 
 See [integrations/vibe-kanban.md](integrations/vibe-kanban.md) for complete step-by-step setup guide and troubleshooting.
+
+### **OpenClaw Bridge (v5.38.0)**
+
+Loki Mode now supports the OpenClaw multi-agent coordination protocol for cross-system orchestration:
+
+```bash
+# Enable OpenClaw bridge
+export LOKI_OPENCLAW_ENABLED=true
+export LOKI_OPENCLAW_ENDPOINT=http://openclaw-server:8080
+
+# Start with OpenClaw integration
+loki start --openclaw ./prd.md
+```
+
+**Benefits:**
+- Standardized inter-agent communication across different AI systems
+- Coordinate with external agent frameworks (AutoGPT, MetaGPT, etc.)
+- Share task queues and state between multiple orchestrators
+- Cross-platform agent collaboration
+
+See [docs/openclaw-integration.md](docs/openclaw-integration.md) for complete setup and API reference.
 
 ---
 

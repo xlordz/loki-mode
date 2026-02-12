@@ -237,6 +237,10 @@ enterprise:
 | `LOKI_ENTERPRISE_AUDIT` | `false` | Force audit on (legacy, audit is now on by default) |
 | `LOKI_AUDIT_LEVEL` | `info` | Minimum log level |
 | `LOKI_AUDIT_RETENTION` | `90` | Retention in days |
+| `LOKI_AUDIT_SYSLOG_HOST` | - | Syslog server hostname for audit forwarding |
+| `LOKI_AUDIT_SYSLOG_PORT` | `514` | Syslog server port |
+| `LOKI_AUDIT_SYSLOG_PROTO` | `udp` | Syslog protocol: `udp` or `tcp` |
+| `LOKI_AUDIT_NO_INTEGRITY` | `false` | Disable SHA-256 chain hashing on audit entries |
 
 ---
 
@@ -290,6 +294,119 @@ logs:
 aws logs create-log-group --log-group-name loki-mode-audit
 
 # Configure agent to push logs
+```
+
+---
+
+## Log Integrity (v5.38.0)
+
+Audit entries are chain-hashed with SHA-256 for tamper detection.
+
+### How It Works
+
+Each audit entry includes a `chain_hash` field:
+1. First entry hashes against a genesis hash (`0` * 64)
+2. Each subsequent entry hashes: `SHA256(previous_hash + current_entry_json)`
+3. Any modification to a past entry invalidates all subsequent hashes
+
+### Verification
+
+```python
+from dashboard.audit import verify_log_integrity
+
+result = verify_log_integrity("/path/to/audit.jsonl")
+print(f"Valid: {result['valid']}")
+print(f"Entries checked: {result['entries_checked']}")
+if not result['valid']:
+    print(f"First tampered line: {result['first_tampered_line']}")
+```
+
+### Disabling Chain Hashing
+
+```bash
+export LOKI_AUDIT_NO_INTEGRITY=true
+```
+
+---
+
+## Syslog Forwarding (v5.37.1)
+
+Forward audit events to external syslog servers for SIEM integration.
+
+### Enable Syslog
+
+```bash
+export LOKI_AUDIT_SYSLOG_HOST=syslog.example.com
+export LOKI_AUDIT_SYSLOG_PORT=514
+export LOKI_AUDIT_SYSLOG_PROTO=udp
+```
+
+### Details
+
+- Uses Python stdlib `logging.handlers.SysLogHandler`
+- Facility: `LOG_LOCAL0`
+- Security actions forwarded at `WARNING` level
+- Fire-and-forget: syslog failures do not block audit writes
+- Supports both UDP and TCP protocols
+
+### Example syslog-ng Configuration
+
+```
+source s_loki {
+    network(port(514) transport("udp"));
+};
+
+destination d_loki_audit {
+    file("/var/log/loki-mode-audit.log");
+};
+
+filter f_loki {
+    facility(local0);
+};
+
+log {
+    source(s_loki);
+    filter(f_loki);
+    destination(d_loki_audit);
+};
+```
+
+---
+
+## Agent Action Audit (v5.38.0)
+
+In addition to the dashboard audit log, agent actions are tracked in a separate JSONL file.
+
+### Location
+
+`.loki/logs/agent-audit.jsonl`
+
+### Tracked Actions
+
+| Action | Description |
+|--------|-------------|
+| `cli_invoke` | CLI command executed by agent |
+| `git_commit` | Git commit performed by agent |
+| `session_start` | Agent session started |
+| `session_stop` | Agent session stopped |
+
+### Entry Format
+
+```json
+{
+  "timestamp": "2026-02-12T18:30:00Z",
+  "action": "git_commit",
+  "agent": "development",
+  "details": {"message": "Add auth module", "files_changed": 3}
+}
+```
+
+### CLI Commands
+
+```bash
+loki audit log      # View recent entries
+loki audit count    # Count total entries
+loki audit help     # Show help
 ```
 
 ---
@@ -364,3 +481,4 @@ find ~/.loki/dashboard/audit/ -name "*.jsonl" -mtime +30 -delete
 - [[Enterprise Features]] - All enterprise features
 - [[Security]] - Security best practices
 - [[API Reference]] - Audit API endpoints
+- [[Network Security]] - Network egress control
