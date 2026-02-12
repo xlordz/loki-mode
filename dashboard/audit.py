@@ -1,8 +1,8 @@
 """
-Optional Audit Logging Module for Loki Mode Dashboard.
+Audit Logging Module for Loki Mode Dashboard.
 
-Enterprise feature - disabled by default.
-Enable with LOKI_ENTERPRISE_AUDIT=true environment variable.
+Enabled by default. Disable with LOKI_AUDIT_DISABLED=true environment variable.
+Legacy env var LOKI_ENTERPRISE_AUDIT=true always enables audit (backward compat).
 
 Audit logs: ~/.loki/dashboard/audit/
 """
@@ -14,7 +14,11 @@ from pathlib import Path
 from typing import Any, Optional
 
 # Configuration
-ENTERPRISE_AUDIT_ENABLED = os.environ.get("LOKI_ENTERPRISE_AUDIT", "").lower() in ("true", "1", "yes")
+# Audit is ON by default. Disable with LOKI_AUDIT_DISABLED=true.
+# Backward compat: LOKI_ENTERPRISE_AUDIT=true always forces audit ON.
+_audit_disabled = os.environ.get("LOKI_AUDIT_DISABLED", "").lower() in ("true", "1", "yes")
+_enterprise_force_on = os.environ.get("LOKI_ENTERPRISE_AUDIT", "").lower() in ("true", "1", "yes")
+ENTERPRISE_AUDIT_ENABLED = _enterprise_force_on or (not _audit_disabled)
 AUDIT_DIR = Path.home() / ".loki" / "dashboard" / "audit"
 
 # Log rotation settings
@@ -251,5 +255,5 @@ def get_audit_summary(days: int = 7) -> dict:
 
 
 def is_audit_enabled() -> bool:
-    """Check if audit logging is enabled."""
+    """Check if audit logging is enabled (on by default, disable with LOKI_AUDIT_DISABLED=true)."""
     return ENTERPRISE_AUDIT_ENABLED

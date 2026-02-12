@@ -22,19 +22,31 @@
 #   LOKI_SKIP_PREREQS   - Skip prerequisite checks (default: false)
 #   LOKI_DASHBOARD      - Enable web dashboard (default: true)
 #   LOKI_DASHBOARD_PORT - Dashboard port (default: 57374)
+#   LOKI_TLS_CERT       - Path to PEM certificate (enables HTTPS for dashboard)
+#   LOKI_TLS_KEY        - Path to PEM private key (enables HTTPS for dashboard)
 #
 # Resource Monitoring (prevents system overload):
 #   LOKI_RESOURCE_CHECK_INTERVAL - Check resources every N seconds (default: 300 = 5min)
 #   LOKI_RESOURCE_CPU_THRESHOLD  - CPU % threshold to warn (default: 80)
 #   LOKI_RESOURCE_MEM_THRESHOLD  - Memory % threshold to warn (default: 80)
 #
+# Budget / Cost Limits (opt-in):
+#   LOKI_BUDGET_LIMIT            - Max USD spend before auto-pause (default: empty = unlimited)
+#                                  Example: "50.00" pauses session when estimated cost >= $50
+#
 # Security & Autonomy Controls (Enterprise):
 #   LOKI_STAGED_AUTONOMY    - Require approval before execution (default: false)
-#   LOKI_AUDIT_LOG          - Enable audit logging (default: false)
+#   LOKI_AUDIT_LOG          - Enable audit logging (default: true)
+#   LOKI_AUDIT_DISABLED     - Disable audit logging (default: false)
 #   LOKI_MAX_PARALLEL_AGENTS - Limit concurrent agent spawning (default: 10)
 #   LOKI_SANDBOX_MODE       - Run in sandboxed container (default: false, requires Docker)
 #   LOKI_ALLOWED_PATHS      - Comma-separated paths agents can modify (default: all)
 #   LOKI_BLOCKED_COMMANDS   - Comma-separated blocked shell commands (default: rm -rf /)
+#
+# OIDC / SSO Authentication (optional, works alongside token auth):
+#   LOKI_OIDC_ISSUER        - OIDC issuer URL (e.g., https://accounts.google.com)
+#   LOKI_OIDC_CLIENT_ID     - OIDC client/application ID
+#   LOKI_OIDC_AUDIENCE      - Expected JWT audience (default: same as client_id)
 #
 # SDLC Phase Controls (all enabled by default, set to 'false' to skip):
 #   LOKI_PHASE_UNIT_TESTS      - Run unit tests (default: true)
@@ -122,6 +134,10 @@
 # Security (Enterprise):
 #   LOKI_PROMPT_INJECTION - Enable HUMAN_INPUT.md processing (default: false)
 #                           Set to "true" only in trusted environments
+#
+# Process Supervision (opt-in):
+#   LOKI_WATCHDOG              - Enable process health monitoring (default: false)
+#   LOKI_WATCHDOG_INTERVAL     - Check interval in seconds (default: 30)
 #===============================================================================
 #
 # Compatibility: bash 3.2+ (macOS default), bash 4+ (Linux), WSL
@@ -461,16 +477,24 @@ RESOURCE_CHECK_INTERVAL=${LOKI_RESOURCE_CHECK_INTERVAL:-300}  # Check every 5 mi
 RESOURCE_CPU_THRESHOLD=${LOKI_RESOURCE_CPU_THRESHOLD:-80}     # CPU % threshold
 RESOURCE_MEM_THRESHOLD=${LOKI_RESOURCE_MEM_THRESHOLD:-80}     # Memory % threshold
 
+# Budget / Cost Limit (opt-in, empty = unlimited)
+BUDGET_LIMIT=${LOKI_BUDGET_LIMIT:-""}  # USD amount, e.g., "50.00"
+
 # Background Mode
 BACKGROUND_MODE=${LOKI_BACKGROUND:-false}                # Run in background
 
 # Security & Autonomy Controls
 STAGED_AUTONOMY=${LOKI_STAGED_AUTONOMY:-false}           # Require plan approval
-AUDIT_LOG_ENABLED=${LOKI_AUDIT_LOG:-false}               # Enable audit logging
+AUDIT_LOG_ENABLED=${LOKI_AUDIT_LOG:-true}                # Enable audit logging (on by default)
 MAX_PARALLEL_AGENTS=${LOKI_MAX_PARALLEL_AGENTS:-10}      # Limit concurrent agents
 SANDBOX_MODE=${LOKI_SANDBOX_MODE:-false}                 # Docker sandbox mode
 ALLOWED_PATHS=${LOKI_ALLOWED_PATHS:-""}                  # Empty = all paths allowed
 BLOCKED_COMMANDS=${LOKI_BLOCKED_COMMANDS:-"rm -rf /,dd if=,mkfs,:(){ :|:& };:"}
+
+# Process Supervision (opt-in)
+WATCHDOG_ENABLED=${LOKI_WATCHDOG:-"false"}          # Enable process health monitoring
+WATCHDOG_INTERVAL=${LOKI_WATCHDOG_INTERVAL:-30}     # Check interval in seconds
+LAST_WATCHDOG_CHECK=0
 
 STATUS_MONITOR_PID=""
 DASHBOARD_PID=""
@@ -738,6 +762,57 @@ get_iteration_duration_ms() {
     else
         echo "0"
     fi
+}
+
+#===============================================================================
+# API Key Validation
+# Validates required API key is set for the selected provider.
+# Supports Docker/K8s secret file mounts as fallback.
+#===============================================================================
+
+validate_api_keys() {
+    local provider="${LOKI_PROVIDER:-claude}"
+    local key_var=""
+
+    case "$provider" in
+        claude) key_var="ANTHROPIC_API_KEY" ;;
+        codex)  key_var="OPENAI_API_KEY" ;;
+        gemini) key_var="GOOGLE_API_KEY" ;;
+    esac
+
+    if [[ -z "$key_var" ]]; then
+        return 0
+    fi
+
+    local key_value="${!key_var:-}"
+
+    # Try loading from secret file mounts (Docker/K8s)
+    if [[ -z "$key_value" ]]; then
+        local lower_name
+        lower_name=$(echo "$key_var" | tr '[:upper:]' '[:lower:]')
+        for mount_path in /run/secrets /var/run/secrets; do
+            if [[ -f "$mount_path/$lower_name" ]]; then
+                key_value=$(cat "$mount_path/$lower_name" 2>/dev/null | tr -d '[:space:]')
+                if [[ -n "$key_value" ]]; then
+                    export "$key_var=$key_value"
+                    log_info "Loaded $key_var from secret file: $mount_path/$lower_name"
+                    break
+                fi
+            fi
+        done
+    fi
+
+    if [[ -z "$key_value" ]]; then
+        log_error "Required API key $key_var is not set for provider $provider"
+        log_error "Set via environment variable or Docker/K8s secret mount"
+        return 1
+    fi
+
+    # Log masked key for debugging
+    local masked="${key_value:0:8}...${key_value: -4}"
+    log_info "API key $key_var: $masked (${#key_value} chars)"
+
+    return 0
 }
 
 #===============================================================================
@@ -2097,6 +2172,19 @@ EOF
     # Write pricing.json with provider-specific model rates
     _write_pricing_json
 
+    # Write budget.json if a budget limit is configured
+    if [ -n "$BUDGET_LIMIT" ]; then
+        cat > ".loki/metrics/budget.json" << BUDGET_EOF
+{
+  "limit": $BUDGET_LIMIT,
+  "budget_limit": $BUDGET_LIMIT,
+  "budget_used": 0,
+  "created_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+}
+BUDGET_EOF
+        log_info "Budget limit set: \$$BUDGET_LIMIT"
+    fi
+
     log_info "Loki directory initialized: .loki/"
 }
 
@@ -2412,6 +2500,12 @@ write_dashboard_state() {
         council_state=$(cat ".loki/council/state.json" 2>/dev/null || echo '{"enabled":false}')
     fi
 
+    # Get budget status (if configured)
+    local budget_json="null"
+    if [ -f ".loki/metrics/budget.json" ]; then
+        budget_json=$(cat ".loki/metrics/budget.json" 2>/dev/null || echo "null")
+    fi
+
     # Write comprehensive JSON state (atomic via temp file + mv)
     local project_name=$(basename "$(pwd)")
     local project_path=$(pwd)
@@ -2463,7 +2557,8 @@ write_dashboard_state() {
     "procedural": $procedural_count
   },
   "qualityGates": $quality_gates,
-  "council": $council_state
+  "council": $council_state,
+  "budget": $budget_json
 }
 EOF
     mv "$_tmp_state" "$output_file"
@@ -4640,10 +4735,20 @@ start_dashboard() {
     export LOKI_DASHBOARD_HOST="127.0.0.1"
     export LOKI_PROJECT_PATH="$project_path"
 
+    # Determine URL scheme based on TLS configuration
+    local url_scheme="http"
+    local tls_env=""
+    if [ -n "${LOKI_TLS_CERT:-}" ] && [ -n "${LOKI_TLS_KEY:-}" ]; then
+        url_scheme="https"
+        tls_env="LOKI_TLS_CERT=${LOKI_TLS_CERT} LOKI_TLS_KEY=${LOKI_TLS_KEY}"
+        log_info "TLS enabled for dashboard"
+    fi
+
     # Start the FastAPI dashboard server
     # Dashboard module is at project root (parent of autonomy/)
     # LOKI_SKILL_DIR tells server.py where to find static files
-    LOKI_SKILL_DIR="${SCRIPT_DIR%/*}" PYTHONPATH="${SCRIPT_DIR%/*}" nohup python3 -m dashboard.server > "$log_file" 2>&1 &
+    LOKI_TLS_CERT="${LOKI_TLS_CERT:-}" LOKI_TLS_KEY="${LOKI_TLS_KEY:-}" \
+        LOKI_SKILL_DIR="${SCRIPT_DIR%/*}" PYTHONPATH="${SCRIPT_DIR%/*}" nohup python3 -m dashboard.server > "$log_file" 2>&1 &
     DASHBOARD_PID=$!
 
     # Save PID for later cleanup
@@ -4658,11 +4763,11 @@ start_dashboard() {
 
     if kill -0 "$DASHBOARD_PID" 2>/dev/null; then
         log_info "Dashboard started (PID: $DASHBOARD_PID)"
-        log_info "Dashboard: ${CYAN}http://127.0.0.1:$DASHBOARD_PORT/${NC}"
+        log_info "Dashboard: ${CYAN}${url_scheme}://127.0.0.1:$DASHBOARD_PORT/${NC}"
 
         # Open in browser (macOS)
         if [[ "$OSTYPE" == "darwin"* ]]; then
-            open "http://127.0.0.1:$DASHBOARD_PORT/" 2>/dev/null || true
+            open "${url_scheme}://127.0.0.1:$DASHBOARD_PORT/" 2>/dev/null || true
         fi
         return 0
     else
@@ -4897,6 +5002,180 @@ is_completed() {
     fi
 
     return 1
+}
+
+# Check if estimated cost has exceeded the budget limit
+# Returns 0 (exceeded) or 1 (within budget / no limit set)
+check_budget_limit() {
+    [[ -z "$BUDGET_LIMIT" ]] && return 1  # No limit set
+
+    # Validate BUDGET_LIMIT is a valid number (prevent shell injection)
+    if ! python3 -c "float('${BUDGET_LIMIT//[^0-9.]/}')" 2>/dev/null; then
+        log_error "BUDGET_LIMIT is not a valid number: $BUDGET_LIMIT"
+        return 1
+    fi
+
+    local current_cost=0
+    local efficiency_dir=".loki/metrics/efficiency"
+
+    # Calculate cost from per-iteration efficiency files (same source as /api/cost)
+    if [ -d "$efficiency_dir" ]; then
+        current_cost=$(python3 -c "
+import json, glob
+total = 0.0
+pricing = {
+    'opus': {'input': 5.00, 'output': 25.00},
+    'sonnet': {'input': 3.00, 'output': 15.00},
+    'haiku': {'input': 1.00, 'output': 5.00},
+    'gpt-5.3-codex': {'input': 1.50, 'output': 12.00},
+    'gemini-3-pro': {'input': 1.25, 'output': 10.00},
+    'gemini-3-flash': {'input': 0.10, 'output': 0.40},
+}
+for f in glob.glob('${efficiency_dir}/*.json'):
+    try:
+        d = json.load(open(f))
+        cost = d.get('cost_usd')
+        if cost is not None:
+            total += float(cost)
+        else:
+            model = d.get('model', 'sonnet').lower()
+            p = pricing.get(model, pricing['sonnet'])
+            inp = d.get('input_tokens', 0)
+            out = d.get('output_tokens', 0)
+            total += (inp / 1_000_000) * p['input'] + (out / 1_000_000) * p['output']
+    except: pass
+print(round(total, 4))
+" 2>/dev/null || echo "0")
+    fi
+
+    # Compare against limit
+    local exceeded
+    exceeded=$(python3 -c "
+import sys
+try:
+    cost = float(sys.argv[1])
+    limit = float(sys.argv[2])
+    print(1 if cost >= limit else 0)
+except (ValueError, IndexError):
+    print(0)
+" "$current_cost" "$BUDGET_LIMIT" 2>/dev/null || echo "0")
+
+    if [[ "$exceeded" == "1" ]]; then
+        log_warn "BUDGET LIMIT REACHED: \$${current_cost} >= \$${BUDGET_LIMIT}"
+        touch ".loki/PAUSE"
+        mkdir -p ".loki/signals"
+        echo "{\"type\":\"BUDGET_EXCEEDED\",\"limit\":${BUDGET_LIMIT},\"current\":${current_cost},\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > ".loki/signals/BUDGET_EXCEEDED"
+        # Update budget.json with latest usage
+        cat > ".loki/metrics/budget.json" << BUDGETUPD_EOF
+{
+  "limit": $BUDGET_LIMIT,
+  "budget_limit": $BUDGET_LIMIT,
+  "budget_used": $current_cost,
+  "exceeded": true,
+  "exceeded_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+}
+BUDGETUPD_EOF
+        emit_event_json "budget_exceeded" \
+            "limit=${BUDGET_LIMIT}" \
+            "current=${current_cost}" \
+            "iteration=$ITERATION_COUNT"
+        return 0
+    fi
+
+    # Update budget.json with current usage (not exceeded)
+    if [ -n "$current_cost" ] && [ "$current_cost" != "0" ]; then
+        cat > ".loki/metrics/budget.json" << BUDGETUPD_EOF
+{
+  "limit": $BUDGET_LIMIT,
+  "budget_limit": $BUDGET_LIMIT,
+  "budget_used": $current_cost,
+  "exceeded": false
+}
+BUDGETUPD_EOF
+    fi
+
+    return 1
+}
+
+#===============================================================================
+# Watchdog: Process Supervision and Health Monitoring
+# Opt-in via LOKI_WATCHDOG=true. Detects crashed dashboard and agent processes.
+#===============================================================================
+
+watchdog_check() {
+    [[ "$WATCHDOG_ENABLED" != "true" ]] && return 0
+
+    # Check dashboard health
+    local dashboard_pid_file=".loki/dashboard/dashboard.pid"
+    if [[ -f "$dashboard_pid_file" ]]; then
+        local dpid
+        dpid=$(cat "$dashboard_pid_file" 2>/dev/null)
+        if [[ -n "$dpid" ]] && ! kill -0 "$dpid" 2>/dev/null; then
+            log_warn "WATCHDOG: Dashboard process $dpid is dead"
+            emit_event_json "watchdog_alert" \
+                "process=dashboard" \
+                "pid=$dpid" \
+                "action=detected_dead"
+
+            # Auto-restart dashboard if it was previously running
+            if [[ "${ENABLE_DASHBOARD:-true}" == "true" ]]; then
+                log_info "WATCHDOG: Restarting dashboard..."
+                start_dashboard
+            fi
+        fi
+    fi
+
+    # Check for zombie/dead agents
+    local agents_file=".loki/state/agents.json"
+    if [[ -f "$agents_file" ]]; then
+        local dead_count=0
+        local agent_pids
+        agent_pids=$(python3 -c "
+import json, sys
+try:
+    agents = json.load(open('$agents_file'))
+    for a in agents:
+        pid = a.get('pid')
+        status = a.get('status', '')
+        if pid and status not in ('terminated', 'completed', 'failed', 'crashed'):
+            print(f\"{pid}:{a.get('id','unknown')}\")
+except Exception:
+    pass
+" 2>/dev/null || true)
+
+        if [[ -n "$agent_pids" ]]; then
+            while IFS=: read -r apid aid; do
+                [[ -z "$apid" ]] && continue
+                if ! kill -0 "$apid" 2>/dev/null; then
+                    dead_count=$((dead_count + 1))
+                    log_warn "WATCHDOG: Agent $aid (PID $apid) is dead"
+                    # Update agent status in agents.json
+                    python3 -c "
+import json
+try:
+    with open('$agents_file', 'r') as f:
+        agents = json.load(f)
+    for a in agents:
+        if str(a.get('pid')) == '$apid':
+            a['status'] = 'crashed'
+            a['crashed_at'] = '$(date -u +%Y-%m-%dT%H:%M:%SZ)'
+    with open('$agents_file', 'w') as f:
+        json.dump(agents, f, indent=2)
+except Exception:
+    pass
+" 2>/dev/null || true
+                fi
+            done <<< "$agent_pids"
+
+            if [[ $dead_count -gt 0 ]]; then
+                emit_event_json "watchdog_alert" \
+                    "process=agents" \
+                    "dead_count=$dead_count"
+            fi
+        fi
+    fi
+
+    return 0
 }
 
 # Check if completion promise is fulfilled in log output
@@ -5471,6 +5750,9 @@ run_autonomous() {
     log_info "Base wait: ${BASE_WAIT}s"
     log_info "Max wait: ${MAX_WAIT}s"
     log_info "Autonomy mode: $AUTONOMY_MODE"
+    if [ -n "$BUDGET_LIMIT" ]; then
+        log_info "Budget limit: \$$BUDGET_LIMIT"
+    fi
     # Only show Claude-specific features for Claude provider
     if [ "${PROVIDER_NAME:-claude}" = "claude" ]; then
         log_info "Prompt repetition (Haiku): $PROMPT_REPETITION"
@@ -5509,6 +5791,23 @@ run_autonomous() {
             1) continue ;;  # PAUSE handled, restart loop
             2) return 0 ;;  # STOP requested
         esac
+
+        # Check budget limit (creates PAUSE file if exceeded)
+        if check_budget_limit; then
+            log_warn "Session paused due to budget limit. Remove .loki/PAUSE to resume."
+            save_state $retry "budget_exceeded" 0
+            continue  # Will hit PAUSE check on next iteration
+        fi
+
+        # Watchdog: periodic process health check (opt-in via LOKI_WATCHDOG=true)
+        if [[ "$WATCHDOG_ENABLED" == "true" ]]; then
+            local now_epoch
+            now_epoch=$(date +%s)
+            if (( now_epoch - LAST_WATCHDOG_CHECK >= WATCHDOG_INTERVAL )); then
+                watchdog_check
+                LAST_WATCHDOG_CHECK=$now_epoch
+            fi
+        fi
 
         # Auto-track iteration start (for dashboard task queue)
         track_iteration_start "$ITERATION_COUNT" "$prd_path"
@@ -6387,6 +6686,11 @@ main() {
             log_warn "Running in sequential mode instead"
             PARALLEL_MODE=false
         fi
+    fi
+
+    # Validate API keys for the selected provider
+    if ! validate_api_keys; then
+        exit 1
     fi
 
     # Check prerequisites (unless skipped)

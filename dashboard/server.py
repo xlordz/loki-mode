@@ -21,6 +21,7 @@ from fastapi import (
     FastAPI,
     HTTPException,
     Query,
+    Request,
     WebSocket,
     WebSocketDisconnect,
 )
@@ -44,6 +45,14 @@ from .models import (
 from . import registry
 from . import auth
 from . import audit
+from . import secrets as secrets_mod
+
+# ---------------------------------------------------------------------------
+# TLS Configuration (optional - disabled by default)
+# Set both LOKI_TLS_CERT and LOKI_TLS_KEY to enable HTTPS
+# ---------------------------------------------------------------------------
+LOKI_TLS_CERT = os.environ.get("LOKI_TLS_CERT", "")  # Path to PEM certificate
+LOKI_TLS_KEY = os.environ.get("LOKI_TLS_KEY", "")    # Path to PEM private key
 
 # ---------------------------------------------------------------------------
 # Simple in-memory rate limiter for control endpoints
@@ -514,6 +523,7 @@ async def update_project(
 @app.delete("/api/projects/{project_id}", status_code=204, dependencies=[Depends(auth.require_scope("control"))])
 async def delete_project(
     project_id: int,
+    request: Request,
     db: AsyncSession = Depends(get_db),
 ) -> None:
     """Delete a project."""
@@ -524,6 +534,14 @@ async def delete_project(
 
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
+
+    audit.log_event(
+        action="delete",
+        resource_type="project",
+        resource_id=str(project_id),
+        details={"name": project.name},
+        ip_address=request.client.host if request.client else None,
+    )
 
     await db.delete(project)
 
@@ -731,6 +749,7 @@ async def update_task(
 @app.delete("/api/tasks/{task_id}", status_code=204, dependencies=[Depends(auth.require_scope("control"))])
 async def delete_task(
     task_id: int,
+    request: Request,
     db: AsyncSession = Depends(get_db),
 ) -> None:
     """Delete a task."""
@@ -743,6 +762,15 @@ async def delete_task(
         raise HTTPException(status_code=404, detail="Task not found")
 
     project_id = task.project_id
+
+    audit.log_event(
+        action="delete",
+        resource_type="task",
+        resource_id=str(task_id),
+        details={"project_id": project_id, "title": task.title},
+        ip_address=request.client.host if request.client else None,
+    )
+
     await db.delete(task)
 
     # Broadcast update
@@ -916,10 +944,17 @@ async def get_registered_project(identifier: str):
 
 
 @app.delete("/api/registry/projects/{identifier}", status_code=204, dependencies=[Depends(auth.require_scope("control"))])
-async def unregister_project(identifier: str):
+async def unregister_project(identifier: str, request: Request):
     """Remove a project from the registry."""
     if not registry.unregister_project(identifier):
         raise HTTPException(status_code=404, detail="Project not found in registry")
+
+    audit.log_event(
+        action="delete",
+        resource_type="registry_project",
+        resource_id=identifier,
+        ip_address=request.client.host if request.client else None,
+    )
 
 
 @app.get("/api/registry/projects/{identifier}/health", response_model=HealthResponse)
@@ -983,8 +1018,24 @@ async def get_enterprise_status():
     """Check which enterprise features are enabled."""
     return {
         "auth_enabled": auth.is_enterprise_mode(),
+        "oidc_enabled": auth.is_oidc_mode(),
         "audit_enabled": audit.is_audit_enabled(),
-        "enterprise_mode": auth.is_enterprise_mode() or audit.is_audit_enabled(),
+        "enterprise_mode": auth.is_enterprise_mode() or auth.is_oidc_mode() or audit.is_audit_enabled(),
+    }
+
+
+@app.get("/api/auth/info")
+async def get_auth_info():
+    """Get authentication configuration info (public endpoint).
+
+    Returns which auth methods are available so clients can determine
+    how to authenticate (token-based, OIDC/SSO, or anonymous).
+    """
+    return {
+        "token_auth_enabled": auth.ENTERPRISE_AUTH_ENABLED,
+        "oidc_enabled": auth.OIDC_ENABLED,
+        "oidc_issuer": auth.OIDC_ISSUER if auth.OIDC_ENABLED else None,
+        "oidc_client_id": auth.OIDC_CLIENT_ID if auth.OIDC_ENABLED else None,
     }
 
 
@@ -1088,7 +1139,7 @@ async def revoke_token(identifier: str, permanent: bool = False):
     return {"status": "ok", "action": action, "identifier": identifier}
 
 
-# Audit log endpoints (only active when LOKI_ENTERPRISE_AUDIT=true)
+# Audit log endpoints (enabled by default, disable with LOKI_AUDIT_DISABLED=true)
 class AuditQueryParams(BaseModel):
     """Query parameters for audit logs."""
     start_date: Optional[str] = None
@@ -1120,7 +1171,7 @@ async def query_audit_logs(
     if not audit.is_audit_enabled():
         raise HTTPException(
             status_code=403,
-            detail="Enterprise audit logging not enabled. Set LOKI_ENTERPRISE_AUDIT=true"
+            detail="Audit logging is disabled. Remove LOKI_AUDIT_DISABLED or set LOKI_ENTERPRISE_AUDIT=true"
         )
 
     return audit.query_logs(
@@ -1136,11 +1187,11 @@ async def query_audit_logs(
 
 @app.get("/api/enterprise/audit/summary")
 async def get_audit_summary(days: int = 7):
-    """Get audit activity summary (enterprise only)."""
+    """Get audit activity summary."""
     if not audit.is_audit_enabled():
         raise HTTPException(
             status_code=403,
-            detail="Enterprise audit logging not enabled"
+            detail="Audit logging is disabled. Remove LOKI_AUDIT_DISABLED or set LOKI_ENTERPRISE_AUDIT=true"
         )
 
     return audit.get_audit_summary(days=days)
@@ -1657,10 +1708,18 @@ async def resume_session():
 
 
 @app.post("/api/control/stop", dependencies=[Depends(auth.require_scope("control"))])
-async def stop_session():
+async def stop_session(request: Request):
     """Stop the session by creating STOP file and sending SIGTERM."""
     if not _control_limiter.check("control"):
         raise HTTPException(status_code=429, detail="Rate limit exceeded")
+
+    audit.log_event(
+        action="stop",
+        resource_type="session",
+        details={"source": "api"},
+        ip_address=request.client.host if request.client else None,
+    )
+
     stop_file = _get_loki_dir() / "STOP"
     stop_file.parent.mkdir(parents=True, exist_ok=True)
     stop_file.write_text(datetime.now(timezone.utc).isoformat())
@@ -1839,6 +1898,62 @@ async def get_cost():
         "budget_limit": budget_limit,
         "budget_used": round(budget_used, 4) if budget_limit is not None else None,
         "budget_remaining": round(budget_remaining, 4) if budget_remaining is not None else None,
+    }
+
+
+@app.get("/api/budget")
+async def get_budget():
+    """Get current budget status from .loki/metrics/budget.json and cost data."""
+    loki_dir = _get_loki_dir()
+    budget_file = loki_dir / "metrics" / "budget.json"
+    signals_dir = loki_dir / "signals"
+
+    # Read budget configuration
+    budget_limit = None
+    budget_used = 0.0
+    exceeded = False
+    exceeded_at = None
+
+    if budget_file.exists():
+        try:
+            budget_data = json.loads(budget_file.read_text())
+            budget_limit = budget_data.get("limit") or budget_data.get("budget_limit")
+            budget_used = budget_data.get("budget_used", 0.0)
+            exceeded = budget_data.get("exceeded", False)
+            exceeded_at = budget_data.get("exceeded_at")
+        except (json.JSONDecodeError, KeyError):
+            pass
+
+    # Also check env var for limit if not in file
+    if budget_limit is None:
+        env_limit = os.environ.get("LOKI_BUDGET_LIMIT", "")
+        if env_limit:
+            try:
+                budget_limit = float(env_limit)
+            except ValueError:
+                pass
+
+    # Check for budget exceeded signal
+    signal_file = signals_dir / "BUDGET_EXCEEDED"
+    if signal_file.exists():
+        exceeded = True
+        if exceeded_at is None:
+            try:
+                sig_data = json.loads(signal_file.read_text())
+                exceeded_at = sig_data.get("timestamp")
+            except (json.JSONDecodeError, KeyError):
+                pass
+
+    remaining = None
+    if budget_limit is not None:
+        remaining = max(0.0, float(budget_limit) - float(budget_used))
+
+    return {
+        "budget_limit": float(budget_limit) if budget_limit is not None else None,
+        "current_cost": round(float(budget_used), 4),
+        "exceeded": exceeded,
+        "exceeded_at": exceeded_at,
+        "remaining": round(remaining, 4) if remaining is not None else None,
     }
 
 
@@ -2219,11 +2334,19 @@ async def get_agents(token: Optional[dict] = Depends(auth.get_current_token)):
 
 
 @app.post("/api/agents/{agent_id}/kill", dependencies=[Depends(auth.require_scope("control"))])
-async def kill_agent(agent_id: str):
+async def kill_agent(agent_id: str, request: Request):
     """Kill a specific agent by ID."""
     if not _control_limiter.check("control"):
         raise HTTPException(status_code=429, detail="Rate limit exceeded")
     agent_id = _sanitize_agent_id(agent_id)
+
+    audit.log_event(
+        action="kill",
+        resource_type="agent",
+        resource_id=agent_id,
+        details={"source": "api"},
+        ip_address=request.client.host if request.client else None,
+    )
     agents_file = _get_loki_dir() / "state" / "agents.json"
     if not agents_file.exists():
         raise HTTPException(404, "No agents file found")
@@ -2378,6 +2501,90 @@ except ImportError as e:
 
 
 # =============================================================================
+# Secrets / Credential Status
+# =============================================================================
+
+@app.get("/api/secrets/status", dependencies=[Depends(auth.require_scope("admin"))])
+async def get_secrets_status():
+    """Get API key status (masked, validation, source). Admin only."""
+    result = secrets_mod.load_secrets()
+    rotated = secrets_mod.check_rotation(
+        str(_get_loki_dir() / "state" / "key-fingerprints.json")
+    )
+    return {
+        "keys": result,
+        "rotated_since_last_check": rotated,
+    }
+
+
+# =============================================================================
+# Process Health / Watchdog API
+# =============================================================================
+
+
+@app.get("/api/health/processes")
+async def get_process_health(token: Optional[dict] = Depends(auth.get_current_token)):
+    """Get health status of all loki processes (dashboard, session, agents)."""
+    result: dict[str, Any] = {"dashboard": None, "session": None, "agents": []}
+
+    loki_dir = _get_loki_dir()
+
+    # Dashboard PID
+    dpid_file = loki_dir / "dashboard" / "dashboard.pid"
+    if dpid_file.exists():
+        try:
+            dpid = int(dpid_file.read_text().strip())
+            try:
+                os.kill(dpid, 0)
+                result["dashboard"] = {"pid": dpid, "status": "alive"}
+            except OSError:
+                result["dashboard"] = {"pid": dpid, "status": "dead"}
+        except (ValueError, OSError):
+            pass
+
+    # Session PID
+    spid_file = loki_dir / "loki.pid"
+    if spid_file.exists():
+        try:
+            spid = int(spid_file.read_text().strip())
+            try:
+                os.kill(spid, 0)
+                result["session"] = {"pid": spid, "status": "alive"}
+            except OSError:
+                result["session"] = {"pid": spid, "status": "dead"}
+        except (ValueError, OSError):
+            pass
+
+    # Agent PIDs
+    agents_file = loki_dir / "state" / "agents.json"
+    if agents_file.exists():
+        try:
+            agents = json.loads(agents_file.read_text())
+            for agent in agents:
+                pid = agent.get("pid")
+                status = "unknown"
+                if pid:
+                    try:
+                        os.kill(int(pid), 0)
+                        status = "alive"
+                    except (OSError, ValueError):
+                        status = "dead"
+                result["agents"].append({
+                    "id": agent.get("id", ""),
+                    "name": agent.get("name", ""),
+                    "pid": pid,
+                    "status": status,
+                })
+        except Exception:
+            pass
+
+    watchdog_enabled = os.environ.get("LOKI_WATCHDOG", "false").lower() == "true"
+    result["watchdog_enabled"] = watchdog_enabled
+
+    return result
+
+
+# =============================================================================
 # Static File Serving (Production/Docker)
 # =============================================================================
 # Must be configured AFTER all API routes to avoid conflicts
@@ -2482,7 +2689,20 @@ def run_server(host: str = None, port: int = None) -> None:
         host = os.environ.get("LOKI_DASHBOARD_HOST", "127.0.0.1")
     if port is None:
         port = int(os.environ.get("LOKI_DASHBOARD_PORT", "57374"))
-    uvicorn.run(app, host=host, port=port)
+
+    uvicorn_kwargs = {
+        "host": host,
+        "port": port,
+        "log_level": "info",
+    }
+
+    # Enable TLS if both cert and key are provided
+    if LOKI_TLS_CERT and LOKI_TLS_KEY:
+        uvicorn_kwargs["ssl_certfile"] = LOKI_TLS_CERT
+        uvicorn_kwargs["ssl_keyfile"] = LOKI_TLS_KEY
+        logger.info("TLS enabled: cert=%s key=%s", LOKI_TLS_CERT, LOKI_TLS_KEY)
+
+    uvicorn.run(app, **uvicorn_kwargs)
 
 
 if __name__ == "__main__":

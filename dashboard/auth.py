@@ -4,13 +4,19 @@ Optional Authentication Module for Loki Mode Dashboard.
 Enterprise feature - disabled by default.
 Enable with LOKI_ENTERPRISE_AUTH=true environment variable.
 
+OIDC/SSO support (optional) - enable with LOKI_OIDC_ISSUER + LOKI_OIDC_CLIENT_ID.
+Supports enterprise SSO providers (Okta, Azure AD, Google Workspace).
+
 Token storage: ~/.loki/dashboard/tokens.json
 """
 
+import base64
 import hashlib
 import json
 import os
 import secrets
+import time
+import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
@@ -22,6 +28,24 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 ENTERPRISE_AUTH_ENABLED = os.environ.get("LOKI_ENTERPRISE_AUTH", "").lower() in ("true", "1", "yes")
 TOKEN_DIR = Path.home() / ".loki" / "dashboard"
 TOKEN_FILE = TOKEN_DIR / "tokens.json"
+
+# OIDC Configuration (optional - disabled by default)
+OIDC_ISSUER = os.environ.get("LOKI_OIDC_ISSUER", "")  # e.g., https://accounts.google.com
+OIDC_CLIENT_ID = os.environ.get("LOKI_OIDC_CLIENT_ID", "")
+OIDC_AUDIENCE = os.environ.get("LOKI_OIDC_AUDIENCE", "")  # Usually same as client_id
+OIDC_ENABLED = bool(OIDC_ISSUER and OIDC_CLIENT_ID)
+
+if OIDC_ENABLED:
+    import logging as _logging
+    _logging.getLogger("loki.auth").warning(
+        "OIDC/SSO enabled (EXPERIMENTAL). Claims-based validation only -- "
+        "JWT signatures are NOT cryptographically verified. Install PyJWT + "
+        "cryptography for production signature verification."
+    )
+
+# OIDC JWKS cache (issuer URL -> (keys_dict, fetch_timestamp))
+_oidc_jwks_cache = {}  # type: dict[str, tuple[dict, float]]
+_OIDC_CACHE_TTL = 3600  # Cache JWKS for 1 hour
 
 # Security scheme (optional)
 security = HTTPBearer(auto_error=False)
@@ -286,6 +310,121 @@ def has_scope(token_info: dict, required_scope: str) -> bool:
     return "*" in scopes or required_scope in scopes
 
 
+# ---------------------------------------------------------------------------
+# OIDC / SSO Support (optional - disabled by default)
+# ---------------------------------------------------------------------------
+
+
+def _get_oidc_config() -> dict:
+    """Fetch OIDC discovery document from the issuer.
+
+    Results are not cached here; callers should use _get_jwks() which
+    handles caching internally.
+    """
+    if not OIDC_ISSUER:
+        return {}
+    url = f"{OIDC_ISSUER.rstrip('/')}/.well-known/openid-configuration"
+    try:
+        with urllib.request.urlopen(url, timeout=10) as resp:
+            return json.loads(resp.read())
+    except Exception:
+        return {}
+
+
+def _get_jwks() -> dict:
+    """Fetch and cache JWKS keys from the OIDC provider.
+
+    Keys are cached for 1 hour (controlled by _OIDC_CACHE_TTL).
+    """
+    global _oidc_jwks_cache
+    now = time.time()
+
+    cached = _oidc_jwks_cache.get(OIDC_ISSUER)
+    if cached:
+        keys, fetched_at = cached
+        if now - fetched_at < _OIDC_CACHE_TTL:
+            return keys
+
+    config = _get_oidc_config()
+    jwks_uri = config.get("jwks_uri")
+    if not jwks_uri:
+        return {"keys": []}
+    try:
+        with urllib.request.urlopen(jwks_uri, timeout=10) as resp:
+            keys = json.loads(resp.read())
+            _oidc_jwks_cache[OIDC_ISSUER] = (keys, now)
+            return keys
+    except Exception:
+        return {"keys": []}
+
+
+def _base64url_decode(data: str) -> bytes:
+    """Decode base64url-encoded data with padding correction."""
+    padding = 4 - len(data) % 4
+    if padding != 4:
+        data += "=" * padding
+    return base64.urlsafe_b64decode(data)
+
+
+def validate_oidc_token(token_str: str) -> Optional[dict]:
+    """Validate an OIDC JWT token.
+
+    Returns decoded user info dict if valid, None if invalid.
+
+    This is a claims-based validation that checks:
+    - Token structure (3 base64url-encoded parts)
+    - Issuer matches OIDC_ISSUER
+    - Audience matches OIDC_AUDIENCE or OIDC_CLIENT_ID
+    - Token is not expired
+
+    NOTE: Full cryptographic signature verification requires an RSA
+    library (e.g., PyJWT + cryptography). This implementation validates
+    claims and relies on HTTPS transport security for the token. For
+    production deployments with untrusted networks, consider adding
+    PyJWT for full signature verification.
+    """
+    if not OIDC_ENABLED:
+        return None
+
+    try:
+        parts = token_str.split(".")
+        if len(parts) != 3:
+            return None
+
+        # Decode payload (claims)
+        claims = json.loads(_base64url_decode(parts[1]))
+
+        # Validate issuer
+        if claims.get("iss") != OIDC_ISSUER:
+            return None
+
+        # Validate audience
+        aud = claims.get("aud")
+        expected_aud = OIDC_AUDIENCE or OIDC_CLIENT_ID
+        if isinstance(aud, list):
+            if expected_aud not in aud:
+                return None
+        elif aud != expected_aud:
+            return None
+
+        # Validate expiration
+        exp = claims.get("exp")
+        if exp and datetime.now(timezone.utc).timestamp() > exp:
+            return None
+
+        # Return user info from claims
+        return {
+            "id": claims.get("sub", ""),
+            "name": claims.get("name", claims.get("email", claims.get("sub", ""))),
+            "email": claims.get("email", ""),
+            "scopes": ["*"],  # OIDC users get full access
+            "auth_method": "oidc",
+            "issuer": claims.get("iss"),
+        }
+    except Exception:
+        return None
+
+
 # FastAPI dependency for optional auth
 async def get_current_token(
     request: Request,
@@ -294,33 +433,43 @@ async def get_current_token(
     """
     FastAPI dependency for optional token authentication.
 
-    When LOKI_ENTERPRISE_AUTH is enabled:
-        - Requires valid Bearer token
-        - Returns token info
+    Supports two auth methods (tried in order):
+    1. OIDC/SSO (when LOKI_OIDC_ISSUER + LOKI_OIDC_CLIENT_ID are set)
+    2. Token auth (when LOKI_ENTERPRISE_AUTH=true)
 
-    When disabled:
+    When neither is enabled:
         - Returns None (allows anonymous access)
     """
-    if not ENTERPRISE_AUTH_ENABLED:
-        # Auth disabled - allow anonymous
+    if not ENTERPRISE_AUTH_ENABLED and not OIDC_ENABLED:
+        # No auth configured - allow anonymous
         return None
 
     if not credentials:
         raise HTTPException(
             status_code=401,
-            detail="Authentication required (enterprise mode)",
+            detail="Authentication required",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    token_info = validate_token(credentials.credentials)
-    if not token_info:
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid, expired, or revoked token",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+    token_str = credentials.credentials
 
-    return token_info
+    # Try OIDC first (JWTs are typically longer and don't start with loki_)
+    if OIDC_ENABLED and not token_str.startswith("loki_"):
+        oidc_result = validate_oidc_token(token_str)
+        if oidc_result:
+            return oidc_result
+
+    # Fall back to token auth
+    if ENTERPRISE_AUTH_ENABLED:
+        token_info = validate_token(token_str)
+        if token_info:
+            return token_info
+
+    raise HTTPException(
+        status_code=401,
+        detail="Invalid, expired, or revoked token",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
 
 
 def require_scope(scope: str):
@@ -331,7 +480,7 @@ def require_scope(scope: str):
         @app.get("/admin", dependencies=[Depends(require_scope("admin"))])
     """
     async def check_scope(token_info: Optional[dict] = Security(get_current_token)):
-        if not ENTERPRISE_AUTH_ENABLED:
+        if not ENTERPRISE_AUTH_ENABLED and not OIDC_ENABLED:
             return  # No auth required
 
         if not token_info:
@@ -347,5 +496,10 @@ def require_scope(scope: str):
 
 
 def is_enterprise_mode() -> bool:
-    """Check if enterprise mode is enabled."""
+    """Check if enterprise mode is enabled (token auth or OIDC)."""
     return ENTERPRISE_AUTH_ENABLED
+
+
+def is_oidc_mode() -> bool:
+    """Check if OIDC/SSO authentication is enabled."""
+    return OIDC_ENABLED

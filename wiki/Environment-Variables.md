@@ -24,6 +24,8 @@ Complete reference for all Loki Mode environment variables.
 | `LOKI_DASHBOARD_PORT` | `57374` | Dashboard + API server port (FastAPI) |
 | `LOKI_DASHBOARD_HOST` | `127.0.0.1` | Dashboard + API server bind address |
 | `LOKI_DASHBOARD_CORS` | `http://localhost:57374,http://127.0.0.1:57374` | Comma-separated allowed CORS origins |
+| `LOKI_TLS_CERT` | - | Path to PEM certificate file (enables HTTPS) |
+| `LOKI_TLS_KEY` | - | Path to PEM private key file (enables HTTPS) |
 | `LOKI_API_PORT` | *(deprecated)* | Legacy variable, no longer used. Dashboard serves API on unified port 57374 via `LOKI_DASHBOARD_PORT` |
 | `LOKI_API_HOST` | `localhost` | Legacy API server host |
 | `LOKI_API_TOKEN` | - | API authentication token (for legacy/remote access) |
@@ -45,7 +47,8 @@ Complete reference for all Loki Mode environment variables.
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `LOKI_STAGED_AUTONOMY` | `false` | Require approval before execution |
-| `LOKI_AUDIT_LOG` | `false` | Enable audit logging |
+| `LOKI_AUDIT_LOG` | `true` | Enable audit logging |
+| `LOKI_AUDIT_DISABLED` | `false` | Disable audit logging |
 | `LOKI_MAX_PARALLEL_AGENTS` | `10` | Max concurrent agents |
 | `LOKI_SANDBOX_MODE` | `false` | Run in Docker sandbox |
 | `LOKI_ALLOWED_PATHS` | - | Comma-separated allowed paths |
@@ -64,7 +67,18 @@ rm -rf /,dd if=,mkfs,:(){ :|:& };:
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `LOKI_ENTERPRISE_AUTH` | `false` | Enable token authentication |
-| `LOKI_ENTERPRISE_AUDIT` | `false` | Enable enterprise audit logging |
+| `LOKI_ENTERPRISE_AUDIT` | `false` | Force audit on (legacy, audit is now on by default) |
+| `LOKI_AUDIT_DISABLED` | `false` | Disable audit logging (overridden by LOKI_ENTERPRISE_AUDIT=true) |
+
+### OIDC / SSO Authentication (optional)
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `LOKI_OIDC_ISSUER` | - | OIDC issuer URL (e.g., `https://accounts.google.com`, `https://login.microsoftonline.com/{tenant}/v2.0`) |
+| `LOKI_OIDC_CLIENT_ID` | - | OIDC client/application ID from your identity provider |
+| `LOKI_OIDC_AUDIENCE` | *(client_id)* | Expected JWT audience claim. Defaults to OIDC_CLIENT_ID if not set |
+
+OIDC is enabled when both `LOKI_OIDC_ISSUER` and `LOKI_OIDC_CLIENT_ID` are set. It works alongside token auth -- both methods can be active simultaneously. OIDC-authenticated users receive full access (`["*"]` scopes).
 
 ---
 
@@ -220,13 +234,42 @@ export LOKI_SLACK_WEBHOOK="https://hooks.slack.com/..."
 export LOKI_MAX_RETRIES=100
 ```
 
-### Enterprise Setup
+### TLS/HTTPS Setup
+```bash
+export LOKI_TLS_CERT=/path/to/cert.pem
+export LOKI_TLS_KEY=/path/to/key.pem
+loki dashboard start
+# Or via CLI flags:
+loki dashboard start --tls-cert /path/to/cert.pem --tls-key /path/to/key.pem
+```
+
+### Enterprise Setup (Token Auth)
 ```bash
 export LOKI_ENTERPRISE_AUTH=true
-export LOKI_ENTERPRISE_AUDIT=true
+# Audit logging is enabled by default; no need to set LOKI_ENTERPRISE_AUDIT
 export LOKI_SANDBOX_MODE=true
 export LOKI_STAGED_AUTONOMY=true
-export LOKI_AUDIT_LOG=true
+```
+
+### Enterprise Setup (OIDC/SSO)
+```bash
+# Google Workspace example
+export LOKI_OIDC_ISSUER=https://accounts.google.com
+export LOKI_OIDC_CLIENT_ID=your-client-id.apps.googleusercontent.com
+
+# Azure AD example
+# export LOKI_OIDC_ISSUER=https://login.microsoftonline.com/{tenant-id}/v2.0
+# export LOKI_OIDC_CLIENT_ID=your-application-id
+
+# Okta example
+# export LOKI_OIDC_ISSUER=https://your-org.okta.com
+# export LOKI_OIDC_CLIENT_ID=your-client-id
+
+# Optional: custom audience (defaults to client_id)
+# export LOKI_OIDC_AUDIENCE=your-audience
+
+# OIDC works alongside token auth -- both can be enabled simultaneously
+export LOKI_ENTERPRISE_AUTH=true
 ```
 
 ### CI/CD Setup

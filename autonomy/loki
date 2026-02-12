@@ -322,8 +322,10 @@ show_help() {
     echo "  compound [cmd]   Knowledge compounding (list|show|search|run|stats)"
     echo "  council [cmd]    Completion council (status|verdicts|convergence|force-review|report)"
     echo "  dogfood          Show self-development statistics"
+    echo "  secrets [cmd]    API key status and validation (status|validate)"
     echo "  reset [target]   Reset session state (all|retries|failed)"
     echo "  doctor [--json]  Check system prerequisites"
+    echo "  watchdog [cmd]   Process health monitoring (status|help)"
     echo "  version          Show version"
     echo "  help             Show this help"
     echo ""
@@ -1324,8 +1326,10 @@ cmd_dashboard_help() {
     echo "  help     Show this help"
     echo ""
     echo "Options for 'start':"
-    echo "  --port PORT    Port to listen on (default: $DASHBOARD_DEFAULT_PORT)"
-    echo "  --host HOST    Host to bind to (default: $DASHBOARD_DEFAULT_HOST)"
+    echo "  --port PORT        Port to listen on (default: $DASHBOARD_DEFAULT_PORT)"
+    echo "  --host HOST        Host to bind to (default: $DASHBOARD_DEFAULT_HOST)"
+    echo "  --tls-cert PATH    Path to PEM certificate (enables HTTPS)"
+    echo "  --tls-key PATH     Path to PEM private key (enables HTTPS)"
     echo ""
     echo "Options for 'url':"
     echo "  --format FMT   Output format: text (default) or json"
@@ -1333,10 +1337,13 @@ cmd_dashboard_help() {
     echo "Environment:"
     echo "  LOKI_DASHBOARD_PORT  Default port (overrides $DASHBOARD_DEFAULT_PORT)"
     echo "  LOKI_DASHBOARD_HOST  Default host (overrides $DASHBOARD_DEFAULT_HOST)"
+    echo "  LOKI_TLS_CERT        Path to PEM certificate (enables HTTPS)"
+    echo "  LOKI_TLS_KEY         Path to PEM private key (enables HTTPS)"
     echo ""
     echo "Examples:"
     echo "  loki dashboard start                  # Start on default port"
     echo "  loki dashboard start --port 8080      # Start on port 8080"
+    echo "  loki dashboard start --tls-cert cert.pem --tls-key key.pem"
     echo "  loki dashboard status                 # Check if running"
     echo "  loki dashboard url --format json      # Get URL as JSON"
     echo "  loki dashboard open                   # Open in browser"
@@ -1346,6 +1353,8 @@ cmd_dashboard_help() {
 cmd_dashboard_start() {
     local port="${LOKI_DASHBOARD_PORT:-$DASHBOARD_DEFAULT_PORT}"
     local host="${LOKI_DASHBOARD_HOST:-$DASHBOARD_DEFAULT_HOST}"
+    local tls_cert="${LOKI_TLS_CERT:-}"
+    local tls_key="${LOKI_TLS_KEY:-}"
 
     # Parse arguments
     while [[ $# -gt 0 ]]; do
@@ -1374,6 +1383,32 @@ cmd_dashboard_start() {
                 ;;
             --host=*)
                 host="${1#*=}"
+                shift
+                ;;
+            --tls-cert)
+                if [[ -n "${2:-}" ]]; then
+                    tls_cert="$2"
+                    shift 2
+                else
+                    echo -e "${RED}--tls-cert requires a path${NC}"
+                    exit 1
+                fi
+                ;;
+            --tls-cert=*)
+                tls_cert="${1#*=}"
+                shift
+                ;;
+            --tls-key)
+                if [[ -n "${2:-}" ]]; then
+                    tls_key="$2"
+                    shift 2
+                else
+                    echo -e "${RED}--tls-key requires a path${NC}"
+                    exit 1
+                fi
+                ;;
+            --tls-key=*)
+                tls_key="${1#*=}"
                 shift
                 ;;
             --help|-h)
@@ -1445,14 +1480,27 @@ cmd_dashboard_start() {
     mkdir -p "$log_dir"
     local log_file="${log_dir}/dashboard.log"
 
+    # Determine URL scheme based on TLS
+    local url_scheme="http"
+    local tls_info=""
+    if [ -n "$tls_cert" ] && [ -n "$tls_key" ]; then
+        url_scheme="https"
+        tls_info=" (TLS enabled)"
+    fi
+
     echo -e "${GREEN}Starting dashboard server...${NC}"
     echo -e "${CYAN}Host:${NC} $host"
     echo -e "${CYAN}Port:${NC} $port"
+    if [ -n "$tls_info" ]; then
+        echo -e "${CYAN}TLS:${NC}  enabled"
+    fi
     echo ""
 
     # Start the dashboard server in background
     # LOKI_SKILL_DIR tells server.py where to find static files
-    LOKI_DIR="$LOKI_DIR" LOKI_SKILL_DIR="$SKILL_DIR" PYTHONPATH="$SKILL_DIR" LOKI_DASHBOARD_HOST="$host" LOKI_DASHBOARD_PORT="$port" \
+    LOKI_DIR="$LOKI_DIR" LOKI_SKILL_DIR="$SKILL_DIR" PYTHONPATH="$SKILL_DIR" \
+        LOKI_DASHBOARD_HOST="$host" LOKI_DASHBOARD_PORT="$port" \
+        LOKI_TLS_CERT="$tls_cert" LOKI_TLS_KEY="$tls_key" \
         nohup "$python_cmd" -m dashboard.server > "$log_file" 2>&1 &
     local new_pid=$!
 
@@ -1462,12 +1510,13 @@ cmd_dashboard_start() {
     # Also save port and host for status command
     echo "$port" > "${DASHBOARD_PID_DIR}/port"
     echo "$host" > "${DASHBOARD_PID_DIR}/host"
+    echo "$url_scheme" > "${DASHBOARD_PID_DIR}/scheme"
 
     # Wait a moment and check if process is still running
     sleep 1
 
     if kill -0 "$new_pid" 2>/dev/null; then
-        local url="http://${host}:${port}"
+        local url="${url_scheme}://${host}:${port}"
         echo -e "${GREEN}Dashboard server started${NC}"
         echo ""
         echo "  PID:  $new_pid"
@@ -1549,9 +1598,10 @@ cmd_dashboard_status() {
     fi
 
     if kill -0 "$pid" 2>/dev/null; then
-        # Read saved host and port
+        # Read saved host, port, and scheme
         local host="${DASHBOARD_DEFAULT_HOST}"
         local port="${DASHBOARD_DEFAULT_PORT}"
+        local scheme="http"
 
         if [ -f "${DASHBOARD_PID_DIR}/host" ]; then
             host=$(cat "${DASHBOARD_PID_DIR}/host" 2>/dev/null)
@@ -1559,20 +1609,30 @@ cmd_dashboard_status() {
         if [ -f "${DASHBOARD_PID_DIR}/port" ]; then
             port=$(cat "${DASHBOARD_PID_DIR}/port" 2>/dev/null)
         fi
+        if [ -f "${DASHBOARD_PID_DIR}/scheme" ]; then
+            scheme=$(cat "${DASHBOARD_PID_DIR}/scheme" 2>/dev/null)
+        fi
 
-        local url="http://${host}:${port}"
+        local url="${scheme}://${host}:${port}"
 
         echo -e "${GREEN}Status: Running${NC}"
         echo ""
         echo "  PID:  $pid"
         echo "  Host: $host"
         echo "  Port: $port"
+        if [ "$scheme" = "https" ]; then
+            echo "  TLS:  enabled"
+        fi
         echo "  URL:  $url"
         echo ""
 
         # Check if server is responding
+        local curl_flags="-s --connect-timeout 2"
+        if [ "$scheme" = "https" ]; then
+            curl_flags="$curl_flags -k"
+        fi
         if command -v curl &> /dev/null; then
-            if curl -s --connect-timeout 2 "$url" &> /dev/null; then
+            if curl $curl_flags "$url" &> /dev/null; then
                 echo -e "${GREEN}Server is responding${NC}"
             else
                 echo -e "${YELLOW}Server process running but not responding on $url${NC}"
@@ -1653,9 +1713,10 @@ cmd_dashboard_url() {
         exit 1
     fi
 
-    # Read saved host and port
+    # Read saved host, port, and scheme
     local host="${DASHBOARD_DEFAULT_HOST}"
     local port="${DASHBOARD_DEFAULT_PORT}"
+    local scheme="http"
 
     if [ -f "${DASHBOARD_PID_DIR}/host" ]; then
         host=$(cat "${DASHBOARD_PID_DIR}/host" 2>/dev/null)
@@ -1663,11 +1724,14 @@ cmd_dashboard_url() {
     if [ -f "${DASHBOARD_PID_DIR}/port" ]; then
         port=$(cat "${DASHBOARD_PID_DIR}/port" 2>/dev/null)
     fi
+    if [ -f "${DASHBOARD_PID_DIR}/scheme" ]; then
+        scheme=$(cat "${DASHBOARD_PID_DIR}/scheme" 2>/dev/null)
+    fi
 
-    local url="http://${host}:${port}"
+    local url="${scheme}://${host}:${port}"
 
     if [[ "$format" == "json" ]]; then
-        echo "{\"running\":true,\"url\":\"$url\",\"host\":\"$host\",\"port\":$port,\"pid\":$pid}"
+        echo "{\"running\":true,\"url\":\"$url\",\"scheme\":\"$scheme\",\"host\":\"$host\",\"port\":$port,\"pid\":$pid}"
     else
         echo "$url"
     fi
@@ -1693,9 +1757,10 @@ cmd_dashboard_open() {
         exit 1
     fi
 
-    # Read saved host and port
+    # Read saved host, port, and scheme
     local host="${DASHBOARD_DEFAULT_HOST}"
     local port="${DASHBOARD_DEFAULT_PORT}"
+    local scheme="http"
 
     if [ -f "${DASHBOARD_PID_DIR}/host" ]; then
         host=$(cat "${DASHBOARD_PID_DIR}/host" 2>/dev/null)
@@ -1703,8 +1768,11 @@ cmd_dashboard_open() {
     if [ -f "${DASHBOARD_PID_DIR}/port" ]; then
         port=$(cat "${DASHBOARD_PID_DIR}/port" 2>/dev/null)
     fi
+    if [ -f "${DASHBOARD_PID_DIR}/scheme" ]; then
+        scheme=$(cat "${DASHBOARD_PID_DIR}/scheme" 2>/dev/null)
+    fi
 
-    local url="http://${host}:${port}"
+    local url="${scheme}://${host}:${port}"
 
     echo -e "${GREEN}Opening dashboard: $url${NC}"
 
@@ -2747,6 +2815,78 @@ cmd_version() {
     echo "Loki Mode v$(get_version)"
 }
 
+# Secrets / credential management
+cmd_secrets() {
+    case "${1:-status}" in
+        status)
+            echo "API Key Status:"
+            echo ""
+            for key_var in ANTHROPIC_API_KEY OPENAI_API_KEY GOOGLE_API_KEY; do
+                local value="${!key_var:-}"
+                if [[ -n "$value" ]]; then
+                    local masked="${value:0:8}...${value: -4}"
+                    echo "  $key_var: SET ($masked, ${#value} chars)"
+                else
+                    # Check secret file mounts
+                    local lower_name
+                    lower_name=$(echo "$key_var" | tr '[:upper:]' '[:lower:]')
+                    local found=false
+                    for mount_path in /run/secrets /var/run/secrets; do
+                        if [[ -f "$mount_path/$lower_name" ]]; then
+                            echo "  $key_var: AVAILABLE (secret file: $mount_path/$lower_name)"
+                            found=true
+                            break
+                        fi
+                    done
+                    if [[ "$found" != "true" ]]; then
+                        echo "  $key_var: NOT SET"
+                    fi
+                fi
+            done
+            ;;
+        validate)
+            echo "Validating API keys..."
+            python3 -c "
+import sys
+sys.path.insert(0, '$(dirname "$(dirname "$(resolve_script_path "$0")")")')
+from dashboard.secrets import load_secrets
+result = load_secrets()
+for name, info in result.items():
+    status = 'OK' if info['valid_format'] else 'INVALID'
+    source = info['source']
+    masked = info['masked']
+    warning = info.get('warning', '')
+    if info['set']:
+        print(f'  {name}: {status} ({masked}, source: {source})')
+        if warning:
+            print(f'    WARNING: {warning}')
+    else:
+        print(f'  {name}: NOT SET')
+" 2>/dev/null || echo "  (Python validation unavailable, showing basic status)"
+            ;;
+        help)
+            echo "Usage: loki secrets [status|validate|help]"
+            echo ""
+            echo "Manage API keys and credentials."
+            echo ""
+            echo "Commands:"
+            echo "  status    Show which API keys are configured (default)"
+            echo "  validate  Validate API key formats"
+            echo "  help      Show this help"
+            echo ""
+            echo "Secret Loading Priority:"
+            echo "  1. Environment variable (ANTHROPIC_API_KEY, etc.)"
+            echo "  2. Docker/K8s secret file (/run/secrets/anthropic_api_key)"
+            echo "  3. Not set"
+            ;;
+        *)
+            echo "Unknown secrets command: $1"
+            cmd_secrets help
+            return 1
+            ;;
+    esac
+}
+
 # Show recent logs
 cmd_logs() {
     local lines="${1:-50}"
@@ -2788,7 +2928,11 @@ cmd_api() {
 
             # Start server
             mkdir -p "$LOKI_DIR/logs" "$LOKI_DIR/dashboard"
-            LOKI_DIR="$LOKI_DIR" nohup python3 -m uvicorn dashboard.server:app --host 0.0.0.0 --port "$port" > "$LOKI_DIR/logs/api.log" 2>&1 &
+            local uvicorn_args="--host 0.0.0.0 --port $port"
+            if [ -n "${LOKI_TLS_CERT:-}" ] && [ -n "${LOKI_TLS_KEY:-}" ]; then
+                uvicorn_args="$uvicorn_args --ssl-certfile ${LOKI_TLS_CERT} --ssl-keyfile ${LOKI_TLS_KEY}"
+            fi
+            LOKI_DIR="$LOKI_DIR" nohup python3 -m uvicorn dashboard.server:app $uvicorn_args > "$LOKI_DIR/logs/api.log" 2>&1 &
             local new_pid=$!
             echo "$new_pid" > "$pid_file"
 
@@ -3957,6 +4101,113 @@ _list_templates() {
     echo "Usage: loki init --template <name>"
 }
 
+# Watchdog: process health monitoring
+cmd_watchdog() {
+    local subcommand="${1:-status}"
+    shift 2>/dev/null || true
+
+    case "$subcommand" in
+        status)
+            # Show watchdog state
+            if [[ "${LOKI_WATCHDOG:-false}" == "true" ]]; then
+                echo -e "${GREEN}Watchdog: ENABLED${NC} (interval: ${LOKI_WATCHDOG_INTERVAL:-30}s)"
+            else
+                echo "Watchdog: DISABLED"
+                echo "Enable with: LOKI_WATCHDOG=true loki start"
+            fi
+
+            echo ""
+            echo -e "${BOLD}Process Health:${NC}"
+
+            # Check dashboard
+            local dpid_file="$LOKI_DIR/dashboard/dashboard.pid"
+            if [[ -f "$dpid_file" ]]; then
+                local dpid
+                dpid=$(cat "$dpid_file" 2>/dev/null)
+                if [[ -n "$dpid" ]] && kill -0 "$dpid" 2>/dev/null; then
+                    echo -e "  Dashboard (PID $dpid): ${GREEN}alive${NC}"
+                else
+                    echo -e "  Dashboard (PID ${dpid:-?}): ${RED}DEAD${NC}"
+                fi
+            else
+                echo -e "  Dashboard: ${DIM}not running${NC}"
+            fi
+
+            # Check session
+            local spid_file="$LOKI_DIR/loki.pid"
+            if [[ -f "$spid_file" ]]; then
+                local spid
+                spid=$(cat "$spid_file" 2>/dev/null)
+                if [[ -n "$spid" ]] && kill -0 "$spid" 2>/dev/null; then
+                    echo -e "  Session  (PID $spid): ${GREEN}alive${NC}"
+                else
+                    echo -e "  Session  (PID ${spid:-?}): ${RED}DEAD${NC}"
+                fi
+            else
+                echo -e "  Session:  ${DIM}not running${NC}"
+            fi
+
+            # Check agents
+            local agents_file="$LOKI_DIR/state/agents.json"
+            if [[ -f "$agents_file" ]]; then
+                local agent_info
+                agent_info=$(python3 -c "
+import json, os
+try:
+    agents = json.load(open('$agents_file'))
+    alive = dead = other = 0
+    for a in agents:
+        pid = a.get('pid')
+        status = a.get('status', '')
+        if status in ('terminated', 'completed', 'failed', 'crashed'):
+            other += 1
+            continue
+        if pid:
+            try:
+                os.kill(int(pid), 0)
+                alive += 1
+            except (OSError, ValueError):
+                dead += 1
+        else:
+            other += 1
+    print(f'{alive}:{dead}:{other}')
+except Exception:
+    print('0:0:0')
+" 2>/dev/null || echo "0:0:0")
+                local a_alive a_dead a_other
+                IFS=: read -r a_alive a_dead a_other <<< "$agent_info"
+                if [[ "$a_alive" -gt 0 ]] || [[ "$a_dead" -gt 0 ]]; then
+                    echo -e "  Agents:   ${GREEN}${a_alive} alive${NC}, ${RED}${a_dead} dead${NC}, ${DIM}${a_other} finished${NC}"
+                elif [[ "$a_other" -gt 0 ]]; then
+                    echo -e "  Agents:   ${DIM}${a_other} finished${NC}"
+                else
+                    echo -e "  Agents:   ${DIM}none${NC}"
+                fi
+            else
+                echo -e "  Agents:   ${DIM}none${NC}"
+            fi
+            ;;
+        help)
+            echo "Usage: loki watchdog [status|help]"
+            echo ""
+            echo "Monitor process health for Loki Mode sessions."
+            echo ""
+            echo "Subcommands:"
+            echo "  status    Show health of dashboard, session, and agent processes (default)"
+            echo "  help      Show this help"
+            echo ""
+            echo "Environment:"
+            echo "  LOKI_WATCHDOG=true          Enable watchdog monitoring during sessions"
+            echo "  LOKI_WATCHDOG_INTERVAL=30   Check interval in seconds (default: 30)"
+            ;;
+        *)
+            echo -e "${RED}Unknown watchdog command: $subcommand${NC}"
+            cmd_watchdog help
+            return 1
+            ;;
+    esac
+}
+
 # Main command dispatcher
 main() {
     if [ $# -eq 0 ]; then
@@ -4049,8 +4300,14 @@ main() {
         voice)
             cmd_voice "$@"
             ;;
+        secrets)
+            cmd_secrets "$@"
+            ;;
         doctor)
             cmd_doctor "$@"
+            ;;
+        watchdog)
+            cmd_watchdog "$@"
             ;;
         version|--version|-v)
             cmd_version
@@ -6251,24 +6508,43 @@ cmd_enterprise() {
             echo ""
 
             local auth_enabled="${LOKI_ENTERPRISE_AUTH:-false}"
-            local audit_enabled="${LOKI_ENTERPRISE_AUDIT:-false}"
+            local audit_disabled="${LOKI_AUDIT_DISABLED:-false}"
+            local audit_force_on="${LOKI_ENTERPRISE_AUDIT:-false}"
 
             if [ "$auth_enabled" = "true" ] || [ "$auth_enabled" = "1" ]; then
-                echo -e "  Authentication: ${GREEN}Enabled${NC}"
+                echo -e "  Token Auth:     ${GREEN}Enabled${NC}"
             else
-                echo -e "  Authentication: ${DIM}Disabled${NC}"
+                echo -e "  Token Auth:     ${DIM}Disabled${NC}"
             fi
 
-            if [ "$audit_enabled" = "true" ] || [ "$audit_enabled" = "1" ]; then
-                echo -e "  Audit Logging:  ${GREEN}Enabled${NC}"
+            # OIDC/SSO status
+            local oidc_issuer="${LOKI_OIDC_ISSUER:-}"
+            local oidc_client="${LOKI_OIDC_CLIENT_ID:-}"
+            if [ -n "$oidc_issuer" ] && [ -n "$oidc_client" ]; then
+                echo -e "  OIDC/SSO:       ${GREEN}Enabled${NC} (${oidc_issuer})"
             else
+                echo -e "  OIDC/SSO:       ${DIM}Disabled${NC}"
+            fi
+
+            # Audit is on by default; disabled only if LOKI_AUDIT_DISABLED=true
+            if [ "$audit_force_on" = "true" ] || [ "$audit_force_on" = "1" ]; then
+                echo -e "  Audit Logging:  ${GREEN}Enabled (enterprise)${NC}"
+            elif [ "$audit_disabled" = "true" ] || [ "$audit_disabled" = "1" ]; then
                 echo -e "  Audit Logging:  ${DIM}Disabled${NC}"
+            else
+                echo -e "  Audit Logging:  ${GREEN}Enabled (default)${NC}"
             fi
 
             echo ""
-            echo "Enable with environment variables:"
-            echo "  export LOKI_ENTERPRISE_AUTH=true"
-            echo "  export LOKI_ENTERPRISE_AUDIT=true"
+            echo "Configure with environment variables:"
+            echo "  export LOKI_ENTERPRISE_AUTH=true     # Token authentication"
+            echo "  export LOKI_AUDIT_DISABLED=true      # Disable audit logging"
+            echo "  export LOKI_ENTERPRISE_AUDIT=true    # Force audit on (legacy)"
+            echo ""
+            echo "OIDC/SSO (optional, works alongside token auth):"
+            echo "  export LOKI_OIDC_ISSUER=https://accounts.google.com"
+            echo "  export LOKI_OIDC_CLIENT_ID=your-client-id"
+            echo "  export LOKI_OIDC_AUDIENCE=your-audience    # Optional, defaults to client_id"
             ;;
 
         token)
@@ -6547,10 +6823,15 @@ else:
         audit)
             local audit_cmd="${2:-summary}"
 
-            if [ "${LOKI_ENTERPRISE_AUDIT:-}" != "true" ] && [ "${LOKI_ENTERPRISE_AUDIT:-}" != "1" ]; then
-                echo -e "${YELLOW}Audit logging is not enabled${NC}"
-                echo "Enable with: export LOKI_ENTERPRISE_AUDIT=true"
-                exit 1
+            # Audit is on by default. Only blocked if explicitly disabled and not force-enabled.
+            local _audit_disabled="${LOKI_AUDIT_DISABLED:-false}"
+            local _audit_force="${LOKI_ENTERPRISE_AUDIT:-false}"
+            if [ "$_audit_force" != "true" ] && [ "$_audit_force" != "1" ]; then
+                if [ "$_audit_disabled" = "true" ] || [ "$_audit_disabled" = "1" ]; then
+                    echo -e "${YELLOW}Audit logging is disabled${NC}"
+                    echo "Remove LOKI_AUDIT_DISABLED or set LOKI_ENTERPRISE_AUDIT=true"
+                    exit 1
+                fi
             fi
 
             local audit_dir="${HOME}/.loki/dashboard/audit"
@@ -6658,13 +6939,19 @@ for line in sys.stdin:
             echo "Commands:"
             echo "  status            Show which enterprise features are enabled"
             echo "  token <cmd>       Manage API tokens (requires LOKI_ENTERPRISE_AUTH=true)"
-            echo "  audit <cmd>       Query audit logs (requires LOKI_ENTERPRISE_AUDIT=true)"
+            echo "  audit <cmd>       Query audit logs (enabled by default)"
             echo ""
-            echo "Enable enterprise features:"
-            echo "  export LOKI_ENTERPRISE_AUTH=true    # Token authentication"
-            echo "  export LOKI_ENTERPRISE_AUDIT=true   # Audit logging"
+            echo "Configure enterprise features:"
+            echo "  export LOKI_ENTERPRISE_AUTH=true     # Token authentication"
+            echo "  export LOKI_AUDIT_DISABLED=true      # Disable audit logging"
+            echo "  export LOKI_ENTERPRISE_AUDIT=true    # Force audit on (legacy)"
             echo ""
-            echo "These features are optional and NOT required for community use."
+            echo "OIDC/SSO (optional, works alongside token auth):"
+            echo "  export LOKI_OIDC_ISSUER=https://accounts.google.com"
+            echo "  export LOKI_OIDC_CLIENT_ID=your-client-id"
+            echo "  export LOKI_OIDC_AUDIENCE=your-audience    # Optional"
+            echo ""
+            echo "Audit logging is enabled by default. Auth is optional."
             ;;
 
         *)

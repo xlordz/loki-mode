@@ -1,12 +1,12 @@
 # Audit Logging
 
-Compliance and audit logging for enterprise environments.
+Audit logging for compliance, security monitoring, and troubleshooting.
 
 ---
 
 ## Overview
 
-Audit logging captures all significant events for:
+Audit logging is **enabled by default** and captures all significant events for:
 
 - Compliance requirements (SOC2, HIPAA, etc.)
 - Security monitoring
@@ -15,13 +15,16 @@ Audit logging captures all significant events for:
 
 ---
 
-## Enabling Audit Logging
+## Disabling Audit Logging
 
-### Environment Variable
+Audit logging is on by default. To disable it:
 
 ```bash
-export LOKI_ENTERPRISE_AUDIT=true
+export LOKI_AUDIT_DISABLED=true
 ```
+
+The legacy variable `LOKI_ENTERPRISE_AUDIT=true` still works and will force audit
+logging on regardless of `LOKI_AUDIT_DISABLED`.
 
 ### Configuration File
 
@@ -29,7 +32,7 @@ export LOKI_ENTERPRISE_AUDIT=true
 # .loki/config.yaml
 enterprise:
   audit:
-    enabled: true
+    enabled: true    # true is the default
     level: info
     retention_days: 90
 ```
@@ -230,7 +233,8 @@ enterprise:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `LOKI_ENTERPRISE_AUDIT` | `false` | Enable audit logging |
+| `LOKI_AUDIT_DISABLED` | `false` | Set to `true` to disable audit logging |
+| `LOKI_ENTERPRISE_AUDIT` | `false` | Force audit on (legacy, audit is now on by default) |
 | `LOKI_AUDIT_LEVEL` | `info` | Minimum log level |
 | `LOKI_AUDIT_RETENTION` | `90` | Retention in days |
 

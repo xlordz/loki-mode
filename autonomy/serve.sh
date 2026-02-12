@@ -19,6 +19,8 @@
 #   LOKI_DASHBOARD_PORT Port (default: 57374)
 #   LOKI_DASHBOARD_HOST Host (default: localhost)
 #   LOKI_API_TOKEN      API token for remote access
+#   LOKI_TLS_CERT       Path to PEM certificate (enables HTTPS)
+#   LOKI_TLS_KEY        Path to PEM private key (enables HTTPS)
 #===============================================================================
 
 set -euo pipefail
@@ -30,6 +32,8 @@ API_DIR="$PROJECT_DIR/api"
 # Default configuration
 PORT="${LOKI_DASHBOARD_PORT:-57374}"
 HOST="${LOKI_DASHBOARD_HOST:-localhost}"
+TLS_CERT="${LOKI_TLS_CERT:-}"
+TLS_KEY="${LOKI_TLS_KEY:-}"
 CORS="true"
 AUTH="true"
 
@@ -65,6 +69,8 @@ Usage:
 Options:
   --port, -p <port>   Port to listen on (default: 57374)
   --host <host>       Host to bind to (default: localhost)
+  --tls-cert <path>   Path to PEM certificate (enables HTTPS)
+  --tls-key <path>    Path to PEM private key (enables HTTPS)
   --no-cors           Disable CORS
   --no-auth           Disable authentication
   --generate-token    Generate a new API token
@@ -74,6 +80,8 @@ Environment Variables:
   LOKI_DASHBOARD_PORT Port (overridden by --port)
   LOKI_DASHBOARD_HOST Host (overridden by --host)
   LOKI_API_TOKEN      API token for remote access
+  LOKI_TLS_CERT       Path to PEM certificate (overridden by --tls-cert)
+  LOKI_TLS_KEY        Path to PEM private key (overridden by --tls-key)
   LOKI_DIR            Loki installation directory
   LOKI_DEBUG          Enable debug output
 
@@ -87,6 +95,9 @@ Examples:
   # Allow remote access (requires token)
   export LOKI_API_TOKEN=\$(loki serve --generate-token)
   loki serve --host 0.0.0.0
+
+  # Enable HTTPS with TLS
+  loki serve --tls-cert /path/to/cert.pem --tls-key /path/to/key.pem
 
   # Connect from another machine
   curl -H "Authorization: Bearer \$TOKEN" http://server:57374/health
@@ -129,6 +140,14 @@ main() {
                 ;;
             --host)
                 HOST="$2"
+                shift 2
+                ;;
+            --tls-cert)
+                TLS_CERT="$2"
+                shift 2
+                ;;
+            --tls-key)
+                TLS_KEY="$2"
                 shift 2
                 ;;
             --no-cors)
@@ -194,6 +213,12 @@ main() {
 
     [ "$CORS" = "false" ] && server_args+=("--no-cors")
     [ "$AUTH" = "false" ] && server_args+=("--no-auth")
+
+    # Pass TLS options if configured
+    if [ -n "$TLS_CERT" ] && [ -n "$TLS_KEY" ]; then
+        server_args+=("--tls-cert" "$TLS_CERT" "--tls-key" "$TLS_KEY")
+        log_info "TLS enabled: cert=$TLS_CERT key=$TLS_KEY"
+    fi
 
     # Export environment variables
     export LOKI_DIR="$PROJECT_DIR"

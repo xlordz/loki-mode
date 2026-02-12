@@ -5,6 +5,32 @@ All notable changes to Loki Mode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.37.0] - 2026-02-12
+
+### Added
+- Dashboard: TLS/HTTPS support via LOKI_TLS_CERT and LOKI_TLS_KEY environment variables
+- Dashboard: OIDC/SSO authentication support (experimental, claims-based JWT validation)
+- Dashboard: Budget and cost limit controls (/api/budget endpoint, LOKI_BUDGET_LIMIT env var)
+- Dashboard: Process supervision and watchdog (/api/health/processes endpoint)
+- Dashboard: Secret management module with Docker/K8s mount support (/api/secrets/status)
+- Dashboard: Auth info endpoint showing enabled auth methods (/api/auth/info)
+- CLI: `loki secrets` command (status, validate, help)
+- CLI: `loki watchdog` command (status, help)
+- CLI: TLS flags (--tls-cert, --tls-key) on dashboard start
+- CLI: Enterprise status shows OIDC/SSO configuration
+- Audit logging enabled by default (disable with LOKI_AUDIT_DISABLED=true)
+- OpenClaw integration skill (integrations/openclaw/) with status polling and progress formatting
+- Wiki: Environment variables documentation for all new enterprise features
+- Wiki: Updated audit logging documentation for default-on behavior
+
+### Security
+- auth.py: Runtime warning when OIDC enabled without cryptographic signature verification
+- run.sh: Fixed shell injection in budget limit check (numeric validation + sys.argv passing)
+- auth.py: Fixed Python 3.8 compatibility for OIDC JWKS cache type hint
+
+### Changed
+- Audit logging now on by default (was opt-in via LOKI_ENTERPRISE_AUDIT, now opt-out via LOKI_AUDIT_DISABLED)
+
 ## [5.36.0] - 2026-02-12
 
 ### Security
