@@ -3525,12 +3525,14 @@ audit_agent_action() {
     (
         mkdir -p .loki/logs 2>/dev/null
 
+        # Requires python3 for JSON formatting; skip silently if unavailable
+        command -v python3 &>/dev/null || exit 0
+
         local timestamp
         timestamp=$(date -u +%Y-%m-%dT%H:%M:%SZ)
         local iter="${ITERATION_COUNT:-0}"
         local pid="$$"
 
-        # Use python3 for reliable JSON formatting (jq may not be installed)
         python3 -c "
 import json, sys
 entry = {
