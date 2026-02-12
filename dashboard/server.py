@@ -1079,7 +1079,7 @@ async def get_auth_info():
 class TokenCreateRequest(BaseModel):
     """Schema for creating a token."""
     name: str = Field(..., min_length=1, max_length=255, description="Human-readable token name")
-    scopes: Optional[list[str]] = Field(None, description="Permission scopes (default: ['*'] for all)")
+    scopes: Optional[Any] = Field(None, description="Permission scopes (default: ['*'] for all)")  # list[str], Any for Python 3.8
     expires_days: Optional[int] = Field(None, gt=0, description="Days until expiration (must be positive)")
 
 
@@ -1087,7 +1087,7 @@ class TokenResponse(BaseModel):
     """Schema for token response."""
     id: str
     name: str
-    scopes: list[str]
+    scopes: Any  # list[str], Any for Python 3.8
     created_at: str
     expires_at: Optional[str]
     last_used: Optional[str]
@@ -2627,8 +2627,12 @@ async def get_process_health(token: Optional[dict] = Depends(auth.get_current_to
 
 def _build_metrics_text() -> str:
     """Build Prometheus/OpenMetrics format metrics text from .loki/ flat files."""
-    lines: list[str] = []
+    lines = []  # type: list[str]  -- comment-style for Python 3.8
     loki_dir = _get_loki_dir()
+
+    # Validate LOKI_DIR exists before attempting to read metrics
+    if not loki_dir.is_dir():
+        return "# loki_up 0\n"
 
     # -- Read dashboard-state.json (primary data source) ----------------------
     state: dict = {}
@@ -2723,8 +2727,8 @@ def _build_metrics_text() -> str:
     lines.append(f"loki_agents_active {agents_active}")
     lines.append("")
 
-    lines.append("# HELP loki_agents_total Total number of agents spawned")
-    lines.append("# TYPE loki_agents_total counter")
+    lines.append("# HELP loki_agents_total Total number of agents registered")
+    lines.append("# TYPE loki_agents_total gauge")
     lines.append(f"loki_agents_total {agents_total}")
     lines.append("")
 
