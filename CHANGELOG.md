@@ -5,6 +5,16 @@ All notable changes to Loki Mode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.42.0] - 2026-02-14
+
+### Fixed
+- Cost tab always showing zeros: efficiency files now include token counts from context tracker
+- Learning tab empty: success patterns and tool efficiency now read from `.loki/learning/signals/`
+- Cost API fallback reads `.loki/context/tracking.json` instead of nonexistent `state.tokens`
+- Token totals added to `dashboard-state.json` for overview display
+- `track_context_usage()` now runs BEFORE efficiency file write so token data is available
+- Learning metrics, trends, signals, aggregation all merge data from both event bus and signals directory
+
 ## [5.41.0] - 2026-02-13
 
 ### Added

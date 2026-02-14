@@ -2705,6 +2705,14 @@ except: print('{\"total\":0,\"unacknowledged\":0}')
   "council": $council_state,
   "budget": $budget_json,
   "context": $context_state,
+  "tokens": $(python3 -c "
+import json
+try:
+    t = json.load(open('.loki/context/tracking.json'))
+    totals = t.get('totals', {})
+    print(json.dumps({'input': totals.get('total_input', 0), 'output': totals.get('total_output', 0), 'cost_usd': totals.get('total_cost_usd', 0)}))
+except: print('null')
+" 2>/dev/null || echo "null"),
   "notifications": $notification_summary
 }
 EOF
@@ -2857,6 +2865,9 @@ track_iteration_complete() {
             --context "{\"iteration\":$iteration,\"exit_code\":$exit_code}"
     fi
 
+    # Track context window usage FIRST to get token data (v5.42.0)
+    track_context_usage "$iteration"
+
     # Write efficiency tracking file for /api/cost endpoint
     mkdir -p .loki/metrics/efficiency
     local model_tier="sonnet"
@@ -2869,6 +2880,25 @@ track_iteration_complete() {
     fi
     local phase="${LAST_KNOWN_PHASE:-}"
     [ -z "$phase" ] && phase=$(python3 -c "import json; print(json.load(open('.loki/state/orchestrator.json')).get('currentPhase', 'unknown'))" 2>/dev/null || echo "unknown")
+
+    # Read token data from context tracker output (v5.42.0)
+    local iter_input=0 iter_output=0 iter_cost=0
+    if [ -f ".loki/context/tracking.json" ]; then
+        read iter_input iter_output iter_cost < <(python3 -c "
+import json
+try:
+    t = json.load(open('.loki/context/tracking.json'))
+    iters = t.get('per_iteration', [])
+    match = [i for i in iters if i.get('iteration') == $iteration]
+    if match:
+        m = match[-1]
+        print(m.get('input_tokens', 0), m.get('output_tokens', 0), m.get('cost_usd', 0))
+    else:
+        print(0, 0, 0)
+except: print(0, 0, 0)
+" 2>/dev/null || echo "0 0 0")
+    fi
+
     cat > ".loki/metrics/efficiency/iteration-${iteration}.json" << EFF_EOF
 {
   "iteration": $iteration,
@@ -2877,12 +2907,12 @@ track_iteration_complete() {
   "duration_ms": $duration_ms,
   "provider": "${PROVIDER_NAME:-claude}",
   "status": "$status_str",
+  "input_tokens": ${iter_input:-0},
+  "output_tokens": ${iter_output:-0},
+  "cost_usd": ${iter_cost:-0},
   "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 }
 EFF_EOF
-
-    # Track context window usage (v5.40.0)
-    track_context_usage "$iteration"
 
     # Check notification triggers (v5.40.0)
     check_notification_triggers "$iteration"

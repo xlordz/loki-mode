@@ -1500,22 +1500,61 @@ async def get_memory_timeline():
 
 
 # Learning/metrics endpoints
+
+
+def _read_learning_signals(signal_type: Optional[str] = None, limit: int = 50) -> list:
+    """Read learning signals from .loki/learning/signals/*.json files.
+
+    Learning signals are written as individual JSON files by the learning emitter
+    (learning/emitter.py). Each file contains a single signal object with fields:
+    id, type, source, action, timestamp, confidence, outcome, data, context.
+    """
+    signals_dir = _get_loki_dir() / "learning" / "signals"
+    if not signals_dir.exists() or not signals_dir.is_dir():
+        return []
+
+    signals = []
+    try:
+        for fpath in signals_dir.glob("*.json"):
+            try:
+                raw = fpath.read_text()
+                if not raw.strip():
+                    continue
+                sig = json.loads(raw)
+                if signal_type and sig.get("type") != signal_type:
+                    continue
+                signals.append(sig)
+            except (json.JSONDecodeError, OSError):
+                continue
+    except OSError:
+        return []
+
+    # Sort by timestamp descending (newest first)
+    signals.sort(key=lambda s: s.get("timestamp", ""), reverse=True)
+    return signals[:limit]
+
+
 @app.get("/api/learning/metrics")
 async def get_learning_metrics(
     timeRange: str = "7d",
     signalType: Optional[str] = None,
     source: Optional[str] = None,
 ):
-    """Get learning metrics from events and metrics files."""
+    """Get learning metrics from events, metrics files, and learning signals."""
     events = _read_events(timeRange)
+
+    # Also read from learning signals directory
+    all_signals = _read_learning_signals(limit=10000)
 
     # Filter by type and source
     if signalType:
         events = [e for e in events if e.get("data", {}).get("type") == signalType]
+        all_signals = [s for s in all_signals if s.get("type") == signalType]
     if source:
         events = [e for e in events if e.get("data", {}).get("source") == source]
+        all_signals = [s for s in all_signals if s.get("source") == source]
 
-    # Count by type
+    # Count by type from events.jsonl
     by_type: dict = {}
     by_source: dict = {}
     for e in events:
@@ -1523,6 +1562,19 @@ async def get_learning_metrics(
         by_type[t] = by_type.get(t, 0) + 1
         s = e.get("data", {}).get("source", "unknown")
         by_source[s] = by_source.get(s, 0) + 1
+
+    # Merge counts from learning signals directory
+    for s in all_signals:
+        t = s.get("type", "unknown")
+        by_type[t] = by_type.get(t, 0) + 1
+        src = s.get("source", "unknown")
+        by_source[src] = by_source.get(src, 0) + 1
+
+    total_count = len(events) + len(all_signals)
+
+    # Calculate average confidence across both sources
+    total_conf = sum(e.get("data", {}).get("confidence", 0) for e in events)
+    total_conf += sum(s.get("confidence", 0) for s in all_signals)
 
     # Load aggregation data from file if available
     aggregation = {
@@ -1543,10 +1595,10 @@ async def get_learning_metrics(
             pass
 
     return {
-        "totalSignals": len(events),
+        "totalSignals": total_count,
         "signalsByType": by_type,
         "signalsBySource": by_source,
-        "avgConfidence": round(sum(e.get("data", {}).get("confidence", 0) for e in events) / max(len(events), 1), 4),
+        "avgConfidence": round(total_conf / max(total_count, 1), 4),
         "aggregation": aggregation,
     }
 
@@ -1579,25 +1631,107 @@ async def get_learning_signals(
     limit: int = 50,
     offset: int = 0,
 ):
-    """Get raw learning signals."""
+    """Get raw learning signals from both events.jsonl and learning signals directory."""
     events = _read_events(timeRange)
     if signalType:
         events = [e for e in events if e.get("type") == signalType]
     if source:
         events = [e for e in events if e.get("data", {}).get("source") == source]
-    return events[offset:offset + limit]
+
+    # Also read from learning signals directory
+    file_signals = _read_learning_signals(signal_type=signalType, limit=10000)
+    if source:
+        file_signals = [s for s in file_signals if s.get("source") == source]
+
+    # Merge and sort by timestamp (newest first)
+    combined = events + file_signals
+    combined.sort(key=lambda s: s.get("timestamp", ""), reverse=True)
+    return combined[offset:offset + limit]
 
 
 @app.get("/api/learning/aggregation")
 async def get_learning_aggregation():
-    """Get latest learning aggregation result."""
+    """Get latest learning aggregation result, merging file-based aggregation with live signals."""
+    result = {"preferences": [], "error_patterns": [], "success_patterns": [], "tool_efficiencies": []}
+
+    # Load pre-computed aggregation from file if available
     agg_file = _get_loki_dir() / "metrics" / "aggregation.json"
     if agg_file.exists():
         try:
-            return json.loads(agg_file.read_text())
+            result = json.loads(agg_file.read_text())
         except Exception:
             pass
-    return {"preferences": [], "error_patterns": [], "success_patterns": [], "tool_efficiencies": []}
+
+    # Supplement with live data from learning signals directory
+    success_signals = _read_learning_signals(signal_type="success_pattern", limit=500)
+    tool_signals = _read_learning_signals(signal_type="tool_efficiency", limit=500)
+    error_signals = _read_learning_signals(signal_type="error_pattern", limit=500)
+    pref_signals = _read_learning_signals(signal_type="user_preference", limit=500)
+
+    # Merge success patterns from signals if aggregation file had none
+    if not result.get("success_patterns") and success_signals:
+        pattern_counts: dict = {}
+        for s in success_signals:
+            name = s.get("data", {}).get("pattern_name", s.get("action", "unknown"))
+            pattern_counts[name] = pattern_counts.get(name, 0) + 1
+        result["success_patterns"] = [
+            {"pattern_name": k, "frequency": v, "confidence": min(1.0, v / 10)}
+            for k, v in sorted(pattern_counts.items(), key=lambda x: -x[1])
+        ]
+
+    # Merge tool efficiencies from signals if aggregation file had none
+    if not result.get("tool_efficiencies") and tool_signals:
+        tool_stats: dict = {}
+        for s in tool_signals:
+            data = s.get("data", {})
+            tool_name = data.get("tool_name", s.get("action", "unknown"))
+            if tool_name not in tool_stats:
+                tool_stats[tool_name] = {"count": 0, "total_ms": 0, "successes": 0}
+            tool_stats[tool_name]["count"] += 1
+            tool_stats[tool_name]["total_ms"] += data.get("duration_ms", 0)
+            if data.get("success", s.get("outcome") == "success"):
+                tool_stats[tool_name]["successes"] += 1
+        result["tool_efficiencies"] = []
+        for tname, stats in sorted(tool_stats.items(), key=lambda x: -x[1]["count"]):
+            avg_ms = stats["total_ms"] / stats["count"] if stats["count"] else 0
+            sr = round(stats["successes"] / stats["count"], 4) if stats["count"] else 0
+            result["tool_efficiencies"].append({
+                "tool_name": tname, "efficiency_score": sr,
+                "count": stats["count"], "avg_execution_time_ms": round(avg_ms, 2),
+                "success_rate": sr,
+            })
+
+    # Merge error patterns from signals if aggregation file had none
+    if not result.get("error_patterns") and error_signals:
+        error_counts: dict = {}
+        for s in error_signals:
+            etype = s.get("data", {}).get("error_type", s.get("action", "unknown"))
+            error_counts[etype] = error_counts.get(etype, 0) + 1
+        result["error_patterns"] = [
+            {"error_type": k, "resolution_rate": 0.0, "frequency": v, "confidence": min(1.0, v / 10)}
+            for k, v in sorted(error_counts.items(), key=lambda x: -x[1])
+        ]
+
+    # Merge preferences from signals if aggregation file had none
+    if not result.get("preferences") and pref_signals:
+        pref_counts: dict = {}
+        for s in pref_signals:
+            key = s.get("data", {}).get("preference_key", s.get("action", "unknown"))
+            pref_counts[key] = pref_counts.get(key, 0) + 1
+        result["preferences"] = [
+            {"preference_key": k, "preferred_value": k, "frequency": v, "confidence": min(1.0, v / 10)}
+            for k, v in sorted(pref_counts.items(), key=lambda x: -x[1])
+        ]
+
+    # Add signal counts summary
+    result["signal_counts"] = {
+        "success_patterns": len(success_signals),
+        "tool_efficiency": len(tool_signals),
+        "error_patterns": len(error_signals),
+        "user_preferences": len(pref_signals),
+    }
+
+    return result
 
 
 @app.post("/api/learning/aggregate", dependencies=[Depends(auth.require_scope("control"))])
@@ -1690,34 +1824,50 @@ async def trigger_aggregation():
 
 @app.get("/api/learning/preferences")
 async def get_learning_preferences(limit: int = 50):
-    """Get aggregated user preferences."""
+    """Get aggregated user preferences from events and learning signals directory."""
     events = _read_events("30d")
     prefs = [e for e in events if e.get("type") == "user_preference"]
-    return prefs[:limit]
+    # Also read from learning signals directory
+    file_prefs = _read_learning_signals(signal_type="user_preference", limit=limit)
+    combined = prefs + file_prefs
+    combined.sort(key=lambda s: s.get("timestamp", ""), reverse=True)
+    return combined[:limit]
 
 
 @app.get("/api/learning/errors")
 async def get_learning_errors(limit: int = 50):
-    """Get aggregated error patterns."""
+    """Get aggregated error patterns from events and learning signals directory."""
     events = _read_events("30d")
     errors = [e for e in events if e.get("type") == "error_pattern"]
-    return errors[:limit]
+    # Also read from learning signals directory
+    file_errors = _read_learning_signals(signal_type="error_pattern", limit=limit)
+    combined = errors + file_errors
+    combined.sort(key=lambda s: s.get("timestamp", ""), reverse=True)
+    return combined[:limit]
 
 
 @app.get("/api/learning/success")
 async def get_learning_success(limit: int = 50):
-    """Get aggregated success patterns."""
+    """Get aggregated success patterns from events and learning signals directory."""
     events = _read_events("30d")
     successes = [e for e in events if e.get("type") == "success_pattern"]
-    return successes[:limit]
+    # Also read from learning signals directory
+    file_successes = _read_learning_signals(signal_type="success_pattern", limit=limit)
+    combined = successes + file_successes
+    combined.sort(key=lambda s: s.get("timestamp", ""), reverse=True)
+    return combined[:limit]
 
 
 @app.get("/api/learning/tools")
 async def get_tool_efficiency(limit: int = 50):
-    """Get tool efficiency rankings."""
+    """Get tool efficiency rankings from events and learning signals directory."""
     events = _read_events("30d")
     tools = [e for e in events if e.get("type") == "tool_efficiency"]
-    return tools[:limit]
+    # Also read from learning signals directory
+    file_tools = _read_learning_signals(signal_type="tool_efficiency", limit=limit)
+    combined = tools + file_tools
+    combined.sort(key=lambda s: s.get("timestamp", ""), reverse=True)
+    return combined[:limit]
 
 
 def _parse_time_range(time_range: str) -> Optional[datetime]:
@@ -1957,24 +2107,28 @@ async def get_cost():
             except (json.JSONDecodeError, KeyError, TypeError):
                 pass
 
-    # Also check dashboard-state.json for token data if efficiency dir is empty
+    # Fallback: read from context tracking if efficiency files have no token data
     if total_input == 0 and total_output == 0:
-        state_file = loki_dir / "dashboard-state.json"
-        if state_file.exists():
+        ctx_file = loki_dir / "context" / "tracking.json"
+        if ctx_file.exists():
             try:
-                state = json.loads(state_file.read_text())
-                tokens = state.get("tokens", {})
-                total_input = tokens.get("input", 0)
-                total_output = tokens.get("output", 0)
-                model = state.get("model", "sonnet").lower()
+                ctx = json.loads(ctx_file.read_text())
+                totals = ctx.get("totals", {})
+                total_input = totals.get("total_input", 0)
+                total_output = totals.get("total_output", 0)
                 if total_input > 0 or total_output > 0:
-                    estimated_cost = _calculate_model_cost(model, total_input, total_output)
-                    if model not in by_model:
-                        by_model[model] = {
-                            "input_tokens": total_input,
-                            "output_tokens": total_output,
-                            "cost_usd": estimated_cost,
-                        }
+                    estimated_cost = totals.get("total_cost_usd", 0.0)
+                    # Rebuild by_model and by_phase from per_iteration data
+                    for it in ctx.get("per_iteration", []):
+                        inp = it.get("input_tokens", 0)
+                        out = it.get("output_tokens", 0)
+                        cost = it.get("cost_usd", 0)
+                        model = ctx.get("provider", "sonnet").lower()
+                        if model not in by_model:
+                            by_model[model] = {"input_tokens": 0, "output_tokens": 0, "cost_usd": 0.0}
+                        by_model[model]["input_tokens"] += inp
+                        by_model[model]["output_tokens"] += out
+                        by_model[model]["cost_usd"] += cost
             except (json.JSONDecodeError, KeyError):
                 pass
 
