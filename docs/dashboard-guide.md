@@ -1,4 +1,4 @@
-# Loki Mode Dashboard v5.39.0
+# Loki Mode Dashboard v5.39.1
 
 A production-ready realtime dashboard for monitoring and managing Loki Mode autonomous operations. Features a dark Vercel/Linear-inspired theme with purple accents, sidebar navigation, and overview cards.
 
@@ -35,7 +35,7 @@ The dashboard automatically syncs with Loki Mode when it's running, polling `das
 The sidebar provides navigation and system status at a glance.
 
 #### Logo & Version
-- Loki Mode branding with current version (v5.39.0)
+- Loki Mode branding with current version (v5.39.1)
 - Version updates automatically from server state
 
 #### Theme Toggle
