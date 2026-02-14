@@ -10,6 +10,9 @@ CWD=$(echo "$INPUT" | python3 -c "import sys,json; print(json.load(sys.stdin).ge
 
 # Dangerous command patterns (matched anywhere in the command string)
 # Safe paths like /tmp/ and relative paths (./) are excluded below
+# NOTE: This is defense-in-depth, not a security boundary. Motivated attackers
+# can bypass with advanced techniques (heredocs, printf, arbitrary string building).
+# This hook catches common mistakes and simple bypass attempts.
 BLOCKED_PATTERNS=(
     "rm -rf /"
     "rm -rf ~"
@@ -18,6 +21,15 @@ BLOCKED_PATTERNS=(
     "mkfs[. ]"
     "dd if=/dev/zero"
     "chmod -R 777 /"
+    "eval.*base64"
+    "base64.*\|.*sh"
+    "base64.*\|.*bash"
+    "\$\(base64"
+    "eval.*\\\$\("
+    "curl.*\|.*sh"
+    "wget.*\|.*sh"
+    "curl.*\|.*bash"
+    "wget.*\|.*bash"
 )
 
 # Safe path patterns that override rm -rf / matches

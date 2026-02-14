@@ -33,7 +33,10 @@ def _get_distinct_id():
     except Exception:
         new_id = str(uuid.uuid4())
         try:
-            id_file.write_text(new_id + "\n")
+            # Create with 0600 permissions (user read/write only)
+            fd = os.open(str(id_file), os.O_CREAT | os.O_WRONLY, 0o600)
+            os.write(fd, (new_id + "\n").encode())
+            os.close(fd)
         except Exception:
             pass
         return new_id

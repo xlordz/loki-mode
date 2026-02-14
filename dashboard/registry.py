@@ -44,7 +44,7 @@ def _save_registry(registry: dict) -> None:
 
 def _generate_project_id(path: str) -> str:
     """Generate a unique project ID from path."""
-    return hashlib.md5(path.encode()).hexdigest()[:12]
+    return hashlib.sha256(path.encode()).hexdigest()[:12]
 
 
 def register_project(
@@ -286,7 +286,8 @@ def discover_projects(
 
             # Search subdirectories
             for child in path.iterdir():
-                if child.is_dir() and not child.name.startswith("."):
+                # Skip symlinks to avoid following into unexpected directories
+                if child.is_dir() and not child.name.startswith(".") and not child.is_symlink():
                     search_dir(child, depth + 1)
 
         except (PermissionError, OSError):

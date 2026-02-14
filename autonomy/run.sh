@@ -2147,13 +2147,32 @@ init_loki_dir() {
 
     # Clean up stale control files ONLY if no other session is running
     # Deleting these while another session is active would destroy its signals
-    local existing_pid=""
-    if [ -f ".loki/loki.pid" ]; then
-        existing_pid=$(cat ".loki/loki.pid" 2>/dev/null)
+    # Use flock if available to avoid TOCTOU race
+    local lock_file=".loki/session.lock"
+    local can_cleanup=false
+
+    if command -v flock >/dev/null 2>&1 && [ -f "$lock_file" ]; then
+        # Try non-blocking lock - if we get it, no other session is running
+        {
+            if flock -n 201 2>/dev/null; then
+                can_cleanup=true
+            fi
+        } 201>"$lock_file"
+    else
+        # Fallback: check PID file
+        local existing_pid=""
+        if [ -f ".loki/loki.pid" ]; then
+            existing_pid=$(cat ".loki/loki.pid" 2>/dev/null)
+        fi
+        if [ -z "$existing_pid" ] || ! kill -0 "$existing_pid" 2>/dev/null; then
+            can_cleanup=true
+        fi
     fi
-    if [ -z "$existing_pid" ] || ! kill -0 "$existing_pid" 2>/dev/null; then
+
+    if [ "$can_cleanup" = "true" ]; then
         rm -f .loki/PAUSE .loki/STOP .loki/HUMAN_INPUT.md 2>/dev/null
         rm -f .loki/loki.pid 2>/dev/null
+        rm -f .loki/session.lock 2>/dev/null
     fi
 
     mkdir -p .loki/{state,queue,messages,logs,config,prompts,artifacts,scripts}
@@ -6945,15 +6964,49 @@ main() {
     update_continuity
 
     # Session lock: prevent concurrent sessions on same repo
+    # Use flock for atomic locking to prevent TOCTOU race conditions
     local pid_file=".loki/loki.pid"
-    if [ -f "$pid_file" ]; then
-        local existing_pid
-        existing_pid=$(cat "$pid_file" 2>/dev/null)
-        # Skip if it's our own PID or parent PID (background mode writes PID before child starts)
-        if [ -n "$existing_pid" ] && [ "$existing_pid" != "$$" ] && [ "$existing_pid" != "$PPID" ] && kill -0 "$existing_pid" 2>/dev/null; then
-            log_error "Another Loki session is already running (PID: $existing_pid)"
+    local lock_file=".loki/session.lock"
+
+    # Try to acquire exclusive lock with flock (if available)
+    if command -v flock >/dev/null 2>&1; then
+        # Create lock file
+        touch "$lock_file"
+
+        # Open FD 200 at process scope so flock persists for entire session lifetime
+        # (block-scoped redirection would release the lock when the block exits)
+        exec 200>"$lock_file"
+
+        # Try to acquire exclusive lock (non-blocking)
+        if ! flock -n 200 2>/dev/null; then
+            log_error "Another Loki session is already running (locked)"
             log_error "Stop it first with: loki stop"
             exit 1
+        fi
+
+        # Check PID file after acquiring lock
+        if [ -f "$pid_file" ]; then
+            local existing_pid
+            existing_pid=$(cat "$pid_file" 2>/dev/null)
+            # Skip if it's our own PID or parent PID (background mode writes PID before child starts)
+            if [ -n "$existing_pid" ] && [ "$existing_pid" != "$$" ] && [ "$existing_pid" != "$PPID" ] && kill -0 "$existing_pid" 2>/dev/null; then
+                log_error "Another Loki session is already running (PID: $existing_pid)"
+                log_error "Stop it first with: loki stop"
+                exit 1
+            fi
+        fi
+    else
+        # Fallback to original behavior if flock not available
+        log_warn "flock not available - using non-atomic PID check (race condition possible)"
+        if [ -f "$pid_file" ]; then
+            local existing_pid
+            existing_pid=$(cat "$pid_file" 2>/dev/null)
+            # Skip if it's our own PID or parent PID (background mode writes PID before child starts)
+            if [ -n "$existing_pid" ] && [ "$existing_pid" != "$$" ] && [ "$existing_pid" != "$PPID" ] && kill -0 "$existing_pid" 2>/dev/null; then
+                log_error "Another Loki session is already running (PID: $existing_pid)"
+                log_error "Stop it first with: loki stop"
+                exit 1
+            fi
         fi
     fi
 

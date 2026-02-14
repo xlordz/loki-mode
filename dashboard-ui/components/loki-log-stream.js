@@ -47,6 +47,7 @@ export class LokiLogStream extends LokiElement {
     this._levelFilter = 'all';
     this._api = null;
     this._pollInterval = null;
+    this._logMessageHandler = null;
   }
 
   connectedCallback() {
@@ -60,6 +61,9 @@ export class LokiLogStream extends LokiElement {
   disconnectedCallback() {
     super.disconnectedCallback();
     this._stopLogPolling();
+    if (this._api && this._logMessageHandler) {
+      this._api.removeEventListener(ApiEvents.LOG_MESSAGE, this._logMessageHandler);
+    }
   }
 
   attributeChangedCallback(name, oldValue, newValue) {
@@ -90,9 +94,8 @@ export class LokiLogStream extends LokiElement {
     const apiUrl = this.getAttribute('api-url') || window.location.origin;
     this._api = getApiClient({ baseUrl: apiUrl });
 
-    this._api.addEventListener(ApiEvents.LOG_MESSAGE, (e) => {
-      this._addLog(e.detail);
-    });
+    this._logMessageHandler = (e) => this._addLog(e.detail);
+    this._api.addEventListener(ApiEvents.LOG_MESSAGE, this._logMessageHandler);
   }
 
   _startLogPolling() {

@@ -68,14 +68,33 @@ LOKI_TLS_KEY = os.environ.get("LOKI_TLS_KEY", "")    # Path to PEM private key
 class _RateLimiter:
     """Simple in-memory rate limiter for control endpoints."""
 
-    def __init__(self, max_calls: int = 10, window_seconds: int = 60):
+    def __init__(self, max_calls: int = 10, window_seconds: int = 60, max_keys: int = 10000):
         self._max_calls = max_calls
         self._window = window_seconds
+        self._max_keys = max_keys
         self._calls: dict[str, list[float]] = defaultdict(list)
 
     def check(self, key: str) -> bool:
         now = time.time()
+        # Prune old timestamps for this key
         self._calls[key] = [t for t in self._calls[key] if now - t < self._window]
+
+        # Remove keys with empty timestamp lists
+        empty_keys = [k for k, v in self._calls.items() if not v]
+        for k in empty_keys:
+            del self._calls[k]
+
+        # Evict oldest keys if max_keys exceeded
+        if len(self._calls) > self._max_keys:
+            # Sort by oldest timestamp, remove oldest keys
+            sorted_keys = sorted(
+                self._calls.items(),
+                key=lambda x: min(x[1]) if x[1] else 0
+            )
+            keys_to_remove = len(self._calls) - self._max_keys
+            for k, _ in sorted_keys[:keys_to_remove]:
+                del self._calls[k]
+
         if len(self._calls[key]) >= self._max_calls:
             return False
         self._calls[key].append(now)
@@ -83,6 +102,7 @@ class _RateLimiter:
 
 
 _control_limiter = _RateLimiter(max_calls=10, window_seconds=60)
+_read_limiter = _RateLimiter(max_calls=60, window_seconds=60)
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -193,11 +213,18 @@ class StatusResponse(BaseModel):
 class ConnectionManager:
     """Manages WebSocket connections for real-time updates."""
 
+    MAX_CONNECTIONS = int(os.environ.get("LOKI_MAX_WS_CONNECTIONS", "100"))
+
     def __init__(self):
         self.active_connections: list[WebSocket] = []
 
     async def connect(self, websocket: WebSocket) -> None:
         """Accept a new WebSocket connection."""
+        if len(self.active_connections) >= self.MAX_CONNECTIONS:
+            await websocket.accept()
+            await websocket.close(code=1013, reason="Connection limit reached. Try again later.")
+            logger.warning(f"WebSocket connection rejected: limit of {self.MAX_CONNECTIONS} reached")
+            return
         await websocket.accept()
         self.active_connections.append(websocket)
 
@@ -853,6 +880,13 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
     # Authorization headers on WS upgrade. Tokens may appear in reverse
     # proxy access logs -- configure log sanitization for /ws in production.
     # FastAPI Depends() is not supported on @app.websocket() routes.
+
+    # Rate limit WebSocket connections by IP
+    client_ip = websocket.client.host if websocket.client else "unknown"
+    if not _read_limiter.check(f"ws_{client_ip}"):
+        await websocket.close(code=1008)  # Policy Violation
+        return
+
     if auth.is_enterprise_mode() or auth.is_oidc_mode():
         ws_token: Optional[str] = websocket.query_params.get("token")
         if not ws_token:
@@ -1019,8 +1053,9 @@ async def update_project_access(identifier: str):
 
 
 @app.get("/api/registry/discover", response_model=list[DiscoverResponse])
-async def discover_projects(max_depth: int = 3):
+async def discover_projects(max_depth: int = Query(default=3, ge=1, le=10)):
     """Discover projects with .loki directories."""
+    max_depth = min(max_depth, 10)
     discovered = registry.discover_projects(max_depth=max_depth)
     return discovered
 
@@ -1028,6 +1063,9 @@ async def discover_projects(max_depth: int = 3):
 @app.post("/api/registry/sync", response_model=SyncResponse)
 async def sync_registry():
     """Sync the registry with discovered projects."""
+    if not _read_limiter.check("registry_sync"):
+        raise HTTPException(status_code=429, detail="Rate limit exceeded")
+
     result = registry.sync_registry_with_discovery()
     return {
         "added": result["added"],
@@ -1109,6 +1147,9 @@ async def create_token(request: TokenCreateRequest):
 
     The raw token is only returned once on creation - save it securely.
     """
+    if not _read_limiter.check("token_create"):
+        raise HTTPException(status_code=429, detail="Rate limit exceeded")
+
     if not auth.is_enterprise_mode():
         raise HTTPException(
             status_code=403,
@@ -1562,6 +1603,9 @@ async def get_learning_aggregation():
 @app.post("/api/learning/aggregate", dependencies=[Depends(auth.require_scope("control"))])
 async def trigger_aggregation():
     """Aggregate learning signals from events.jsonl into structured metrics."""
+    if not _read_limiter.check("learning_aggregate"):
+        raise HTTPException(status_code=429, detail="Rate limit exceeded")
+
     events_file = _get_loki_dir() / "events.jsonl"
     preferences: dict = {}
     error_patterns: dict = {}
@@ -1693,17 +1737,34 @@ def _parse_time_range(time_range: str) -> Optional[datetime]:
     return datetime.now(timezone.utc) - delta
 
 
-def _read_events(time_range: str = "7d") -> list:
-    """Read events from .loki/events.jsonl with time filter."""
+def _read_events(time_range: str = "7d", max_events: int = 10000) -> list:
+    """Read events from .loki/events.jsonl with time filter and size limits."""
     events_file = _get_loki_dir() / "events.jsonl"
     if not events_file.exists():
         return []
 
     cutoff = _parse_time_range(time_range)
     events = []
+    max_file_size = 10 * 1024 * 1024  # 10MB
+
     try:
-        for line in events_file.read_text().strip().split("\n"):
-            if line.strip():
+        file_size = events_file.stat().st_size
+
+        # If file > 10MB, seek to last 10MB
+        with open(events_file, 'r') as f:
+            if file_size > max_file_size:
+                f.seek(max(0, file_size - max_file_size))
+                # Skip partial first line after seek
+                f.readline()
+
+            for line in f:
+                if len(events) >= max_events:
+                    break
+
+                line = line.strip()
+                if not line:
+                    continue
+
                 try:
                     event = json.loads(line)
                     # Filter by time_range if cutoff was parsed successfully

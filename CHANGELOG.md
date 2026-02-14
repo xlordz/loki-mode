@@ -5,6 +5,27 @@ All notable changes to Loki Mode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.40.1] - 2026-02-13
+
+### Fixed
+- OIDC JWT signature validation - fail-closed by default, explicit opt-in for skip
+- Provider allowlist and PRD path traversal validation in control API
+- Rate limiter memory leak - key eviction with max_keys=10000 limit
+- WebSocket connection limit - configurable MAX_CONNECTIONS (default 100)
+- Dashboard log stream memory leak - proper event listener cleanup in disconnectedCallback
+- Cross-platform millisecond timestamps in event emitter (GNU date, python3, fallback)
+- Events.jsonl streaming with 10MB/10000 event size limits to prevent OOM
+- Registry discovery max_depth bounded to 1-10 range
+- Flock-based session locking to prevent TOCTOU race conditions (with PID fallback)
+- Atomic JSON writes with fcntl.flock for control API state files
+- Bash validation hook: additional bypass pattern detection
+- Telemetry file permissions set to 0600 for sensitive data
+- API client global listener cleanup to prevent memory leaks on destroy
+- Rate limiting on token/sync/aggregate/ws read endpoints
+- Registry symlink traversal prevention
+- SHA-256 instead of MD5 for project ID hashing
+- Events.jsonl 50MB log rotation with single backup
+
 ## [5.40.0] - 2026-02-14
 
 ### Added

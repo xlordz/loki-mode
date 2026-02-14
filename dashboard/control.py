@@ -11,10 +11,12 @@ Usage:
 """
 
 import asyncio
+import fcntl
 import json
 import os
 import signal
 import subprocess
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
@@ -49,6 +51,57 @@ RUN_SH = SKILL_DIR / "autonomy" / "run.sh"
 STATE_DIR.mkdir(parents=True, exist_ok=True)
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 
+# Utility: atomic write with optional file locking
+def atomic_write_json(file_path: Path, data: dict, use_lock: bool = True):
+    """
+    Atomically write JSON data to a file to prevent TOCTOU race conditions.
+    Uses temporary file + os.rename() for atomicity.
+    Optionally uses fcntl.flock for additional safety.
+    """
+    try:
+        # Write to temporary file in same directory (for atomic rename)
+        temp_fd, temp_path = tempfile.mkstemp(
+            dir=file_path.parent,
+            prefix=f".{file_path.name}.",
+            suffix=".tmp"
+        )
+
+        try:
+            with os.fdopen(temp_fd, 'w') as f:
+                # Acquire exclusive lock if requested
+                if use_lock:
+                    try:
+                        fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+                    except (OSError, AttributeError):
+                        # flock not available on this platform - continue without lock
+                        pass
+
+                # Write data
+                json.dump(data, f, indent=2)
+                f.flush()
+                os.fsync(f.fileno())
+
+                # Release lock (happens automatically on close, but explicit is clearer)
+                if use_lock:
+                    try:
+                        fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+                    except (OSError, AttributeError):
+                        pass
+
+            # Atomic rename
+            os.rename(temp_path, file_path)
+
+        except Exception:
+            # Clean up temp file on error
+            try:
+                os.unlink(temp_path)
+            except OSError:
+                pass
+            raise
+
+    except Exception as e:
+        raise RuntimeError(f"Failed to write {file_path}: {e}")
+
 # FastAPI app
 app = FastAPI(
     title="Loki Mode Control API",
@@ -76,6 +129,42 @@ class StartRequest(BaseModel):
     provider: str = "claude"
     parallel: bool = False
     background: bool = True
+
+    def validate_provider(self) -> None:
+        """Validate provider is from allowed list."""
+        allowed_providers = ["claude", "codex", "gemini"]
+        if self.provider not in allowed_providers:
+            raise ValueError(f"Invalid provider: {self.provider}. Must be one of: {', '.join(allowed_providers)}")
+
+    def validate_prd_path(self) -> None:
+        """Validate PRD path is safe and exists."""
+        if not self.prd:
+            return
+
+        # Check for path traversal sequences
+        if ".." in self.prd:
+            raise ValueError("PRD path contains path traversal sequence (..)")
+
+        # Resolve to absolute path and verify it exists
+        prd_path = Path(self.prd).resolve()
+        if not prd_path.exists():
+            raise ValueError(f"PRD file does not exist: {self.prd}")
+
+        # Verify it's a file, not a directory
+        if not prd_path.is_file():
+            raise ValueError(f"PRD path is not a file: {self.prd}")
+
+        # Verify path resolves within CWD or a reasonable parent
+        cwd = Path.cwd().resolve()
+        try:
+            prd_path.relative_to(cwd)
+        except ValueError:
+            # Not within CWD - check if it's within user's home or project directory
+            home = Path.home().resolve()
+            try:
+                prd_path.relative_to(home)
+            except ValueError:
+                raise ValueError(f"PRD path is outside allowed directories: {self.prd}")
 
 
 class StatusResponse(BaseModel):
@@ -272,6 +361,13 @@ async def start_session(request: StartRequest):
     Returns:
         ControlResponse with success status and PID
     """
+    # Validate input
+    try:
+        request.validate_provider()
+        request.validate_prd_path()
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
     # Check if already running
     status = get_status()
     if status.state == "running":
@@ -356,10 +452,13 @@ async def stop_session():
     session_file = LOKI_DIR / "session.json"
     if session_file.exists():
         try:
+            # Read current session data
             session_data = json.loads(session_file.read_text())
             session_data["status"] = "stopped"
-            session_file.write_text(json.dumps(session_data))
-        except (json.JSONDecodeError, KeyError):
+
+            # Atomic write with file locking to prevent race conditions
+            atomic_write_json(session_file, session_data, use_lock=True)
+        except (json.JSONDecodeError, KeyError, RuntimeError):
             pass
 
     # Emit stop event

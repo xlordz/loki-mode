@@ -33,6 +33,7 @@ TOKEN_FILE = TOKEN_DIR / "tokens.json"
 OIDC_ISSUER = os.environ.get("LOKI_OIDC_ISSUER", "")  # e.g., https://accounts.google.com
 OIDC_CLIENT_ID = os.environ.get("LOKI_OIDC_CLIENT_ID", "")
 OIDC_AUDIENCE = os.environ.get("LOKI_OIDC_AUDIENCE", "")  # Usually same as client_id
+OIDC_SKIP_SIGNATURE_VERIFY = os.environ.get("LOKI_OIDC_SKIP_SIGNATURE_VERIFY", "").lower() in ("true", "1", "yes")
 OIDC_ENABLED = bool(OIDC_ISSUER and OIDC_CLIENT_ID)
 
 # Role-to-scope mapping (predefined roles)
@@ -54,11 +55,19 @@ _SCOPE_HIERARCHY = {
 
 if OIDC_ENABLED:
     import logging as _logging
-    _logging.getLogger("loki.auth").warning(
-        "OIDC/SSO enabled (EXPERIMENTAL). Claims-based validation only -- "
-        "JWT signatures are NOT cryptographically verified. Install PyJWT + "
-        "cryptography for production signature verification."
-    )
+    _logger = _logging.getLogger("loki.auth")
+    if OIDC_SKIP_SIGNATURE_VERIFY:
+        _logger.critical(
+            "OIDC/SSO signature verification DISABLED (LOKI_OIDC_SKIP_SIGNATURE_VERIFY=true). "
+            "This is INSECURE and allows forged JWTs. Only use for local testing. "
+            "For production, install PyJWT + cryptography and remove this env var."
+        )
+    else:
+        _logger.warning(
+            "OIDC/SSO enabled (EXPERIMENTAL). Claims-based validation only -- "
+            "JWT signatures are NOT cryptographically verified. Install PyJWT + "
+            "cryptography for production signature verification."
+        )
 
 # OIDC JWKS cache (issuer URL -> (keys_dict, fetch_timestamp))
 _oidc_jwks_cache = {}  # type: dict[str, tuple[dict, float]]
@@ -452,15 +461,18 @@ def validate_oidc_token(token_str: str) -> Optional[dict]:
 
     This is a claims-based validation that checks:
     - Token structure (3 base64url-encoded parts)
+    - Signature part is not empty (basic sanity check)
     - Issuer matches OIDC_ISSUER
     - Audience matches OIDC_AUDIENCE or OIDC_CLIENT_ID
     - Token is not expired
 
-    NOTE: Full cryptographic signature verification requires an RSA
-    library (e.g., PyJWT + cryptography). This implementation validates
-    claims and relies on HTTPS transport security for the token. For
-    production deployments with untrusted networks, consider adding
-    PyJWT for full signature verification.
+    SECURITY WARNING: Cryptographic signature verification is NOT performed
+    unless PyJWT is installed. This implementation only validates claims.
+    An attacker can forge JWTs unless LOKI_OIDC_SKIP_SIGNATURE_VERIFY is
+    explicitly set to 'true' (which is INSECURE and only for local testing).
+
+    For production: Install PyJWT + cryptography for proper RSA/HMAC
+    signature verification.
     """
     if not OIDC_ENABLED:
         return None
@@ -470,8 +482,29 @@ def validate_oidc_token(token_str: str) -> Optional[dict]:
         if len(parts) != 3:
             return None
 
+        # Basic sanity check: signature part must not be empty
+        header_b64, payload_b64, signature_b64 = parts
+        if not signature_b64 or len(signature_b64) < 10:
+            import logging as _logging
+            _logging.getLogger("loki.auth").error(
+                "OIDC token rejected: signature part is missing or too short"
+            )
+            return None
+
+        # CRITICAL: Check if signature verification is explicitly skipped
+        if not OIDC_SKIP_SIGNATURE_VERIFY:
+            import logging as _logging
+            _logging.getLogger("loki.auth").critical(
+                "OIDC token received but signature verification is NOT implemented. "
+                "Set LOKI_OIDC_SKIP_SIGNATURE_VERIFY=true to explicitly allow "
+                "unverified tokens (INSECURE - local testing only), or install "
+                "PyJWT + cryptography for production signature verification. "
+                "Rejecting token for security."
+            )
+            return None
+
         # Decode payload (claims)
-        claims = json.loads(_base64url_decode(parts[1]))
+        claims = json.loads(_base64url_decode(payload_b64))
 
         # Validate issuer
         if claims.get("iss") != OIDC_ISSUER:

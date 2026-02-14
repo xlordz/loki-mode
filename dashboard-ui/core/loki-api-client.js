@@ -94,6 +94,8 @@ export class LokiApiClient extends EventTarget {
     this._vscodeApi = null;
     this._context = this._detectContext();
     this._currentPollInterval = CONTEXT_DEFAULTS[this._context] || POLL_INTERVALS.normal;
+    this._visibilityChangeHandler = null;
+    this._messageHandler = null;
 
     // Setup adaptive polling and VS Code bridge
     this._setupAdaptivePolling();
@@ -138,13 +140,15 @@ export class LokiApiClient extends EventTarget {
     // Only setup in browser environments with document API
     if (typeof document === 'undefined') return;
 
-    document.addEventListener('visibilitychange', () => {
+    this._visibilityChangeHandler = () => {
       if (document.hidden) {
         this._setPollInterval(POLL_INTERVALS.background);
       } else {
         this._setPollInterval(CONTEXT_DEFAULTS[this._context] || POLL_INTERVALS.normal);
       }
-    });
+    };
+
+    document.addEventListener('visibilitychange', this._visibilityChangeHandler);
   }
 
   /**
@@ -192,7 +196,7 @@ export class LokiApiClient extends EventTarget {
     }
 
     // Listen for messages from VS Code extension
-    window.addEventListener('message', (event) => {
+    this._messageHandler = (event) => {
       const message = event.data;
       if (!message || !message.type) return;
 
@@ -242,7 +246,9 @@ export class LokiApiClient extends EventTarget {
           // Emit unknown message types as custom events
           this._emit(`api:${message.type}`, message.data);
       }
-    });
+    };
+
+    window.addEventListener('message', this._messageHandler);
   }
 
   /**
@@ -365,6 +371,28 @@ export class LokiApiClient extends EventTarget {
       this._reconnectTimeout = null;
     }
     this._connected = false;
+    this._cleanupGlobalListeners();
+  }
+
+  /**
+   * Clean up global event listeners
+   */
+  _cleanupGlobalListeners() {
+    if (this._visibilityChangeHandler && typeof document !== 'undefined') {
+      document.removeEventListener('visibilitychange', this._visibilityChangeHandler);
+      this._visibilityChangeHandler = null;
+    }
+    if (this._messageHandler && typeof window !== 'undefined') {
+      window.removeEventListener('message', this._messageHandler);
+      this._messageHandler = null;
+    }
+  }
+
+  /**
+   * Destroy the API client and clean up all resources
+   */
+  destroy() {
+    this.disconnect();
   }
 
   /**
