@@ -517,7 +517,7 @@ cmd_start() {
     if [ -n "$prd_file" ]; then
         args+=("$prd_file")
     else
-        # No PRD file specified -- warn and confirm before consuming API credits
+        # No PRD file specified -- warn and confirm before starting
         # Auto-confirm in CI environments or when LOKI_AUTO_CONFIRM is set
         # LOKI_AUTO_CONFIRM takes precedence when explicitly set;
         # fall back to CI env var only when LOKI_AUTO_CONFIRM is unset
@@ -526,10 +526,10 @@ cmd_start() {
             echo -e "${YELLOW}Warning: No PRD file specified. Auto-confirming (CI mode).${NC}"
         else
             echo -e "${YELLOW}Warning: No PRD file specified.${NC}"
-            echo "Loki Mode will start autonomous execution in the current directory"
-            echo "without a requirements document."
+            echo "Loki Mode will analyze the existing codebase and generate"
+            echo "a PRD automatically. No requirements document needed."
             echo ""
-            echo -e "This will consume API credits. Continue? [y/N] \c"
+            echo -e "Continue? [y/N] \c"
             read -r confirm
             if [[ ! "$confirm" =~ ^[Yy] ]]; then
                 echo "Aborted. Usage: loki start <path-to-prd.md>"
