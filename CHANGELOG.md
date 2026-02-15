@@ -5,6 +5,15 @@ All notable changes to Loki Mode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.42.2] - 2026-02-15
+
+### Changed
+- Autonomi parent brand added across all surfaces (README, SKILL.md, Dockerfiles, package.json, wiki, docs, VSCode extension)
+- GitHub Pages redirects to autonomi.dev
+- Homepage URL updated to autonomi.dev
+- Re-recorded demo with full v5.42 feature showcase (CLI, dashboard, agents, council, memory)
+- GitHub Pages color palette updated to indigo/blurple design system
+
 ## [5.42.1] - 2026-02-14
 
 ### Fixed
