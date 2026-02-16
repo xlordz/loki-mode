@@ -5,6 +5,32 @@ All notable changes to Loki Mode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.48.0] - 2026-02-16
+
+### Fixed
+- Critical: VSCode extension API endpoint paths corrected (/api/control/* instead of /start, /stop, /pause, /resume)
+- Critical: VSCode health check now matches server response ("healthy" not "ok")
+- Critical: VSCode response type schemas aligned with server (success/message pattern)
+- Critical: JSON backslash escaping in run.sh emit_event and emit_event_json
+- Critical: PRD_PATH properly escaped in save_state JSON generation
+- Critical: Dashboard server safe int() env var parsing prevents crash on invalid values
+- High: Auth added to 5 unprotected write endpoints in dashboard API (projects, tasks, registry)
+- High: Convergence log parsing now resilient to malformed lines (per-line try/except)
+- High: Bounded events.jsonl read with 10MB cap in trigger_aggregation
+- High: Memory retrieval dict mutation fixed with shallow copy (prevents storage pollution)
+- High: Atomic writes for token_economics.py (temp file + rename)
+- High: Memory counter inflation fixed (only increments for new topics, not upserts)
+- High: Atomic writes for agents.json state file in run.sh
+- High: loki status --json flag now functional (was silently ignored)
+- High: PYTHONPATH added to loki api start command
+- High: VSCode apiClient recreated on host/port config change
+- Medium: Provider wrapper fails explicitly when loader.sh missing (was silent Claude fallback)
+- Medium: Docker credential mount paths corrected (/home/loki/ not /root/) in README and wiki
+- Medium: npm test file leak prevention (*_test.ts/*_test.js patterns added to .npmignore)
+- Medium: Visibility-aware polling for cost dashboard and context tracker components
+- Medium: Memory embedding cache bounded at 10K entries with LRU eviction
+- Medium: VSCode VERSION file synced to current version
+
 ## [5.47.0] - 2026-02-16
 
 ### Added
