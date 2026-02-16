@@ -43,6 +43,7 @@ export class LokiOverview extends LokiElement {
     this._connectedHandler = null;
     this._disconnectedHandler = null;
     this._checklistSummary = null;
+    this._appRunnerStatus = null;
   }
 
   connectedCallback() {
@@ -89,9 +90,10 @@ export class LokiOverview extends LokiElement {
 
   async _loadStatus() {
     try {
-      const [status, checklistSummary] = await Promise.allSettled([
+      const [status, checklistSummary, appRunnerStatus] = await Promise.allSettled([
         this._api.getStatus(),
         this._api.getChecklistSummary(),
+        this._api.getAppRunnerStatus(),
       ]);
       if (status.status === 'fulfilled') {
         this._updateFromStatus(status.value);
@@ -101,6 +103,9 @@ export class LokiOverview extends LokiElement {
       }
       if (checklistSummary.status === 'fulfilled') {
         this._checklistSummary = checklistSummary.value?.summary || null;
+      }
+      if (appRunnerStatus.status === 'fulfilled') {
+        this._appRunnerStatus = appRunnerStatus.value;
       }
       this.render();
     } catch (error) {
@@ -178,6 +183,43 @@ export class LokiOverview extends LokiElement {
       default:
         return 'offline';
     }
+  }
+
+  _escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  _renderAppRunnerCard() {
+    const s = this._appRunnerStatus;
+    if (!s || s.status === 'not_initialized') {
+      return `
+        <div class="overview-card">
+          <div class="card-label">App Runner</div>
+          <div class="card-value small-text">--</div>
+        </div>
+      `;
+    }
+    const statusColors = {
+      running: 'var(--loki-green, #22c55e)',
+      starting: 'var(--loki-yellow, #f59e0b)',
+      crashed: 'var(--loki-red, #ef4444)',
+      stopped: 'var(--loki-text-muted, #a1a1aa)',
+    };
+    const color = statusColors[s.status] || 'var(--loki-text-muted)';
+    const dotClass = s.status === 'running' ? 'active' : s.status === 'crashed' ? 'error' : 'offline';
+    const label = (s.status || 'unknown').toUpperCase();
+    const port = s.port ? `:${s.port}` : '';
+    return `
+      <div class="overview-card">
+        <div class="card-label">App Runner</div>
+        <div class="card-value small-text">
+          <span class="status-dot ${dotClass}"></span>
+          ${label}${port}
+        </div>
+        ${s.method ? `<div style="font-size:10px;color:var(--loki-text-muted);margin-top:2px;">${this._escapeHtml(s.method)}</div>` : ''}
+      </div>
+    `;
   }
 
   _renderChecklistCard() {
@@ -372,6 +414,8 @@ export class LokiOverview extends LokiElement {
           </div>
 
           ${this._renderChecklistCard()}
+
+          ${this._renderAppRunnerCard()}
 
           <div class="overview-card">
             <div class="card-label">Uptime</div>

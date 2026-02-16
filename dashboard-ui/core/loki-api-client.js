@@ -1041,6 +1041,39 @@ export class LokiApiClient extends EventTarget {
     return response.text();
   }
 
+  // ==============================================
+  // App Runner API (v5.45.0)
+  // ==============================================
+
+  /**
+   * Get app runner current status
+   */
+  async getAppRunnerStatus() {
+    return this._get('/api/app-runner/status');
+  }
+
+  /**
+   * Get app runner log lines
+   * @param {number} lines - Number of lines to fetch (default: 100)
+   */
+  async getAppRunnerLogs(lines = 100) {
+    return this._get(`/api/app-runner/logs?lines=${lines}`);
+  }
+
+  /**
+   * Signal app runner to restart
+   */
+  async restartApp() {
+    return this._post('/api/control/app-restart');
+  }
+
+  /**
+   * Signal app runner to stop
+   */
+  async stopApp() {
+    return this._post('/api/control/app-stop');
+  }
+
   // ============================================
   // Polling Mode (Fallback)
   // ============================================

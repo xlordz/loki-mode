@@ -540,6 +540,12 @@ if [ -f "${SCRIPT_DIR}/prd-checklist.sh" ]; then
     source "${SCRIPT_DIR}/prd-checklist.sh"
 fi
 
+# App Runner module (v5.45.0)
+if [ -f "${SCRIPT_DIR}/app-runner.sh" ]; then
+    # shellcheck source=app-runner.sh
+    source "${SCRIPT_DIR}/app-runner.sh"
+fi
+
 # Anonymous usage telemetry (opt-out: LOKI_TELEMETRY_DISABLED=true or DO_NOT_TRACK=1)
 TELEMETRY_SCRIPT="$SCRIPT_DIR/telemetry.sh"
 if [ -f "$TELEMETRY_SCRIPT" ]; then
@@ -2639,6 +2645,12 @@ write_dashboard_state() {
         checklist_summary=$(cat ".loki/checklist/verification-results.json" 2>/dev/null || echo "null")
     fi
 
+    # App Runner state (v5.45.0)
+    local app_runner_state='{"status":"not_initialized"}'
+    if [ -f ".loki/app-runner/state.json" ]; then
+        app_runner_state=$(cat ".loki/app-runner/state.json" 2>/dev/null || echo '{"status":"error"}')
+    fi
+
     # Get budget status (if configured)
     local budget_json="null"
     if [ -f ".loki/metrics/budget.json" ]; then
@@ -2716,6 +2728,7 @@ except: print('{\"total\":0,\"unacknowledged\":0}')
   "qualityGates": $quality_gates,
   "council": $council_state,
   "checklist": $checklist_summary,
+  "appRunner": $app_runner_state,
   "budget": $budget_json,
   "context": $context_state,
   "tokens": $(python3 -c "
@@ -6072,17 +6085,33 @@ build_prompt() {
         fi
     fi
 
+    # App Runner status injection (v5.45.0)
+    local app_runner_info=""
+    if [ -f ".loki/app-runner/state.json" ]; then
+        app_runner_info=$(python3 -c "
+import json
+try:
+    d = json.load(open('.loki/app-runner/state.json'))
+    s = d.get('status', '')
+    if s == 'running':
+        print('APP_RUNNING_AT: ' + d.get('url', '') + ' (auto-restarts on code changes). Method: ' + d.get('method', ''))
+    elif s == 'crashed':
+        print('APP_CRASHED: Application has crashed ' + str(d.get('crash_count', 0)) + ' times. Check .loki/app-runner/app.log for errors.')
+except: pass
+" 2>/dev/null || true)
+    fi
+
     if [ $retry -eq 0 ]; then
         if [ -n "$prd" ]; then
-            echo "Loki Mode with PRD at $prd. $human_directive $queue_tasks $checklist_status $memory_context_section $rarv_instruction $memory_instruction $compaction_reminder $completion_instruction $sdlc_instruction $autonomous_suffix"
+            echo "Loki Mode with PRD at $prd. $human_directive $queue_tasks $checklist_status $app_runner_info $memory_context_section $rarv_instruction $memory_instruction $compaction_reminder $completion_instruction $sdlc_instruction $autonomous_suffix"
         else
-            echo "Loki Mode. $human_directive $queue_tasks $checklist_status $memory_context_section $analysis_instruction $rarv_instruction $memory_instruction $compaction_reminder $completion_instruction $sdlc_instruction $autonomous_suffix"
+            echo "Loki Mode. $human_directive $queue_tasks $checklist_status $app_runner_info $memory_context_section $analysis_instruction $rarv_instruction $memory_instruction $compaction_reminder $completion_instruction $sdlc_instruction $autonomous_suffix"
         fi
     else
         if [ -n "$prd" ]; then
-            echo "Loki Mode - Resume iteration #$iteration (retry #$retry). PRD: $prd. $human_directive $queue_tasks $checklist_status $memory_context_section $rarv_instruction $memory_instruction $compaction_reminder $completion_instruction $sdlc_instruction $autonomous_suffix"
+            echo "Loki Mode - Resume iteration #$iteration (retry #$retry). PRD: $prd. $human_directive $queue_tasks $checklist_status $app_runner_info $memory_context_section $rarv_instruction $memory_instruction $compaction_reminder $completion_instruction $sdlc_instruction $autonomous_suffix"
         else
-            echo "Loki Mode - Resume iteration #$iteration (retry #$retry). $human_directive $queue_tasks $checklist_status $memory_context_section Use .loki/generated-prd.md if exists. $rarv_instruction $memory_instruction $compaction_reminder $completion_instruction $sdlc_instruction $autonomous_suffix"
+            echo "Loki Mode - Resume iteration #$iteration (retry #$retry). $human_directive $queue_tasks $checklist_status $app_runner_info $memory_context_section Use .loki/generated-prd.md if exists. $rarv_instruction $memory_instruction $compaction_reminder $completion_instruction $sdlc_instruction $autonomous_suffix"
         fi
     fi
 }
@@ -6551,6 +6580,41 @@ if __name__ == "__main__":
             checklist_verify
         fi
 
+        # App Runner: init after first successful iteration (v5.45.0)
+        if [ "${APP_RUNNER_INITIALIZED:-}" != "true" ] && [ $exit_code -eq 0 ] && \
+           [ "${LOKI_APP_RUNNER:-true}" = "true" ] && type app_runner_init &>/dev/null; then
+            if app_runner_init; then
+                app_runner_start || log_warn "App runner: failed to start application"
+                APP_RUNNER_INITIALIZED=true
+            fi
+        fi
+
+        # App Runner: restart on code changes (v5.45.0)
+        if [ "${APP_RUNNER_INITIALIZED:-}" = "true" ] && type app_runner_should_restart &>/dev/null; then
+            if app_runner_should_restart; then
+                app_runner_restart || log_warn "App runner: failed to restart application"
+            fi
+        fi
+
+        # App Runner: watchdog check (v5.45.0)
+        if [ "${APP_RUNNER_INITIALIZED:-}" = "true" ] && type app_runner_watchdog &>/dev/null; then
+            app_runner_watchdog
+        fi
+
+        # App Runner: check for dashboard control signals (v5.45.0)
+        if [ "${APP_RUNNER_INITIALIZED:-}" = "true" ]; then
+            if [ -f ".loki/app-runner/restart-signal" ]; then
+                rm -f ".loki/app-runner/restart-signal"
+                log_info "App runner: restart signal received from dashboard"
+                app_runner_restart || true
+            fi
+            if [ -f ".loki/app-runner/stop-signal" ]; then
+                rm -f ".loki/app-runner/stop-signal"
+                log_info "App runner: stop signal received from dashboard"
+                app_runner_stop || true
+            fi
+        fi
+
         # Update session continuity file for next iteration / agent handoff
         update_continuity
 
@@ -6842,6 +6906,9 @@ cleanup() {
         echo ""
         log_warn "Stop signal received - shutting down"
         rm -f "$loki_dir/STOP" "$loki_dir/PAUSE" "$loki_dir/PAUSED.md" 2>/dev/null
+        if type app_runner_cleanup &>/dev/null; then
+            app_runner_cleanup
+        fi
         stop_dashboard
         stop_status_monitor
         rm -f "$loki_dir/loki.pid" 2>/dev/null
@@ -6866,6 +6933,9 @@ except (json.JSONDecodeError, OSError): pass
     if [ "$time_diff" -lt 2 ] && [ "$INTERRUPT_COUNT" -gt 0 ]; then
         echo ""
         log_warn "Double interrupt - stopping immediately"
+        if type app_runner_cleanup &>/dev/null; then
+            app_runner_cleanup
+        fi
         stop_dashboard
         stop_status_monitor
         rm -f .loki/loki.pid .loki/PAUSE 2>/dev/null

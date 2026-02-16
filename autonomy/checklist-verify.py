@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""PRD Checklist Verification Engine (v5.44.0)
+"""PRD Checklist Verification Engine (v5.45.0)
 
 Reads .loki/checklist/checklist.json, runs each verification check with
 subprocess timeouts, and writes results atomically.
@@ -10,7 +10,7 @@ Check types:
   - tests_pass: subprocess with 30s timeout, check exit code
   - command: arbitrary shell command, 30s timeout, check exit code
   - grep_codebase: grep -r for pattern in project
-  - http_check: deferred to v5.45 (requires app runner)
+  - http_check: HTTP GET to app URL + path, check status code
 
 Timeout = item stays 'pending' (not 'failed') to prevent false failures.
 Atomic writes: temp file + os.replace() to never produce partial JSON.
@@ -168,9 +168,46 @@ def run_check(check: dict, project_dir: str, timeout: int) -> dict:
                 result["passed"] = None
 
         elif check_type == "http_check":
-            # Deferred to v5.45.0 (requires app runner)
-            result["passed"] = None
-            result["output"] = "http_check requires app runner (v5.45.0)"
+            path = check.get("path", "/")
+            # Validate path is safe
+            if path and not _SAFE_PATH_RE.match(path.lstrip("/")):
+                result["passed"] = None
+                result["output"] = f"Unsafe path rejected: {path!r}"
+            else:
+                # Read app runner state to get URL
+                app_state_file = os.path.join(project_dir, ".loki", "app-runner", "state.json")
+                app_url = None
+                if os.path.isfile(app_state_file):
+                    try:
+                        app_data = json.loads(Path(app_state_file).read_text())
+                        if app_data.get("status") == "running":
+                            app_url = app_data.get("url", "")
+                    except (json.JSONDecodeError, OSError):
+                        pass
+
+                if not app_url:
+                    result["passed"] = None
+                    result["output"] = "App not running (app runner not active)"
+                else:
+                    import urllib.request
+                    import urllib.error
+                    target_url = app_url.rstrip("/") + "/" + path.lstrip("/")
+                    expected_status = check.get("expected_status", 200)
+                    try:
+                        req = urllib.request.Request(target_url, method="GET")
+                        resp = urllib.request.urlopen(req, timeout=min(timeout, 10))
+                        actual_status = resp.getcode()
+                        result["passed"] = actual_status == expected_status
+                        result["output"] = f"HTTP {actual_status} (expected {expected_status})"
+                    except urllib.error.HTTPError as e:
+                        result["passed"] = e.code == expected_status
+                        result["output"] = f"HTTP {e.code} (expected {expected_status})"
+                    except urllib.error.URLError as e:
+                        result["passed"] = False
+                        result["output"] = f"Connection failed: {str(e.reason)[:100]}"
+                    except Exception as e:
+                        result["passed"] = None
+                        result["output"] = f"HTTP check error: {str(e)[:100]}"
 
         else:
             result["passed"] = None

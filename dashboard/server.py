@@ -3403,6 +3403,63 @@ async def get_prd_observations():
 
 
 # =============================================================================
+# App Runner Endpoints (v5.45.0)
+# =============================================================================
+
+@app.get("/api/app-runner/status")
+async def get_app_runner_status():
+    """Get app runner current status."""
+    loki_dir = _get_loki_dir()
+    state_file = loki_dir / "app-runner" / "state.json"
+    if not state_file.exists():
+        return {"status": "not_initialized"}
+    try:
+        return json.loads(state_file.read_text())
+    except (json.JSONDecodeError, OSError):
+        return {"status": "error"}
+
+
+@app.get("/api/app-runner/logs")
+async def get_app_runner_logs(lines: int = Query(default=100, ge=1, le=1000)):
+    """Get last N lines of app runner logs."""
+    loki_dir = _get_loki_dir()
+    log_file = loki_dir / "app-runner" / "app.log"
+    if not log_file.exists():
+        return {"lines": []}
+    try:
+        all_lines = log_file.read_text().splitlines()
+        return {"lines": all_lines[-lines:]}
+    except OSError:
+        return {"lines": []}
+
+
+@app.post("/api/control/app-restart", dependencies=[Depends(auth.require_scope("control"))])
+async def control_app_restart(request: Request):
+    """Signal app runner to restart the application."""
+    if not _control_limiter.check(str(request.client.host)):
+        raise HTTPException(status_code=429, detail="Rate limit exceeded")
+    loki_dir = _get_loki_dir()
+    signal_dir = loki_dir / "app-runner"
+    signal_dir.mkdir(parents=True, exist_ok=True)
+    signal_file = signal_dir / "restart-signal"
+    signal_file.write_text(datetime.now(timezone.utc).isoformat())
+    return {"status": "restart_signaled"}
+
+
+@app.post("/api/control/app-stop", dependencies=[Depends(auth.require_scope("control"))])
+async def control_app_stop(request: Request):
+    """Signal app runner to stop the application."""
+    if not _control_limiter.check(str(request.client.host)):
+        raise HTTPException(status_code=429, detail="Rate limit exceeded")
+    loki_dir = _get_loki_dir()
+    signal_dir = loki_dir / "app-runner"
+    signal_dir.mkdir(parents=True, exist_ok=True)
+    signal_file = signal_dir / "stop-signal"
+    signal_file.write_text(datetime.now(timezone.utc).isoformat())
+    return {"status": "stop_signaled"}
+
+
+# =============================================================================
 # Static File Serving (Production/Docker)
 # =============================================================================
 # Must be configured AFTER all API routes to avoid conflicts

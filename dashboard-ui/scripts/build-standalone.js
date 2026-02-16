@@ -583,6 +583,10 @@ function generateStandaloneHTML(bundleCode) {
           <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
           PRD Checklist
         </button>
+        <button class="nav-link" data-section="app-runner" id="nav-app-runner">
+          <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          App Runner
+        </button>
         <button class="nav-link" data-section="council" id="nav-council">
           <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
           Council
@@ -667,6 +671,14 @@ function generateStandaloneHTML(bundleCode) {
         <loki-checklist-viewer id="checklist-viewer"></loki-checklist-viewer>
       </div>
 
+      <!-- App Runner -->
+      <div class="section-page" id="page-app-runner">
+        <div class="section-page-header">
+          <h2 class="section-page-title">App Runner</h2>
+        </div>
+        <loki-app-status id="app-status"></loki-app-status>
+      </div>
+
       <!-- Completion Council -->
       <div class="section-page" id="page-council">
         <div class="section-page-header">
@@ -723,11 +735,10 @@ function generateStandaloneHTML(bundleCode) {
         <div class="shortcut-row"><span class="shortcut-desc">Logs</span><span class="shortcut-keys"><kbd class="shortcut-key">3</kbd></span></div>
         <div class="shortcut-row"><span class="shortcut-desc">Memory</span><span class="shortcut-keys"><kbd class="shortcut-key">4</kbd></span></div>
         <div class="shortcut-row"><span class="shortcut-desc">Learning</span><span class="shortcut-keys"><kbd class="shortcut-key">5</kbd></span></div>
-        <div class="shortcut-row"><span class="shortcut-desc">Council</span><span class="shortcut-keys"><kbd class="shortcut-key">6</kbd></span></div>
-        <div class="shortcut-row"><span class="shortcut-desc">Cost</span><span class="shortcut-keys"><kbd class="shortcut-key">7</kbd></span></div>
-        <div class="shortcut-row"><span class="shortcut-desc">Checkpoints</span><span class="shortcut-keys"><kbd class="shortcut-key">8</kbd></span></div>
-        <div class="shortcut-row"><span class="shortcut-desc">Context</span><span class="shortcut-keys"><kbd class="shortcut-key">9</kbd></span></div>
-        <div class="shortcut-row"><span class="shortcut-desc">Notifications</span><span class="shortcut-keys"><kbd class="shortcut-key">0</kbd></span></div>
+        <div class="shortcut-row"><span class="shortcut-desc">App Runner</span><span class="shortcut-keys"><kbd class="shortcut-key">7</kbd></span></div>
+        <div class="shortcut-row"><span class="shortcut-desc">Council</span><span class="shortcut-keys"><kbd class="shortcut-key">8</kbd></span></div>
+        <div class="shortcut-row"><span class="shortcut-desc">Cost</span><span class="shortcut-keys"><kbd class="shortcut-key">9</kbd></span></div>
+        <div class="shortcut-row"><span class="shortcut-desc">Checkpoints</span><span class="shortcut-keys"><kbd class="shortcut-key">0</kbd></span></div>
       </div>
       <div class="shortcuts-group">
         <div class="shortcuts-group-title">Session</div>
@@ -796,6 +807,7 @@ document.addEventListener('DOMContentLoaded', function() {
       'memory-browser',
       'learning-dashboard',
       'checklist-viewer',
+      'app-status',
       'council-dashboard',
       'cost-dashboard',
       'checkpoint-viewer',
@@ -890,7 +902,7 @@ document.addEventListener('DOMContentLoaded', function() {
   document.addEventListener('keydown', function(e) {
     if ((e.metaKey || e.ctrlKey) && ((e.key >= '1' && e.key <= '9') || e.key === '0')) {
       e.preventDefault();
-      var sections = ['overview', 'tasks', 'logs', 'memory', 'learning', 'prd-checklist', 'council', 'cost', 'checkpoint', 'context', 'notifications'];
+      var sections = ['overview', 'tasks', 'logs', 'memory', 'learning', 'prd-checklist', 'app-runner', 'council', 'cost', 'checkpoint', 'context', 'notifications'];
       var idx = e.key === '0' ? 9 : parseInt(e.key) - 1;
       if (idx < sections.length) switchSection(sections[idx]);
     }
@@ -931,7 +943,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Skip if modifier keys are held (let browser defaults work)
     if (e.metaKey || e.ctrlKey || e.altKey) return;
 
-    var sections = ['overview', 'tasks', 'logs', 'memory', 'learning', 'prd-checklist', 'council', 'cost', 'checkpoint', 'context', 'notifications'];
+    var sections = ['overview', 'tasks', 'logs', 'memory', 'learning', 'prd-checklist', 'app-runner', 'council', 'cost', 'checkpoint', 'context', 'notifications'];
 
     switch (e.key) {
       // Section navigation: 1-9, 0
