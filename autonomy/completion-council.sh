@@ -461,6 +461,124 @@ try:
 except: print('Results unavailable')
 " >> "$evidence_file" 2>/dev/null || echo "Playwright data unavailable" >> "$evidence_file"
     fi
+
+    # Add hard gate status
+    if [ -f "$COUNCIL_STATE_DIR/gate-block.json" ]; then
+        echo "" >> "$evidence_file"
+        echo "## Hard Gate Status: BLOCKED" >> "$evidence_file"
+        echo "Critical checklist items are failing. Completion is blocked until resolved." >> "$evidence_file"
+        cat "$COUNCIL_STATE_DIR/gate-block.json" >> "$evidence_file"
+    fi
+}
+
+#===============================================================================
+# Council Reverify Checklist - Re-run checklist before evaluation
+#===============================================================================
+
+# Re-verify checklist before council evaluation to ensure fresh data
+council_reverify_checklist() {
+    if type checklist_verify &>/dev/null && [ -f ".loki/checklist/checklist.json" ]; then
+        log_info "[Council] Re-verifying checklist before evaluation..."
+        checklist_verify 2>/dev/null || true
+    fi
+}
+
+#===============================================================================
+# Council Checklist Hard Gate - Block completion on critical failures
+#===============================================================================
+
+# Council hard gate: blocks completion if critical checklist items are failing
+# Returns 0 if gate passes (ok to complete), 1 if gate blocks (critical failures exist)
+council_checklist_gate() {
+    local results_file=".loki/checklist/verification-results.json"
+    local waivers_file=".loki/checklist/waivers.json"
+
+    # No checklist = no gate (backwards compatible)
+    if [ ! -f "$results_file" ]; then
+        return 0
+    fi
+
+    # Check for critical failures, excluding waived items
+    local gate_result
+    gate_result=$(_RESULTS_FILE="$results_file" _WAIVERS_FILE="$waivers_file" python3 -c "
+import json, sys, os
+
+results_file = os.environ['_RESULTS_FILE']
+waivers_file = os.environ.get('_WAIVERS_FILE', '')
+
+try:
+    with open(results_file) as f:
+        results = json.load(f)
+except (json.JSONDecodeError, IOError, KeyError):
+    print('PASS')
+    sys.exit(0)
+
+# Load waivers
+waived_ids = set()
+if waivers_file and os.path.exists(waivers_file):
+    try:
+        with open(waivers_file) as f:
+            waivers = json.load(f)
+        waived_ids = {w['item_id'] for w in waivers.get('waivers', []) if w.get('active', True)}
+    except (json.JSONDecodeError, KeyError):
+        pass
+
+# Find critical failures not waived
+critical_failures = []
+for cat in results.get('categories', []):
+    for item in cat.get('items', []):
+        if item.get('priority') == 'critical' and item.get('status') == 'failing':
+            if item.get('id') not in waived_ids:
+                critical_failures.append(item.get('title', item.get('id', 'unknown')))
+
+if critical_failures:
+    print('BLOCK:' + '|'.join(critical_failures[:5]))
+    sys.exit(0)
+else:
+    print('PASS')
+    sys.exit(0)
+" 2>/dev/null || echo "PASS")
+
+    if [[ "$gate_result" == BLOCK:* ]]; then
+        local failures="${gate_result#BLOCK:}"
+        log_warn "[Council] Hard gate BLOCKED: critical checklist failures: ${failures//|/, }"
+
+        # Write gate block to council state (atomic write via temp file)
+        local gate_file="$COUNCIL_STATE_DIR/gate-block.json"
+        local gate_tmp="${gate_file}.tmp"
+        local timestamp
+        timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+        local failures_json
+        failures_json=$(_FAILURES="$failures" python3 -c "
+import json, os
+items = os.environ['_FAILURES'].split('|')
+print(json.dumps(items))
+" 2>/dev/null || echo '[]')
+        local critical_count
+        critical_count=$(_FAILURES="$failures" python3 -c "
+import os
+print(len(os.environ['_FAILURES'].split('|')))
+" 2>/dev/null || echo '0')
+        cat > "$gate_tmp" << GATE_EOF
+{
+    "status": "blocked",
+    "blocked": true,
+    "blocked_at": "$timestamp",
+    "iteration": $ITERATION_COUNT,
+    "reason": "critical_checklist_failures",
+    "critical_failures": $critical_count,
+    "failures": $failures_json
+}
+GATE_EOF
+        mv "$gate_tmp" "$gate_file"
+        return 1
+    fi
+
+    # Gate passes
+    if [ -f "$COUNCIL_STATE_DIR/gate-block.json" ]; then
+        rm -f "$COUNCIL_STATE_DIR/gate-block.json"
+    fi
+    return 0
 }
 
 #===============================================================================
@@ -1018,6 +1136,15 @@ council_evaluate() {
     fi
 
     log_info "Running council evaluation pipeline (round $ITERATION_COUNT)..."
+
+    # Phase 4: Re-verify checklist for fresh data
+    council_reverify_checklist
+
+    # Phase 4: Hard gate check - block if critical checklist items failing
+    if ! council_checklist_gate; then
+        log_info "[Council] Completion blocked by checklist hard gate"
+        return 1  # CONTINUE - can't complete with critical failures
+    fi
 
     # Step 1: Aggregate votes from all members
     local aggregate_result

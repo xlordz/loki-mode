@@ -45,6 +45,7 @@ export class LokiOverview extends LokiElement {
     this._checklistSummary = null;
     this._appRunnerStatus = null;
     this._playwrightResults = null;
+    this._gateStatus = null;
   }
 
   connectedCallback() {
@@ -91,11 +92,12 @@ export class LokiOverview extends LokiElement {
 
   async _loadStatus() {
     try {
-      const [status, checklistSummary, appRunnerStatus, playwrightResults] = await Promise.allSettled([
+      const [status, checklistSummary, appRunnerStatus, playwrightResults, gateStatus] = await Promise.allSettled([
         this._api.getStatus(),
         this._api.getChecklistSummary(),
         this._api.getAppRunnerStatus(),
         this._api.getPlaywrightResults(),
+        this._api.getCouncilGate(),
       ]);
       if (status.status === 'fulfilled') {
         this._updateFromStatus(status.value);
@@ -111,6 +113,9 @@ export class LokiOverview extends LokiElement {
       }
       if (playwrightResults.status === 'fulfilled') {
         this._playwrightResults = playwrightResults.value;
+      }
+      if (gateStatus.status === 'fulfilled') {
+        this._gateStatus = gateStatus.value;
       }
       this.render();
     } catch (error) {
@@ -275,6 +280,43 @@ export class LokiOverview extends LokiElement {
           <div style="width:${pct}%;height:100%;background:${barColor};transition:width 0.3s;"></div>
         </div>
         ${s.failing ? `<div style="font-size:10px;color:var(--loki-red,#ef4444);margin-top:2px;">${s.failing} failing</div>` : ''}
+      </div>
+    `;
+  }
+
+  _renderCouncilGateCard() {
+    const g = this._gateStatus;
+    if (!g || !g.status) {
+      return `
+        <div class="overview-card">
+          <div class="card-label">Council Gate</div>
+          <div class="card-value small-text">
+            <span class="status-dot offline"></span>
+            N/A
+          </div>
+        </div>
+      `;
+    }
+    if (g.status === 'blocked') {
+      const criticals = g.critical_failures || 0;
+      return `
+        <div class="overview-card">
+          <div class="card-label">Council Gate</div>
+          <div class="card-value small-text">
+            <span class="status-dot error"></span>
+            BLOCKED
+          </div>
+          ${criticals > 0 ? `<div style="font-size:10px;color:var(--loki-red,#ef4444);margin-top:2px;">${criticals} critical failure${criticals !== 1 ? 's' : ''}</div>` : ''}
+        </div>
+      `;
+    }
+    return `
+      <div class="overview-card">
+        <div class="card-label">Council Gate</div>
+        <div class="card-value small-text">
+          <span class="status-dot active"></span>
+          PASSED
+        </div>
       </div>
     `;
   }
@@ -451,6 +493,8 @@ export class LokiOverview extends LokiElement {
           ${this._renderAppRunnerCard()}
 
           ${this._renderPlaywrightCard()}
+
+          ${this._renderCouncilGateCard()}
 
           <div class="overview-card">
             <div class="card-label">Uptime</div>

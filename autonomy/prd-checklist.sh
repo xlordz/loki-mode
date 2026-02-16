@@ -158,7 +158,9 @@ checklist_summary() {
         return 0
     fi
 
-    _CHECKLIST_RESULTS="$CHECKLIST_RESULTS_FILE" python3 -c "
+    _CHECKLIST_RESULTS="$CHECKLIST_RESULTS_FILE" \
+    _CHECKLIST_WAIVERS="${CHECKLIST_DIR:-".loki/checklist"}/waivers.json" \
+    python3 -c "
 import json, sys, os
 try:
     fpath = os.environ.get('_CHECKLIST_RESULTS', '')
@@ -168,18 +170,39 @@ try:
     verified = s.get('verified', 0)
     failing = s.get('failing', 0)
     pending = s.get('pending', 0)
+
+    # Load waivers
+    waived_ids = set()
+    waivers_path = os.environ.get('_CHECKLIST_WAIVERS', '')
+    if waivers_path and os.path.exists(waivers_path):
+        try:
+            with open(waivers_path) as wf:
+                wdata = json.load(wf)
+            for w in wdata.get('waivers', []):
+                if w.get('active', True):
+                    waived_ids.add(w['item_id'])
+        except Exception:
+            pass
+
+    # Count waived items and adjust failing list
+    waived_count = 0
     if total == 0:
         print('')
     else:
         failing_items = []
         for cat in data.get('categories', []):
             for item in cat.get('items', []):
+                item_id = item.get('id', '')
+                if item_id in waived_ids:
+                    waived_count += 1
+                    continue
                 if item.get('status') == 'failing' and item.get('priority') in ('critical', 'major'):
                     failing_items.append(item.get('title', item.get('id', '?')))
         detail = ''
         if failing_items:
             detail = ' FAILING: ' + ', '.join(failing_items[:5])
-        print(f'{verified}/{total} verified, {failing} failing, {pending} pending.{detail}')
+        waived_str = f', {waived_count} waived' if waived_count > 0 else ''
+        print(f'{verified}/{total} verified, {failing} failing{waived_str}, {pending} pending.{detail}')
 except Exception:
     print('', file=sys.stderr)
 " 2>/dev/null || echo ""
@@ -220,4 +243,142 @@ except Exception:
     print('Checklist data unavailable')
 " 2>/dev/null || echo "Checklist data unavailable"
     } >> "${evidence_file:-/dev/stdout}"
+}
+
+#===============================================================================
+# Waiver Support (Phase 4)
+#===============================================================================
+
+# Load waivers from .loki/checklist/waivers.json
+# Returns waived item IDs (one per line) to stdout
+checklist_waiver_load() {
+    local waivers_file="${CHECKLIST_DIR:-".loki/checklist"}/waivers.json"
+    if [ ! -f "$waivers_file" ]; then
+        return 0
+    fi
+    _WAIVERS_FILE="$waivers_file" python3 -c "
+import json, sys, os
+try:
+    waivers_file = os.environ['_WAIVERS_FILE']
+    with open(waivers_file) as f:
+        waivers = json.load(f)
+    for w in waivers.get('waivers', []):
+        if w.get('active', True):
+            print(w['item_id'])
+except Exception:
+    pass
+" 2>/dev/null || true
+}
+
+# Add a waiver for a checklist item
+# Usage: checklist_waiver_add <item_id> <reason> [waived_by]
+checklist_waiver_add() {
+    local item_id="${1:?item_id required}"
+    local reason="${2:?reason required}"
+    local waived_by="${3:-manual}"
+    local waivers_file="${CHECKLIST_DIR:-".loki/checklist"}/waivers.json"
+    local timestamp
+    timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+    _WAIVERS_FILE="$waivers_file" python3 -c "
+import json, os, sys
+
+waivers_file = os.environ['_WAIVERS_FILE']
+item_id = sys.argv[1]
+reason = sys.argv[2]
+waived_by = sys.argv[3]
+timestamp = sys.argv[4]
+
+# Load existing or create new
+waivers = {'waivers': []}
+if os.path.exists(waivers_file):
+    try:
+        with open(waivers_file) as f:
+            waivers = json.load(f)
+    except (json.JSONDecodeError, IOError):
+        pass
+
+# Check for duplicate
+for w in waivers.get('waivers', []):
+    if w.get('item_id') == item_id and w.get('active', True):
+        print(f'Waiver already exists for {item_id}')
+        sys.exit(0)
+
+# Add new waiver
+waivers.setdefault('waivers', []).append({
+    'item_id': item_id,
+    'reason': reason,
+    'waived_by': waived_by,
+    'waived_at': timestamp,
+    'active': True
+})
+
+# Atomic write
+tmp = waivers_file + '.tmp'
+with open(tmp, 'w') as f:
+    json.dump(waivers, f, indent=2)
+os.replace(tmp, waivers_file)
+print(f'Waiver added for {item_id}')
+" "$item_id" "$reason" "$waived_by" "$timestamp" 2>/dev/null
+}
+
+# Remove (deactivate) a waiver for a checklist item
+# Usage: checklist_waiver_remove <item_id>
+checklist_waiver_remove() {
+    local item_id="${1:?item_id required}"
+    local waivers_file="${CHECKLIST_DIR:-".loki/checklist"}/waivers.json"
+
+    if [ ! -f "$waivers_file" ]; then
+        echo "No waivers file found"
+        return 1
+    fi
+
+    _WAIVERS_FILE="$waivers_file" python3 -c "
+import json, os, sys
+
+waivers_file = os.environ['_WAIVERS_FILE']
+item_id = sys.argv[1]
+
+with open(waivers_file) as f:
+    waivers = json.load(f)
+
+found = False
+for w in waivers.get('waivers', []):
+    if w.get('item_id') == item_id and w.get('active', True):
+        w['active'] = False
+        found = True
+
+if not found:
+    print(f'No active waiver found for {item_id}')
+    sys.exit(1)
+
+tmp = waivers_file + '.tmp'
+with open(tmp, 'w') as f:
+    json.dump(waivers, f, indent=2)
+os.replace(tmp, waivers_file)
+print(f'Waiver removed for {item_id}')
+" "$item_id" 2>/dev/null
+}
+
+# List all active waivers
+checklist_waiver_list() {
+    local waivers_file="${CHECKLIST_DIR:-".loki/checklist"}/waivers.json"
+
+    if [ ! -f "$waivers_file" ]; then
+        echo "No waivers configured"
+        return 0
+    fi
+
+    _WAIVERS_FILE="$waivers_file" python3 -c "
+import json, os
+waivers_file = os.environ['_WAIVERS_FILE']
+with open(waivers_file) as f:
+    waivers = json.load(f)
+active = [w for w in waivers.get('waivers', []) if w.get('active', True)]
+if not active:
+    print('No active waivers')
+else:
+    for w in active:
+        print(f\"  {w['item_id']}: {w.get('reason', 'no reason')} (by {w.get('waived_by', 'unknown')} at {w.get('waived_at', '?')})\")
+" 2>/dev/null
 }

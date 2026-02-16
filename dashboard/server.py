@@ -26,7 +26,7 @@ from fastapi import (
     WebSocketDisconnect,
 )
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import JSONResponse, PlainTextResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import select, update, delete
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -3400,6 +3400,129 @@ async def get_prd_observations():
         return PlainTextResponse(content, status_code=200)
     except OSError:
         return PlainTextResponse("Error reading PRD observations.", status_code=500)
+
+
+# =============================================================================
+# Checklist Waiver Management Endpoints (Phase 4)
+# =============================================================================
+
+@app.get("/api/checklist/waivers")
+async def get_checklist_waivers():
+    """Get all checklist waivers."""
+    waivers_file = _get_loki_dir() / "checklist" / "waivers.json"
+    if not waivers_file.exists():
+        return {"waivers": []}
+    try:
+        return json.loads(waivers_file.read_text())
+    except (json.JSONDecodeError, IOError):
+        return {"waivers": [], "error": "Failed to read waivers file"}
+
+
+@app.post("/api/checklist/waivers", dependencies=[Depends(auth.require_scope("control"))])
+async def add_checklist_waiver(request: Request):
+    """Add a waiver for a checklist item."""
+    if not _control_limiter.check("control"):
+        raise HTTPException(status_code=429, detail="Rate limit exceeded")
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse(status_code=400, content={"error": "Invalid JSON"})
+
+    item_id = body.get("item_id")
+    reason = body.get("reason")
+    if not item_id or not reason:
+        return JSONResponse(status_code=400, content={"error": "item_id and reason required"})
+
+    # Sanitize item_id: non-empty, max 256 chars, no path traversal
+    if not isinstance(item_id, str) or len(item_id) > 256 or ".." in item_id or "/" in item_id or "\\" in item_id:
+        return JSONResponse(status_code=400, content={"error": "Invalid item_id: must be 1-256 chars, no path traversal characters"})
+
+    waivers_file = _get_loki_dir() / "checklist" / "waivers.json"
+
+    # Load existing
+    waivers = {"waivers": []}
+    if waivers_file.exists():
+        try:
+            waivers = json.loads(waivers_file.read_text())
+        except (json.JSONDecodeError, IOError):
+            pass
+
+    # Check duplicate
+    for w in waivers.get("waivers", []):
+        if w.get("item_id") == item_id and w.get("active", True):
+            return {"status": "already_exists", "item_id": item_id}
+
+    # Add waiver
+    waiver = {
+        "item_id": item_id,
+        "reason": reason,
+        "waived_by": body.get("waived_by", "dashboard"),
+        "waived_at": datetime.now(timezone.utc).isoformat(),
+        "active": True
+    }
+    waivers.setdefault("waivers", []).append(waiver)
+
+    # Ensure directory exists
+    waivers_file.parent.mkdir(parents=True, exist_ok=True)
+
+    # Atomic write
+    tmp_file = waivers_file.with_suffix(".tmp")
+    tmp_file.write_text(json.dumps(waivers, indent=2))
+    tmp_file.replace(waivers_file)
+
+    return {"status": "added", "waiver": waiver}
+
+
+@app.delete("/api/checklist/waivers/{item_id}", dependencies=[Depends(auth.require_scope("control"))])
+async def remove_checklist_waiver(item_id: str):
+    """Deactivate a waiver for a checklist item."""
+    if not _control_limiter.check("control"):
+        raise HTTPException(status_code=429, detail="Rate limit exceeded")
+
+    # Sanitize item_id: non-empty, max 256 chars, no path traversal
+    if not item_id or len(item_id) > 256 or ".." in item_id or "/" in item_id or "\\" in item_id:
+        raise HTTPException(status_code=400, detail="Invalid item_id: must be 1-256 chars, no path traversal characters")
+
+    waivers_file = _get_loki_dir() / "checklist" / "waivers.json"
+    if not waivers_file.exists():
+        return JSONResponse(status_code=404, content={"error": "No waivers file"})
+
+    try:
+        waivers = json.loads(waivers_file.read_text())
+    except (json.JSONDecodeError, IOError):
+        return JSONResponse(status_code=500, content={"error": "Failed to read waivers"})
+
+    found = False
+    for w in waivers.get("waivers", []):
+        if w.get("item_id") == item_id and w.get("active", True):
+            w["active"] = False
+            found = True
+
+    if not found:
+        return JSONResponse(status_code=404, content={"error": f"No active waiver for {item_id}"})
+
+    # Atomic write
+    tmp_file = waivers_file.with_suffix(".tmp")
+    tmp_file.write_text(json.dumps(waivers, indent=2))
+    tmp_file.replace(waivers_file)
+
+    return {"status": "removed", "item_id": item_id}
+
+
+# =============================================================================
+# Council Hard Gate Endpoint (Phase 4)
+# =============================================================================
+
+@app.get("/api/council/gate")
+async def get_council_gate():
+    """Get council hard gate status."""
+    gate_file = _get_loki_dir() / "council" / "gate-block.json"
+    if not gate_file.exists():
+        return {"blocked": False}
+    try:
+        return json.loads(gate_file.read_text())
+    except (json.JSONDecodeError, IOError):
+        return {"blocked": False, "error": "Failed to read gate file"}
 
 
 # =============================================================================

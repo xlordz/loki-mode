@@ -1041,6 +1041,42 @@ export class LokiApiClient extends EventTarget {
     return response.text();
   }
 
+  /**
+   * Get all checklist waivers
+   */
+  async getChecklistWaivers() {
+    return this._get('/api/checklist/waivers');
+  }
+
+  /**
+   * Add a waiver for a checklist item
+   * @param {string} itemId - Checklist item ID to waive
+   * @param {string} reason - Reason for the waiver
+   * @param {string} waivedBy - Who granted the waiver (default: 'dashboard')
+   */
+  async addChecklistWaiver(itemId, reason, waivedBy = 'dashboard') {
+    return this._post('/api/checklist/waivers', {
+      item_id: itemId,
+      reason: reason,
+      waived_by: waivedBy,
+    });
+  }
+
+  /**
+   * Remove a waiver for a checklist item
+   * @param {string} itemId - Checklist item ID to remove waiver for
+   */
+  async removeChecklistWaiver(itemId) {
+    return this._delete(`/api/checklist/waivers/${encodeURIComponent(itemId)}`);
+  }
+
+  /**
+   * Get council gate status for checklist completion
+   */
+  async getCouncilGate() {
+    return this._get('/api/council/gate');
+  }
+
   // ==============================================
   // App Runner API (v5.45.0)
   // ==============================================
