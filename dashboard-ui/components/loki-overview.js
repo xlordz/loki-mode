@@ -140,15 +140,12 @@ export class LokiOverview extends LokiElement {
       uptime_seconds: status.uptime_seconds || 0,
       complexity: status.complexity || null,
     };
-
-    this.render();
   }
 
   _startPolling() {
     this._pollInterval = setInterval(async () => {
       try {
-        const status = await this._api.getStatus();
-        this._updateFromStatus(status);
+        await this._loadStatus();
       } catch (error) {
         this._data.connected = false;
         this._data.status = 'offline';
@@ -323,14 +320,14 @@ export class LokiOverview extends LokiElement {
 
   render() {
     const statusDotClass = this._getStatusDotClass();
-    const statusLabel = (this._data.status || 'OFFLINE').toUpperCase();
-    const phase = this._data.phase || '--';
-    const iteration = this._data.iteration != null ? String(this._data.iteration) : '0';
-    const provider = (this._data.provider || 'CLAUDE').toUpperCase();
-    const agents = String(this._data.running_agents || 0);
-    const tasks = this._data.pending_tasks != null ? `${this._data.pending_tasks} pending` : '--';
-    const uptime = this._formatUptime(this._data.uptime_seconds);
-    const complexity = (this._data.complexity || 'STANDARD').toUpperCase();
+    const statusLabel = this._escapeHtml((this._data.status || 'OFFLINE').toUpperCase());
+    const phase = this._escapeHtml(this._data.phase || '--');
+    const iteration = this._escapeHtml(this._data.iteration != null ? String(this._data.iteration) : '0');
+    const provider = this._escapeHtml((this._data.provider || 'CLAUDE').toUpperCase());
+    const agents = this._escapeHtml(String(this._data.running_agents || 0));
+    const tasks = this._escapeHtml(this._data.pending_tasks != null ? `${this._data.pending_tasks} pending` : '--');
+    const uptime = this._escapeHtml(this._formatUptime(this._data.uptime_seconds));
+    const complexity = this._escapeHtml((this._data.complexity || 'STANDARD').toUpperCase());
 
     this.shadowRoot.innerHTML = `
       <style>

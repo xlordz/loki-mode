@@ -5,6 +5,43 @@ All notable changes to Loki Mode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.47.0] - 2026-02-16
+
+### Added
+- Council hard gate: blocks completion when critical PRD checklist items are failing
+- Waiver mechanism: add/remove/list waivers for checklist items that should not block completion
+- Re-verification: council re-runs checklist verification before every evaluation for fresh data
+- Dashboard: gate status banner (BLOCKED/PASSED) in checklist viewer
+- Dashboard: waive/unwaive buttons on failing critical/major items
+- Dashboard: Council Gate card in overview grid
+- API: 4 new endpoints (GET/POST/DELETE waivers, GET council gate status)
+- API: auth scopes and rate limiting on waiver mutation endpoints
+
+### Fixed
+- Critical: setsid not available on macOS, app runner now falls back gracefully
+- Critical: http_check rejected root path "/" as unsafe (default health check path)
+- Critical: council hard gate was dead code (council_evaluate never called from council_should_stop)
+- Critical: Dockerfile missing chmod +x for new Phase 1-3 scripts
+- High: Python dependency installation was async, causing race condition with app start
+- High: force-review path bypassed checklist hard gate
+- High: missing app_runner_cleanup on normal exit (orphaned processes)
+- High: request.client.host crash when behind proxy or Unix socket
+- High: _SAFE_PATTERN_RE rejected common regex characters (:, =, <, >, #, quotes)
+- High: overview dashboard cards only refreshed on initial load, not during polling
+- High: checklist viewer data hash only covered summary, missed item-level changes
+- Medium: md5sum without md5 fallback for macOS change detection
+- Medium: screenshot endpoint returned raw server path instead of serving file
+- Medium: duplicate waiver returned HTTP 200 instead of 409 Conflict
+- Medium: waiver reason field not validated for type or length
+- Medium: restartApp/stopApp sent undefined body with JSON content-type
+- Medium: overview rendered user-supplied strings without HTML escaping
+- Medium: app status log detection compared only array length, not content
+- Medium: gate-block.json used unguarded ITERATION_COUNT variable
+
+### Changed
+- npm test now validates all 6 shell scripts (was 3)
+- Council evaluation pipeline: council_should_stop now routes through council_evaluate
+
 ## [5.46.0] - 2026-02-16
 
 ### Added

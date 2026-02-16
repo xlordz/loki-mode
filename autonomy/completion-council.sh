@@ -564,7 +564,7 @@ print(len(os.environ['_FAILURES'].split('|')))
     "status": "blocked",
     "blocked": true,
     "blocked_at": "$timestamp",
-    "iteration": $ITERATION_COUNT,
+    "iteration": ${ITERATION_COUNT:-0},
     "reason": "critical_checklist_failures",
     "critical_failures": $critical_count,
     "failures": $failures_json
@@ -1209,8 +1209,8 @@ council_should_stop() {
         return 1  # Not time to check yet
     fi
 
-    # Run the council vote
-    if council_vote; then
+    # Run the council evaluation (includes hard gate + aggregate votes + devil's advocate)
+    if council_evaluate; then
         log_header "COMPLETION COUNCIL: PROJECT APPROVED"
         log_info "The council has determined this project is complete."
 

@@ -32,7 +32,7 @@ from pathlib import Path
 
 # Allowed characters in check paths and patterns (security: prevent injection)
 _SAFE_PATH_RE = re.compile(r'^[a-zA-Z0-9_\-./\*\[\]{}?]+$')
-_SAFE_PATTERN_RE = re.compile(r'^[a-zA-Z0-9_\-./\*\[\]{}?|\\()+^$\s]+$')
+_SAFE_PATTERN_RE = re.compile(r'^[a-zA-Z0-9_\-./\*\[\]{}?|\\()+^$\s:=<>@#"\'`,;!&%]+$')
 
 
 def _validate_path(path: str, project_dir: str) -> str:
@@ -170,7 +170,8 @@ def run_check(check: dict, project_dir: str, timeout: int) -> dict:
         elif check_type == "http_check":
             path = check.get("path", "/")
             # Validate path is safe
-            if path and not _SAFE_PATH_RE.match(path.lstrip("/")):
+            stripped = path.lstrip("/")
+            if stripped and not _SAFE_PATH_RE.match(stripped):
                 result["passed"] = None
                 result["output"] = f"Unsafe path rejected: {path!r}"
             else:

@@ -6843,7 +6843,9 @@ check_human_intervention() {
     if [ -f "$loki_dir/signals/COUNCIL_REVIEW_REQUESTED" ]; then
         log_info "Council force-review requested from dashboard"
         rm -f "$loki_dir/signals/COUNCIL_REVIEW_REQUESTED"
-        if type council_vote &>/dev/null && council_vote; then
+        if type council_checklist_gate &>/dev/null && ! council_checklist_gate; then
+            log_info "Council force-review: blocked by checklist hard gate"
+        elif type council_vote &>/dev/null && council_vote; then
             log_header "COMPLETION COUNCIL: FORCE REVIEW - PROJECT COMPLETE"
             # BUG #17 fix: Write COMPLETED marker, generate council report, and
             # run memory consolidation (matching the normal council approval path
@@ -7452,6 +7454,9 @@ main() {
     audit_agent_action "session_stop" "Session ended" "result=$result,iterations=$ITERATION_COUNT"
 
     # Cleanup
+    if type app_runner_cleanup &>/dev/null; then
+        app_runner_cleanup
+    fi
     stop_dashboard
     stop_status_monitor
     rm -f .loki/loki.pid 2>/dev/null

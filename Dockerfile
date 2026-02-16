@@ -5,7 +5,7 @@
 FROM ubuntu:24.04
 
 LABEL maintainer="Lokesh Mure"
-LABEL version="5.46.0"
+LABEL version="5.47.0"
 LABEL description="Loki Mode by Autonomi - Multi-agent autonomous startup system for Claude Code, Codex CLI, and Gemini CLI"
 LABEL url="https://www.autonomi.dev/"
 
@@ -89,7 +89,7 @@ RUN pip3 install --no-cache-dir --break-system-packages \
     -r dashboard/requirements.txt
 
 # Make scripts executable
-RUN chmod +x autonomy/run.sh autonomy/loki
+RUN chmod +x autonomy/run.sh autonomy/loki autonomy/app-runner.sh autonomy/prd-checklist.sh autonomy/playwright-verify.sh autonomy/completion-council.sh
 
 # Set up symlinks for loki user
 RUN mkdir -p /home/loki/.claude/skills && \

@@ -395,8 +395,9 @@ _install_node_deps() {
 _install_python_deps() {
     local dir="$1"
     if [ -f "$dir/requirements.txt" ]; then
-        log_step "App Runner: installing Python dependencies (background)..."
-        (cd "$dir" && pip install -r requirements.txt >> "$_APP_RUNNER_DIR/app.log" 2>&1) &
+        log_step "App Runner: installing Python dependencies..."
+        (cd "$dir" && pip install -r requirements.txt >> "$_APP_RUNNER_DIR/app.log" 2>&1) || \
+            log_warn "App Runner: pip install failed, app may not start"
     fi
 }
 
@@ -425,14 +426,18 @@ app_runner_start() {
     _rotate_app_log
 
     # Start the process in a new process group
-    (cd "$dir" && setsid bash -c "$_APP_RUNNER_METHOD" >> "$_APP_RUNNER_DIR/app.log" 2>&1) &
+    if command -v setsid >/dev/null 2>&1; then
+        (cd "$dir" && setsid bash -c "$_APP_RUNNER_METHOD" >> "$_APP_RUNNER_DIR/app.log" 2>&1) &
+    else
+        (cd "$dir" && bash -c "$_APP_RUNNER_METHOD" >> "$_APP_RUNNER_DIR/app.log" 2>&1) &
+    fi
     _APP_RUNNER_PID=$!
 
     # Write PID file
     echo "$_APP_RUNNER_PID" > "$_APP_RUNNER_DIR/app.pid"
 
     # Capture initial git diff hash for change detection
-    _GIT_DIFF_HASH=$(cd "$dir" && git diff --stat 2>/dev/null | md5sum 2>/dev/null | awk '{print $1}' || echo "none")
+    _GIT_DIFF_HASH=$(cd "$dir" && git diff --stat 2>/dev/null | (md5sum 2>/dev/null || md5 -r 2>/dev/null) | awk '{print $1}' || echo "none")
 
     # Brief pause for process to initialize
     sleep 2
@@ -557,7 +562,7 @@ app_runner_should_restart() {
 
     # Get current git diff hash
     local current_hash
-    current_hash=$(cd "$dir" && git diff --stat 2>/dev/null | md5sum 2>/dev/null | awk '{print $1}' || echo "none")
+    current_hash=$(cd "$dir" && git diff --stat 2>/dev/null | (md5sum 2>/dev/null || md5 -r 2>/dev/null) | awk '{print $1}' || echo "none")
 
     # No change
     if [ "$current_hash" = "$_GIT_DIFF_HASH" ]; then
@@ -631,7 +636,7 @@ app_runner_watchdog() {
     # Clear PID and restart
     rm -f "$_APP_RUNNER_DIR/app.pid"
     _APP_RUNNER_PID=""
-    app_runner_start
+    app_runner_start || log_warn "App Runner: auto-restart failed"
 }
 
 #===============================================================================

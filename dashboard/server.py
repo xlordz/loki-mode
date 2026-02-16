@@ -3433,6 +3433,9 @@ async def add_checklist_waiver(request: Request):
     if not item_id or not reason:
         return JSONResponse(status_code=400, content={"error": "item_id and reason required"})
 
+    if not isinstance(reason, str) or len(reason) > 1024:
+        return JSONResponse(status_code=400, content={"error": "reason must be a string (max 1024 chars)"})
+
     # Sanitize item_id: non-empty, max 256 chars, no path traversal
     if not isinstance(item_id, str) or len(item_id) > 256 or ".." in item_id or "/" in item_id or "\\" in item_id:
         return JSONResponse(status_code=400, content={"error": "Invalid item_id: must be 1-256 chars, no path traversal characters"})
@@ -3450,7 +3453,7 @@ async def add_checklist_waiver(request: Request):
     # Check duplicate
     for w in waivers.get("waivers", []):
         if w.get("item_id") == item_id and w.get("active", True):
-            return {"status": "already_exists", "item_id": item_id}
+            return JSONResponse(status_code=409, content={"status": "already_exists", "item_id": item_id})
 
     # Add waiver
     waiver = {
@@ -3559,7 +3562,7 @@ async def get_app_runner_logs(lines: int = Query(default=100, ge=1, le=1000)):
 @app.post("/api/control/app-restart", dependencies=[Depends(auth.require_scope("control"))])
 async def control_app_restart(request: Request):
     """Signal app runner to restart the application."""
-    if not _control_limiter.check(str(request.client.host)):
+    if not _control_limiter.check(request.client.host if request.client else "unknown"):
         raise HTTPException(status_code=429, detail="Rate limit exceeded")
     loki_dir = _get_loki_dir()
     signal_dir = loki_dir / "app-runner"
@@ -3572,7 +3575,7 @@ async def control_app_restart(request: Request):
 @app.post("/api/control/app-stop", dependencies=[Depends(auth.require_scope("control"))])
 async def control_app_stop(request: Request):
     """Signal app runner to stop the application."""
-    if not _control_limiter.check(str(request.client.host)):
+    if not _control_limiter.check(request.client.host if request.client else "unknown"):
         raise HTTPException(status_code=429, detail="Rate limit exceeded")
     loki_dir = _get_loki_dir()
     signal_dir = loki_dir / "app-runner"
@@ -3610,7 +3613,7 @@ async def get_playwright_screenshot():
     screenshots = sorted(screenshots_dir.glob("*.png"), key=lambda p: p.stat().st_mtime, reverse=True)
     if not screenshots:
         return {"screenshot": None}
-    return {"screenshot": str(screenshots[0])}
+    return FileResponse(str(screenshots[0]), media_type="image/png")
 
 
 # =============================================================================

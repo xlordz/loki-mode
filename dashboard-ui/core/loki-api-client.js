@@ -1100,14 +1100,14 @@ export class LokiApiClient extends EventTarget {
    * Signal app runner to restart
    */
   async restartApp() {
-    return this._post('/api/control/app-restart');
+    return this._post('/api/control/app-restart', {});
   }
 
   /**
    * Signal app runner to stop
    */
   async stopApp() {
-    return this._post('/api/control/app-stop');
+    return this._post('/api/control/app-stop', {});
   }
 
   // ==============================================

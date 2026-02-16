@@ -105,7 +105,7 @@ export class LokiChecklistViewer extends LokiElement {
         this._api.getChecklistWaivers().catch(() => null),
       ]);
       const waiverHash = JSON.stringify(waiverData);
-      const dataHash = JSON.stringify(data?.summary) + waiverHash;
+      const dataHash = JSON.stringify(data) + waiverHash;
       if (dataHash === this._lastDataHash) return;
       this._lastDataHash = dataHash;
       this._checklist = data;

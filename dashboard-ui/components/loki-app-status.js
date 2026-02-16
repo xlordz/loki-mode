@@ -39,6 +39,7 @@ export class LokiAppStatus extends LokiElement {
     this._status = null;
     this._logs = [];
     this._lastDataHash = null;
+    this._lastLogsHash = null;
   }
 
   connectedCallback() {
@@ -110,9 +111,11 @@ export class LokiAppStatus extends LokiElement {
         restarts: status?.restart_count,
         url: status?.url,
       });
-      const logsChanged = (logsData?.lines?.length || 0) !== this._logs.length;
+      const logsHash = JSON.stringify(logsData?.lines?.slice(-5) || []);
+      const logsChanged = logsHash !== this._lastLogsHash;
       if (dataHash === this._lastDataHash && !logsChanged) return;
       this._lastDataHash = dataHash;
+      this._lastLogsHash = logsHash;
       this._status = status;
       this._logs = logsData?.lines || [];
       this._error = null;
