@@ -5147,11 +5147,28 @@ start_dashboard() {
         log_info "TLS enabled for dashboard"
     fi
 
+    # Ensure dashboard Python dependencies are installed
+    local skill_dir="${SCRIPT_DIR%/*}"
+    local req_file="${skill_dir}/dashboard/requirements.txt"
+    if ! python3 -c "import fastapi" 2>/dev/null; then
+        log_step "Installing dashboard dependencies..."
+        if [ -f "$req_file" ]; then
+            pip3 install -q -r "$req_file" 2>/dev/null || pip install -q -r "$req_file" 2>/dev/null || {
+                log_warn "Failed to install dashboard dependencies"
+                log_warn "Run manually: pip install fastapi uvicorn pydantic websockets"
+            }
+        else
+            pip3 install -q fastapi uvicorn pydantic websockets 2>/dev/null || pip install -q fastapi uvicorn pydantic websockets 2>/dev/null || {
+                log_warn "Failed to install dashboard dependencies"
+            }
+        fi
+    fi
+
     # Start the FastAPI dashboard server
     # Dashboard module is at project root (parent of autonomy/)
     # LOKI_SKILL_DIR tells server.py where to find static files
     LOKI_TLS_CERT="${LOKI_TLS_CERT:-}" LOKI_TLS_KEY="${LOKI_TLS_KEY:-}" \
-        LOKI_SKILL_DIR="${SCRIPT_DIR%/*}" PYTHONPATH="${SCRIPT_DIR%/*}" nohup python3 -m dashboard.server > "$log_file" 2>&1 &
+        LOKI_SKILL_DIR="${skill_dir}" PYTHONPATH="${skill_dir}" nohup python3 -m dashboard.server > "$log_file" 2>&1 &
     DASHBOARD_PID=$!
 
     # Save PID for later cleanup

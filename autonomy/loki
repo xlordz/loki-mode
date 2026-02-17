@@ -1510,6 +1510,24 @@ cmd_dashboard_start() {
         tls_info=" (TLS enabled)"
     fi
 
+    # Ensure dashboard Python dependencies are installed
+    if ! "$python_cmd" -c "import fastapi" 2>/dev/null; then
+        echo -e "${YELLOW}Installing dashboard dependencies...${NC}"
+        local req_file="${SKILL_DIR}/dashboard/requirements.txt"
+        if [ -f "$req_file" ]; then
+            pip3 install -q -r "$req_file" 2>/dev/null || pip install -q -r "$req_file" 2>/dev/null || {
+                echo -e "${RED}Failed to install dashboard dependencies${NC}"
+                echo "Run manually: pip install fastapi uvicorn pydantic websockets"
+                exit 1
+            }
+        else
+            pip3 install -q fastapi uvicorn pydantic websockets 2>/dev/null || pip install -q fastapi uvicorn pydantic websockets 2>/dev/null || {
+                echo -e "${RED}Failed to install dashboard dependencies${NC}"
+                exit 1
+            }
+        fi
+    fi
+
     echo -e "${GREEN}Starting dashboard server...${NC}"
     echo -e "${CYAN}Host:${NC} $host"
     echo -e "${CYAN}Port:${NC} $port"
@@ -3125,9 +3143,28 @@ cmd_api() {
                 fi
             fi
 
+            # Ensure dashboard Python dependencies are installed
+            if ! python3 -c "import fastapi" 2>/dev/null; then
+                echo -e "${YELLOW}Installing dashboard dependencies...${NC}"
+                local req_file="${SKILL_DIR}/dashboard/requirements.txt"
+                if [ -f "$req_file" ]; then
+                    pip3 install -q -r "$req_file" 2>/dev/null || pip install -q -r "$req_file" 2>/dev/null || {
+                        echo -e "${RED}Failed to install dashboard dependencies${NC}"
+                        echo "Run manually: pip install fastapi uvicorn pydantic websockets"
+                        exit 1
+                    }
+                else
+                    pip3 install -q fastapi uvicorn pydantic websockets 2>/dev/null || {
+                        echo -e "${RED}Failed to install dashboard dependencies${NC}"
+                        exit 1
+                    }
+                fi
+            fi
+
             # Start server
             mkdir -p "$LOKI_DIR/logs" "$LOKI_DIR/dashboard"
-            local uvicorn_args="--host 0.0.0.0 --port $port"
+            local host="${LOKI_DASHBOARD_HOST:-127.0.0.1}"
+            local uvicorn_args="--host $host --port $port"
             if [ -n "${LOKI_TLS_CERT:-}" ] && [ -n "${LOKI_TLS_KEY:-}" ]; then
                 uvicorn_args="$uvicorn_args --ssl-certfile ${LOKI_TLS_CERT} --ssl-keyfile ${LOKI_TLS_KEY}"
             fi
