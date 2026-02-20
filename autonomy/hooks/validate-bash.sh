@@ -30,11 +30,21 @@ BLOCKED_PATTERNS=(
     "wget.*\|.*sh"
     "curl.*\|.*bash"
     "wget.*\|.*bash"
+    # Config self-protection: prevent agents from corrupting internal state
+    "rm -rf \.loki"
+    "rm -rf \./\.loki"
+    "rm .*\.loki/council/"
+    "rm .*\.loki/config\.yaml"
+    "rm .*\.loki/logs/bash-audit"
+    "rm .*\.loki/session\.lock"
+    "> \.loki/council/"
+    "> \.loki/config\.yaml"
 )
 
-# Safe path patterns that override rm -rf / matches
+# Safe path patterns that override blocked pattern matches
 SAFE_PATTERNS=(
     "rm -rf /tmp/"
+    "rm -rf \.loki/queue/dead-letter"
 )
 
 # Check for blocked patterns

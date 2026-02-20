@@ -843,6 +843,15 @@ start_sandbox() {
         docker_args+=("--volume" "$PROJECT_DIR:/workspace:rw")
     fi
 
+    # Config self-protection: mount critical .loki/ paths as read-only
+    # Prevents agents from corrupting council state, config, or audit trail
+    if [[ -d "$PROJECT_DIR/.loki/council" ]]; then
+        docker_args+=("--volume" "$PROJECT_DIR/.loki/council:/workspace/.loki/council:ro")
+    fi
+    if [[ -f "$PROJECT_DIR/.loki/config.yaml" ]]; then
+        docker_args+=("--volume" "$PROJECT_DIR/.loki/config.yaml:/workspace/.loki/config.yaml:ro")
+    fi
+
     # Mount git config (read-only) - mount to /home/loki since container runs as user loki
     if [[ -f "$HOME/.gitconfig" ]]; then
         docker_args+=("--volume" "$HOME/.gitconfig:/home/loki/.gitconfig:ro")

@@ -45,6 +45,14 @@ COUNCIL_MIN_ITERATIONS=${LOKI_COUNCIL_MIN_ITERATIONS:-3}
 COUNCIL_CONVERGENCE_WINDOW=${LOKI_COUNCIL_CONVERGENCE_WINDOW:-3}
 COUNCIL_STAGNATION_LIMIT=${LOKI_COUNCIL_STAGNATION_LIMIT:-5}
 
+# Error budget: severity-aware completion (v5.49.0)
+# SEVERITY_THRESHOLD: minimum severity that blocks completion (critical, high, medium, low)
+#   "critical" = only critical issues block (most permissive)
+#   "low" = all issues block (strictest, default for backwards compat)
+# ERROR_BUDGET: fraction of non-blocking issues allowed (0.0 = none, 0.1 = 10% tolerance)
+COUNCIL_SEVERITY_THRESHOLD=${LOKI_COUNCIL_SEVERITY_THRESHOLD:-low}
+COUNCIL_ERROR_BUDGET=${LOKI_COUNCIL_ERROR_BUDGET:-0.0}
+
 # Internal state
 COUNCIL_STATE_DIR=""
 COUNCIL_PRD_PATH=""
@@ -234,6 +242,38 @@ council_vote() {
 
         local vote_result
         vote_result=$(echo "$verdict" | grep -oE "VOTE:\s*(APPROVE|REJECT)" | grep -oE "APPROVE|REJECT" | head -1)
+
+        # Extract severity-categorized issues (v5.49.0 error budget)
+        local member_issues=""
+        member_issues=$(echo "$verdict" | grep -oE "ISSUES:\s*(CRITICAL|HIGH|MEDIUM|LOW):.*" || true)
+
+        # If error budget is active and member rejected, check if rejection
+        # is based only on issues below the severity threshold
+        if [ "$vote_result" = "REJECT" ] && [ "$COUNCIL_SEVERITY_THRESHOLD" != "low" ] && [ -n "$member_issues" ]; then
+            local has_blocking_issue=false
+            local severity_order="critical high medium low"
+            local threshold_reached=false
+
+            while IFS= read -r issue_line; do
+                local issue_severity
+                issue_severity=$(echo "$issue_line" | grep -oE "(CRITICAL|HIGH|MEDIUM|LOW)" | head -1 | tr '[:upper:]' '[:lower:]')
+                # Check if this severity meets or exceeds the threshold
+                for sev in $severity_order; do
+                    if [ "$sev" = "$COUNCIL_SEVERITY_THRESHOLD" ]; then
+                        threshold_reached=true
+                    fi
+                    if [ "$sev" = "$issue_severity" ] && [ "$threshold_reached" = "false" ]; then
+                        has_blocking_issue=true
+                        break
+                    fi
+                done
+            done <<< "$member_issues"
+
+            if [ "$has_blocking_issue" = "false" ]; then
+                log_info "  Member $member ($role): REJECT overridden to APPROVE (issues below ${COUNCIL_SEVERITY_THRESHOLD} threshold)"
+                vote_result="APPROVE"
+            fi
+        fi
 
         if [ "$vote_result" = "APPROVE" ]; then
             ((approve_count++))
@@ -618,23 +658,37 @@ council_member_review() {
             ;;
     esac
 
+    local severity_instruction=""
+    if [ "$COUNCIL_SEVERITY_THRESHOLD" != "low" ]; then
+        severity_instruction="
+ERROR BUDGET: This council uses severity-aware evaluation.
+- Categorize each issue as CRITICAL, HIGH, MEDIUM, or LOW severity
+- Blocking threshold: ${COUNCIL_SEVERITY_THRESHOLD} and above
+- Only issues at ${COUNCIL_SEVERITY_THRESHOLD} severity or above should cause REJECT
+- Issues below threshold are acceptable (error budget: ${COUNCIL_ERROR_BUDGET})
+- List issues as ISSUES: SEVERITY:description (one per line)"
+    fi
+
     local prompt="You are a council member reviewing project completion.
 
 ${role_instruction}
 
 EVIDENCE:
 ${evidence}
+${severity_instruction}
 
 INSTRUCTIONS:
 1. Review the evidence carefully
 2. Determine if the project meets completion criteria
 3. Output EXACTLY one line starting with VOTE:APPROVE or VOTE:REJECT
 4. Output EXACTLY one line starting with REASON: explaining your decision
-5. Be honest - do not approve incomplete work
+5. If issues found, output lines starting with ISSUES: SEVERITY:description
+6. Be honest - do not approve incomplete work
 
-Output format (exactly two lines):
+Output format:
 VOTE:APPROVE or VOTE:REJECT
-REASON: your reasoning here"
+REASON: your reasoning here
+ISSUES: CRITICAL:description (optional, one per line per issue)"
 
     local verdict_file="$vote_dir/member-${member_id}.txt"
 
@@ -1300,5 +1354,5 @@ council_get_dashboard_state() {
         state_json=$(cat "$COUNCIL_STATE_DIR/state.json" 2>/dev/null || echo "{}")
     fi
 
-    echo "\"council\": {\"enabled\": true, \"size\": $COUNCIL_SIZE, \"threshold\": $COUNCIL_THRESHOLD, \"check_interval\": $COUNCIL_CHECK_INTERVAL, \"consecutive_no_change\": $COUNCIL_CONSECUTIVE_NO_CHANGE, \"done_signals\": $COUNCIL_DONE_SIGNALS, \"iteration\": $ITERATION_COUNT, \"state\": $state_json}"
+    echo "\"council\": {\"enabled\": true, \"size\": $COUNCIL_SIZE, \"threshold\": $COUNCIL_THRESHOLD, \"check_interval\": $COUNCIL_CHECK_INTERVAL, \"consecutive_no_change\": $COUNCIL_CONSECUTIVE_NO_CHANGE, \"done_signals\": $COUNCIL_DONE_SIGNALS, \"iteration\": $ITERATION_COUNT, \"severity_threshold\": \"$COUNCIL_SEVERITY_THRESHOLD\", \"error_budget\": $COUNCIL_ERROR_BUDGET, \"state\": $state_json}"
 }

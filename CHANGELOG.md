@@ -5,6 +5,23 @@ All notable changes to Loki Mode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.49.0] - 2026-02-19
+
+### Added
+- Config self-protection: validate-bash.sh now blocks deletion/overwrite of .loki/council/, .loki/config.yaml, .loki/logs/bash-audit, .loki/session.lock
+- Config self-protection: Docker sandbox mounts .loki/council/ and .loki/config.yaml as read-only
+- Council severity-aware error budget: LOKI_COUNCIL_SEVERITY_THRESHOLD (critical/high/medium/low) and LOKI_COUNCIL_ERROR_BUDGET env vars
+- Council members now categorize issues by severity (CRITICAL/HIGH/MEDIUM/LOW) in their review output
+- Severity-based vote override: REJECT votes on sub-threshold issues automatically converted to APPROVE
+- Structured handoff documents: write_structured_handoff() produces JSON schema v1.0.0 alongside markdown
+- Handoff JSON includes: schema_version, timestamp, reason, iteration, files_modified, recent_commits, task_status, open_questions, key_decisions, blockers
+- load_handoff_context() now prefers JSON handoffs over markdown with graceful fallback
+- Structured handoff automatically written at session end
+
+### Changed
+- Council dashboard state now includes severity_threshold and error_budget fields
+- All defaults are backwards-compatible (severity=low, budget=0.0 = strictest = same as before)
+
 ## [5.48.2] - 2026-02-18
 
 ### Fixed

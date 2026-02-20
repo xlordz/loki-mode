@@ -5681,6 +5681,132 @@ load_handoff_context() {
     fi
 }
 
+# Write structured handoff document (v5.49.0)
+# Produces both JSON (machine-readable) and markdown (human-readable) handoffs
+# Called at end of session or before context clear
+write_structured_handoff() {
+    local reason="${1:-session_end}"
+    local handoff_dir=".loki/memory/handoffs"
+    mkdir -p "$handoff_dir"
+
+    local timestamp
+    timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+    local file_ts
+    file_ts=$(date +"%Y%m%d-%H%M%S")
+    local handoff_json="$handoff_dir/${file_ts}.json"
+    local handoff_md="$handoff_dir/${file_ts}.md"
+
+    # Gather structured data
+    local files_modified=""
+    files_modified=$(git diff --name-only HEAD 2>/dev/null | head -20 | tr '\n' ',' | sed 's/,$//')
+    local recent_commits=""
+    recent_commits=$(git log --oneline -5 2>/dev/null | tr '\n' '|' | sed 's/|$//')
+    local pending_tasks=0
+    local completed_tasks=0
+    if [ -f ".loki/queue/pending.json" ]; then
+        pending_tasks=$(_QF=".loki/queue/pending.json" python3 -c "import json,os;print(len(json.load(open(os.environ['_QF']))))" 2>/dev/null || echo "0")
+    fi
+    if [ -f ".loki/queue/completed.json" ]; then
+        completed_tasks=$(_QF=".loki/queue/completed.json" python3 -c "import json,os;print(len(json.load(open(os.environ['_QF']))))" 2>/dev/null || echo "0")
+    fi
+
+    # Write JSON handoff
+    _H_TS="$timestamp" \
+    _H_REASON="$reason" \
+    _H_ITER="${ITERATION_COUNT:-0}" \
+    _H_FILES="$files_modified" \
+    _H_COMMITS="$recent_commits" \
+    _H_PENDING="$pending_tasks" \
+    _H_COMPLETED="$completed_tasks" \
+    _H_JSON="$handoff_json" \
+    python3 -c "
+import json, os
+handoff = {
+    'schema_version': '1.0.0',
+    'timestamp': os.environ['_H_TS'],
+    'reason': os.environ['_H_REASON'],
+    'iteration': int(os.environ['_H_ITER']),
+    'files_modified': [f for f in os.environ['_H_FILES'].split(',') if f],
+    'recent_commits': [c for c in os.environ['_H_COMMITS'].split('|') if c],
+    'task_status': {
+        'pending': int(os.environ['_H_PENDING']),
+        'completed': int(os.environ['_H_COMPLETED'])
+    },
+    'open_questions': [],
+    'key_decisions': [],
+    'blockers': []
+}
+with open(os.environ['_H_JSON'], 'w') as f:
+    json.dump(handoff, f, indent=2)
+" 2>/dev/null || log_warn "Failed to write structured handoff JSON"
+
+    # Write markdown companion
+    cat > "$handoff_md" << HANDOFF_EOF
+# Session Handoff - $timestamp
+
+**Reason:** $reason
+**Iteration:** ${ITERATION_COUNT:-0}
+
+## Files Modified
+$files_modified
+
+## Recent Commits
+$(git log --oneline -5 2>/dev/null || echo "none")
+
+## Task Status
+- Pending: $pending_tasks
+- Completed: $completed_tasks
+
+## Notes
+Session handoff generated automatically.
+HANDOFF_EOF
+
+    log_info "Structured handoff written to $handoff_json"
+}
+
+# Load recent handoffs for context (reads both JSON and markdown)
+load_handoff_context() {
+    local handoff_content=""
+
+    # Prefer JSON handoffs (structured, v5.49.0+)
+    local recent_json
+    recent_json=$(find .loki/memory/handoffs -name "*.json" -mtime -1 2>/dev/null | sort -r | head -1)
+
+    if [ -n "$recent_json" ] && [ -f "$recent_json" ]; then
+        handoff_content=$(_HF="$recent_json" python3 -c "
+import json, os
+try:
+    h = json.load(open(os.environ['_HF']))
+    parts = []
+    parts.append(f\"Handoff from {h.get('timestamp','unknown')} (reason: {h.get('reason','unknown')})\")
+    parts.append(f\"Iteration: {h.get('iteration',0)}\")
+    files = h.get('files_modified', [])
+    if files:
+        parts.append(f\"Modified files: {', '.join(files[:10])}\")
+    tasks = h.get('task_status', {})
+    parts.append(f\"Tasks - pending: {tasks.get('pending',0)}, completed: {tasks.get('completed',0)}\")
+    for q in h.get('open_questions', []):
+        parts.append(f\"Open question: {q}\")
+    for b in h.get('blockers', []):
+        parts.append(f\"Blocker: {b}\")
+    print(' | '.join(parts))
+except Exception as e:
+    print(f'Error reading handoff: {e}')
+" 2>/dev/null)
+        echo "$handoff_content"
+        return
+    fi
+
+    # Fallback to markdown handoffs (pre-v5.49.0)
+    local recent_handoff
+    recent_handoff=$(find .loki/memory/handoffs -name "*.md" -mtime -1 2>/dev/null | sort -r | head -1)
+
+    if [ -n "$recent_handoff" ] && [ -f "$recent_handoff" ]; then
+        handoff_content=$(cat "$recent_handoff" | head -80)
+        echo "$handoff_content"
+    fi
+}
+
 # Load relevant learnings
 load_learnings_context() {
     local learnings=""
@@ -7488,6 +7614,9 @@ main() {
             --recovery-steps '["Check logs at .loki/logs/", "Review iteration outputs", "Check for rate limits", "Restart session"]' \
             --context "{\"provider\":\"${PROVIDER_NAME:-claude}\",\"iterations\":$ITERATION_COUNT,\"exit_code\":$result}"
     fi
+
+    # Write structured handoff for future sessions (v5.49.0)
+    write_structured_handoff "session_end_result_${result}" 2>/dev/null || true
 
     # Create PR from agent branch if branch protection was enabled
     create_session_pr
