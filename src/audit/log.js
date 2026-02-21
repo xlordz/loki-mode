@@ -29,7 +29,7 @@ class AuditLog {
       what: String(entry.what),
       where: entry.where ? String(entry.where) : null,
       why: entry.why ? String(entry.why) : null,
-      metadata: entry.metadata || null,
+      metadata: entry.metadata ? JSON.parse(JSON.stringify(entry.metadata)) : null,
       previousHash: this._lastHash,
       hash: null,
     };
@@ -143,7 +143,10 @@ class AuditLog {
       var lastEntry = JSON.parse(lastLine);
       this._lastHash = lastEntry.hash;
       this._entryCount = (lastEntry.seq || 0) + 1;
-    } catch (_) { /* corrupted - start fresh chain */ }
+    } catch (_) {
+      console.warn('[audit] Warning: corrupted chain tip detected, starting fresh chain');
+      this._chainCorrupted = true;
+    }
   }
 }
 

@@ -128,7 +128,7 @@ class ResidencyController {
         var raw = fs.readFileSync(this._configPath, 'utf8');
         var config = JSON.parse(raw);
         return {
-          allowed_providers: Array.isArray(config.allowed_providers) ? config.allowed_providers : [],
+          allowed_providers: Array.isArray(config.allowed_providers) ? config.allowed_providers.map(function(p) { return String(p).toLowerCase(); }) : [],
           allowed_regions: Array.isArray(config.allowed_regions) ? config.allowed_regions : [],
           air_gapped: config.air_gapped === true,
         };
