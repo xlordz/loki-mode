@@ -21,6 +21,9 @@ const { EventEmitter } = require('events');
 // CostController class
 // -------------------------------------------------------------------
 
+/** Maximum entries per project in state file to prevent unbounded growth. */
+const MAX_STATE_ENTRIES = 10000;
+
 class CostController extends EventEmitter {
   /**
    * @param {string} projectDir - Root directory containing .loki/
@@ -192,7 +195,10 @@ class CostController extends EventEmitter {
       if (budget.percentage >= thresholds[i] && !this._triggeredAlerts.has(key)) {
         this._triggeredAlerts.add(key);
 
-        this._state.history.push({
+        if (this._state.history.length > MAX_STATE_ENTRIES) {
+      this._state.history.splice(0, this._state.history.length - MAX_STATE_ENTRIES);
+    }
+    this._state.history.push({
           type: 'alert',
           threshold: thresholds[i],
           percentage: budget.percentage,
@@ -215,7 +221,10 @@ class CostController extends EventEmitter {
       if (this._budgetConfig.onExceed === 'shutdown') {
         this._shutdownEmittedProjects.add(shutdownKey);
 
-        this._state.history.push({
+        if (this._state.history.length > MAX_STATE_ENTRIES) {
+      this._state.history.splice(0, this._state.history.length - MAX_STATE_ENTRIES);
+    }
+    this._state.history.push({
           type: 'shutdown',
           reason: 'Budget exceeded',
           percentage: budget.percentage,

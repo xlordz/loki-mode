@@ -187,12 +187,14 @@ class Counter {
   toOTLP() {
     const dataPoints = [];
 
-    // Always include unlabeled data point
-    dataPoints.push({
-      attributes: [],
-      asInt: String(this._value),
-      timeUnixNano: nowNanos(),
-    });
+    // Only include unlabeled data point when it has been incremented
+    if (this._value !== 0 || Object.keys(this._labeledValues).length === 0) {
+      dataPoints.push({
+        attributes: [],
+        asInt: String(this._value),
+        timeUnixNano: nowNanos(),
+      });
+    }
 
     // Include all labeled data points
     for (const [key, value] of Object.entries(this._labeledValues)) {
@@ -254,12 +256,14 @@ class Gauge {
   toOTLP() {
     const dataPoints = [];
 
-    // Always include unlabeled data point
-    dataPoints.push({
-      attributes: [],
-      asDouble: this._value,
-      timeUnixNano: nowNanos(),
-    });
+    // Only include unlabeled data point when it has been set
+    if (this._value !== 0 || Object.keys(this._labeledValues).length === 0) {
+      dataPoints.push({
+        attributes: [],
+        asDouble: this._value,
+        timeUnixNano: nowNanos(),
+      });
+    }
 
     // Include all labeled data points
     for (const [key, value] of Object.entries(this._labeledValues)) {

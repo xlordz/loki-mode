@@ -80,6 +80,9 @@ function _validateWebhookUrl(url) {
 // ApprovalGateManager class
 // -------------------------------------------------------------------
 
+/** Maximum audit entries to prevent unbounded state file growth. */
+const MAX_AUDIT_ENTRIES = 10000;
+
 class ApprovalGateManager {
   /**
    * @param {string} projectDir - Root directory containing .loki/
@@ -309,6 +312,9 @@ class ApprovalGateManager {
   // -----------------------------------------------------------------
 
   _addAudit(request) {
+    if (this._state.audit.length >= MAX_AUDIT_ENTRIES) {
+      this._state.audit.splice(0, this._state.audit.length - MAX_AUDIT_ENTRIES + 1);
+    }
     this._state.audit.push({
       id: request.id,
       phase: request.phase,
