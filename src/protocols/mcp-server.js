@@ -158,9 +158,16 @@ function handleRequest(request) {
       result = handleToolsList(params);
       break;
 
-    case 'tools/call':
-      result = handleToolsCall(params);
+    case 'tools/call': {
+      // handleToolsCall may return a Promise if tool.execute() is async.
+      // Detect and propagate as a Promise so transports can await it.
+      const toolResult = handleToolsCall(params);
+      if (toolResult && typeof toolResult.then === 'function') {
+        return toolResult.then((r) => makeResult(r, id));
+      }
+      result = toolResult;
       break;
+    }
 
     case 'resources/list':
       result = handleResourcesList(params);
@@ -211,17 +218,37 @@ function handleToolsCall(params) {
     };
   }
 
+  // Execute the tool; handle both sync and async (Promise-returning) tools.
+  // Calling JSON.stringify on a Promise silently produces "{}", so we must
+  // detect and await any Promise before serializing.
+  let rawResult;
   try {
-    const result = tool.execute(params.arguments || {});
-    return {
-      content: [{ type: 'text', text: JSON.stringify(result) }]
-    };
+    rawResult = tool.execute(params.arguments || {});
   } catch (err) {
     return {
       isError: true,
       content: [{ type: 'text', text: 'Tool execution error: ' + err.message }]
     };
   }
+
+  if (rawResult && typeof rawResult.then === 'function') {
+    // Async tool: return a Promise so the caller (handleRequest) can propagate it
+    return rawResult.then((result) => {
+      return {
+        content: [{ type: 'text', text: JSON.stringify(result) }]
+      };
+    }).catch((err) => {
+      return {
+        isError: true,
+        content: [{ type: 'text', text: 'Tool execution error: ' + err.message }]
+      };
+    });
+  }
+
+  // Synchronous tool: return result immediately
+  return {
+    content: [{ type: 'text', text: JSON.stringify(rawResult) }]
+  };
 }
 
 function handleResourcesList() {

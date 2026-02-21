@@ -192,3 +192,33 @@ describe('Server info', () => {
     assert.ok(info.version);
   });
 });
+
+describe('Async tool execution', () => {
+  it('should correctly handle a tool that returns a Promise', async () => {
+    // Inject a temporary async tool to verify Promise propagation
+    const tools = getTools();
+    const fakeName = 'loki/async-test-tool';
+    tools.set(fakeName, {
+      TOOL_NAME: fakeName,
+      schema: { name: fakeName, description: 'test', inputSchema: { type: 'object', properties: {}, required: [] } },
+      execute: () => Promise.resolve({ asyncValue: 42 })
+    });
+
+    const response = handleRequest({
+      jsonrpc: '2.0',
+      method: 'tools/call',
+      params: { name: fakeName, arguments: {} },
+      id: 100
+    });
+
+    // handleRequest may return a Promise when the tool is async
+    const resolved = await Promise.resolve(response);
+    assert.ok(resolved, 'Expected a response');
+    assert.ok(resolved.result, 'Expected result');
+    const parsed = JSON.parse(resolved.result.content[0].text);
+    assert.equal(parsed.asyncValue, 42);
+
+    // Clean up injected tool
+    tools.delete(fakeName);
+  });
+});

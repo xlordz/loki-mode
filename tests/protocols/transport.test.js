@@ -96,7 +96,7 @@ describe('StdioTransport', () => {
     assert.equal(responses[0].length, 2);
   });
 
-  it('should buffer partial lines', () => {
+  it('should buffer partial lines', async () => {
     let received = [];
     const handler = (req) => {
       received.push(req);
@@ -106,16 +106,61 @@ describe('StdioTransport', () => {
     transport._running = true;
     transport._send = () => {};
 
-    // Send partial data
+    // Send partial data - no complete line yet, handler must not be called
     transport._onData('{"jsonrpc":"2.0",');
     assert.equal(received.length, 0);
 
     // Complete the line
     transport._onData('"method":"ping","id":1}\n');
-    // Need async wait for handler
-    setTimeout(() => {
-      assert.equal(received.length, 1);
-    }, 50);
+
+    // Properly await the async handler resolution
+    await new Promise((r) => setTimeout(r, 100));
+    assert.equal(received.length, 1);
+  });
+
+  it('should recover from a throwing handler in batch requests', async () => {
+    let callCount = 0;
+    const handler = (req) => {
+      callCount++;
+      if (req.id === 2) throw new Error('simulated handler error');
+      return { jsonrpc: '2.0', result: {}, id: req.id };
+    };
+
+    const transport = new StdioTransport(handler);
+    const responses = [];
+    transport._running = true;
+    transport._send = (data) => { responses.push(data); };
+
+    const batch = JSON.stringify([
+      { jsonrpc: '2.0', method: 'ping', id: 1 },
+      { jsonrpc: '2.0', method: 'ping', id: 2 }
+    ]);
+    transport._processLine(batch);
+
+    await new Promise((r) => setTimeout(r, 50));
+
+    // Batch should have sent an error response rather than crashing
+    assert.equal(responses.length, 1);
+    const resp = responses[0];
+    assert.ok(resp.error, 'Expected error response for throwing batch handler');
+    assert.equal(resp.error.code, -32603);
+  });
+
+  it('should recover from a throwing handler in single requests', async () => {
+    const handler = () => { throw new Error('simulated single error'); };
+
+    const transport = new StdioTransport(handler);
+    const responses = [];
+    transport._running = true;
+    transport._send = (data) => { responses.push(data); };
+
+    transport._processLine('{"jsonrpc":"2.0","method":"ping","id":99}');
+
+    await new Promise((r) => setTimeout(r, 50));
+
+    assert.equal(responses.length, 1);
+    assert.ok(responses[0].error);
+    assert.equal(responses[0].error.code, -32603);
   });
 });
 
@@ -280,7 +325,40 @@ describe('SSETransport', () => {
       method: 'OPTIONS'
     });
     assert.equal(res.statusCode, 204);
-    assert.ok(res.headers['access-control-allow-origin']);
+    // CORS origin header must be present and must not be wildcard '*'
+    const origin = res.headers['access-control-allow-origin'];
+    assert.ok(origin, 'Expected access-control-allow-origin header');
+    assert.notEqual(origin, '*', 'CORS origin must not be wildcard');
+  });
+
+  it('should reject POST body exceeding 10 MB', async () => {
+    // Generate a body larger than MAX_BODY_BYTES (10 MB)
+    const oversized = 'x'.repeat(11 * 1024 * 1024);
+
+    // The server destroys the socket after sending 413, which may cause
+    // ECONNRESET on the client side. Accept either a 413 response or a
+    // connection reset as evidence of the size limit being enforced.
+    let statusCode = null;
+    let errorCode = null;
+    try {
+      const res = await httpRequest({
+        hostname: 'localhost',
+        port: port,
+        path: '/mcp',
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      }, oversized);
+      statusCode = res.statusCode;
+    } catch (err) {
+      errorCode = err.code;
+    }
+
+    const gotExpectedStatus = statusCode === 413;
+    const gotConnectionReset = errorCode === 'ECONNRESET' || errorCode === 'EPIPE';
+    assert.ok(
+      gotExpectedStatus || gotConnectionReset,
+      'Expected 413 status or connection reset, got statusCode=' + statusCode + ' errorCode=' + errorCode
+    );
   });
 
   it('should handle batch requests over HTTP', async () => {

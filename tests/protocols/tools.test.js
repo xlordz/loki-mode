@@ -236,10 +236,30 @@ describe('loki/checkpoint-restore', () => {
   it('should fail to restore non-existent checkpoint', () => {
     const resp = callTool('loki/checkpoint-restore', {
       action: 'restore',
-      checkpointId: 'chk-nonexistent'
+      checkpointId: 'chk-00000000'
     });
     const result = parseToolResult(resp);
     assert.equal(result.success, false);
+  });
+
+  it('should reject checkpoint IDs with path traversal characters', () => {
+    const resp = callTool('loki/checkpoint-restore', {
+      action: 'restore',
+      checkpointId: '../../.loki/state/session'
+    });
+    const result = parseToolResult(resp);
+    assert.equal(result.success, false);
+    assert.ok(result.error.includes('Invalid checkpoint ID'));
+  });
+
+  it('should reject checkpoint IDs that do not match expected format', () => {
+    const resp = callTool('loki/checkpoint-restore', {
+      action: 'restore',
+      checkpointId: 'chk-GGGGGGGG'
+    });
+    const result = parseToolResult(resp);
+    assert.equal(result.success, false);
+    assert.ok(result.error.includes('Invalid checkpoint ID'));
   });
 
   it('should require checkpointId for restore', () => {

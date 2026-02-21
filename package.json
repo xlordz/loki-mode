@@ -45,7 +45,8 @@
     "dashboard/static/",
     "dashboard/requirements.txt",
     "mcp/",
-    "completions/"
+    "completions/",
+    "src/"
   ],
   "scripts": {
     "postinstall": "node bin/postinstall.js",

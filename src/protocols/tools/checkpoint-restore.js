@@ -161,8 +161,22 @@ function createCheckpoint(lokiDir, checkpointDir, label) {
   };
 }
 
+// Validate checkpoint ID format: only allow 'chk-' followed by 8 hex chars.
+const CHECKPOINT_ID_RE = /^chk-[0-9a-f]{8}$/;
+
 function restoreCheckpoint(lokiDir, checkpointDir, checkpointId) {
-  const checkpointPath = path.join(checkpointDir, checkpointId + '.json');
+  // Validate format before any filesystem access to prevent path traversal.
+  if (!CHECKPOINT_ID_RE.test(checkpointId)) {
+    return { success: false, error: 'Invalid checkpoint ID format' };
+  }
+
+  const checkpointPath = path.resolve(checkpointDir, checkpointId + '.json');
+
+  // Verify the resolved path is still inside checkpointDir.
+  const resolvedDir = path.resolve(checkpointDir);
+  if (!checkpointPath.startsWith(resolvedDir + path.sep) && checkpointPath !== resolvedDir) {
+    return { success: false, error: 'Invalid checkpoint ID: path traversal detected' };
+  }
 
   if (!fs.existsSync(checkpointPath)) {
     return { success: false, error: 'Checkpoint not found: ' + checkpointId };

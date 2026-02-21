@@ -54,20 +54,24 @@ class StdioTransport {
 
     // Handle batch requests
     if (Array.isArray(request)) {
-      const promises = request.map((r) => this._handler(r));
+      const promises = request.map((r) => Promise.resolve().then(() => this._handler(r)));
       Promise.all(promises).then((results) => {
         const responses = results.filter((r) => r !== null);
         if (responses.length > 0) {
           this._send(responses);
         }
+      }).catch(() => {
+        this._send({ jsonrpc: '2.0', error: { code: -32603, message: 'Internal error' }, id: null });
       });
       return;
     }
 
-    Promise.resolve(this._handler(request)).then((response) => {
+    Promise.resolve().then(() => this._handler(request)).then((response) => {
       if (response !== null) {
         this._send(response);
       }
+    }).catch(() => {
+      this._send({ jsonrpc: '2.0', error: { code: -32603, message: 'Internal error' }, id: null });
     });
   }
 
