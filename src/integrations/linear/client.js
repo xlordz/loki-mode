@@ -6,6 +6,12 @@ const LINEAR_API_URL = 'https://api.linear.app/graphql';
 const LINEAR_HOST = 'api.linear.app';
 const LINEAR_PATH = '/graphql';
 
+/** Default rate limit retry-after fallback when no retry-after header is present (ms). */
+const DEFAULT_RATE_LIMIT_RETRY_MS = 60000;
+
+/** Maximum length of error body included in exception messages. */
+const MAX_ERROR_BODY_LENGTH = 256;
+
 /**
  * Linear GraphQL API client.
  * Uses Node.js built-in https module. No external dependencies.
@@ -63,13 +69,18 @@ class LinearClient {
 
     if (response.statusCode === 429) {
       const retryAfter = response.headers['retry-after'];
-      const waitMs = retryAfter ? parseInt(retryAfter, 10) * 1000 : 60000;
+      const waitMs = retryAfter
+        ? parseInt(retryAfter, 10) * 1000
+        : DEFAULT_RATE_LIMIT_RETRY_MS;
       throw new RateLimitError('Linear API rate limit exceeded', waitMs);
     }
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
+      const truncatedBody = response.body && response.body.length > MAX_ERROR_BODY_LENGTH
+        ? response.body.slice(0, MAX_ERROR_BODY_LENGTH) + '...'
+        : response.body;
       throw new LinearApiError(
-        `Linear API returned HTTP ${response.statusCode}: ${response.body}`,
+        `Linear API returned HTTP ${response.statusCode}: ${truncatedBody}`,
         response.statusCode
       );
     }
@@ -366,4 +377,6 @@ module.exports = {
   LinearApiError,
   RateLimitError,
   LINEAR_API_URL,
+  DEFAULT_RATE_LIMIT_RETRY_MS,
+  MAX_ERROR_BODY_LENGTH,
 };

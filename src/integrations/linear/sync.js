@@ -2,27 +2,15 @@
 
 const crypto = require('crypto');
 const { IntegrationAdapter } = require('../adapter');
-const { LinearClient } = require('./client');
-const { loadConfig, validateConfig } = require('./config');
+const { LinearClient, LinearApiError } = require('./client');
+const { loadConfig, validateConfig, DEFAULT_STATUS_MAPPING } = require('./config');
 
-/**
- * RARV phase to Linear status mapping (defaults, overridable via config).
- * REASON -> In Progress (analysis/planning phase)
- * ACT -> In Progress (implementation phase)
- * REFLECT -> In Review (quality check)
- * VERIFY -> Done (verified complete)
- */
-const RARV_STATUS_MAP = {
-  REASON: 'In Progress',
-  ACT: 'In Progress',
-  REFLECT: 'In Review',
-  VERIFY: 'Done',
-  DONE: 'Done',
-};
+/** Maximum webhook request body size in bytes (1 MB). */
+const MAX_WEBHOOK_BODY_BYTES = 1 * 1024 * 1024;
 
-/**
- * Linear priority number to text mapping.
- */
+/** Valid RARV status values accepted by syncStatus. */
+const VALID_RARV_STATUSES = new Set(['REASON', 'ACT', 'REFLECT', 'VERIFY', 'DONE']);
+
 const PRIORITY_MAP = {
   0: 'none',
   1: 'urgent',
@@ -31,120 +19,76 @@ const PRIORITY_MAP = {
   4: 'low',
 };
 
-/**
- * Linear bidirectional sync adapter.
- * Converts between Linear issues/projects and Loki Mode PRD format.
- * Designed as the reference adapter pattern for Jira, Slack, and Teams to follow.
- */
 class LinearSync extends IntegrationAdapter {
-  /**
-   * @param {object} [config] - Pre-loaded config, or null to load from disk
-   * @param {object} [options] - Adapter options (maxRetries, baseDelay, etc.)
-   */
   constructor(config, options = {}) {
     super('linear', options);
-
     this.config = config || null;
     this.client = null;
-    this._stateCache = new Map(); // teamId -> states[]
+    this._stateCache = new Map();
   }
 
-  /**
-   * Initialize the sync adapter. Loads config if not provided.
-   * Must be called before using any sync methods.
-   * @param {string} [configDir] - Config directory path
-   * @returns {boolean} true if initialized, false if no config found
-   */
   init(configDir) {
     if (!this.config) {
       this.config = loadConfig(configDir);
     }
     if (!this.config) return false;
-
     const validation = validateConfig(this.config);
     if (!validation.valid) {
       throw new Error(`Invalid Linear config: ${validation.errors.join(', ')}`);
     }
-
     this.client = new LinearClient(this.config.apiKey);
     return true;
   }
 
-  /**
-   * Import a Linear issue or project and convert to PRD format.
-   * @param {string} externalId - Linear issue or project ID
-   * @returns {Promise<object>} PRD-formatted object
-   */
   async importProject(externalId) {
     this._ensureInitialized();
-
     return this.withRetry('importProject', async () => {
-      // Try as issue first, fall back to project
       let issue;
       try {
         issue = await this.client.getIssue(externalId);
       } catch (e) {
-        // Not an issue, try project
+        const isNotFound = (
+          (e instanceof LinearApiError && e.statusCode === 404) ||
+          (e instanceof LinearApiError && /not found/i.test(e.message))
+        );
+        if (!isNotFound) {
+          throw e;
+        }
         const project = await this.client.getProject(externalId);
         return this._projectToPrd(project);
       }
-
+      if (!issue) {
+        const project = await this.client.getProject(externalId);
+        return this._projectToPrd(project);
+      }
       return this._issueToPrd(issue);
     });
   }
 
-  /**
-   * Sync RARV status back to Linear.
-   * @param {string} projectId - Linear issue ID
-   * @param {string} status - RARV status
-   * @param {object} [details] - Additional details
-   * @returns {Promise<object>}
-   */
   async syncStatus(projectId, status, details) {
     this._ensureInitialized();
-
-    const mapping = this.config.statusMapping || RARV_STATUS_MAP;
-    const linearStatus = mapping[status] || mapping.ACT;
-
+    if (!VALID_RARV_STATUSES.has(status)) {
+      throw new Error(
+        `Unknown RARV status "${status}". Valid values: ${[...VALID_RARV_STATUSES].join(', ')}`
+      );
+    }
+    const mapping = this.config.statusMapping || DEFAULT_STATUS_MAPPING;
+    const linearStatus = mapping[status];
     return this.withRetry('syncStatus', async () => {
-      // Get the issue to find its team
-      const issue = await this.client.getIssue(projectId);
-      if (!issue) {
-        throw new Error(`Issue ${projectId} not found`);
-      }
-
-      // Find the state ID matching the target status name
-      const teamId = this.config.teamId || await this._getTeamIdFromIssue(issue);
+      const teamId = this._requireTeamId();
       const stateId = await this._resolveStateId(teamId, linearStatus);
-
       const result = await this.client.updateIssue(projectId, { stateId });
-
-      // Post status comment with details if provided
       if (details && details.message) {
         const commentBody = `**Loki Mode [${status}]**: ${details.message}`;
         await this.client.createComment(projectId, commentBody);
       }
-
-      this.emit('status-synced', {
-        externalId: projectId,
-        status,
-        linearStatus,
-        stateId,
-      });
-
+      this.emit('status-synced', { externalId: projectId, status, linearStatus, stateId });
       return result;
     });
   }
 
-  /**
-   * Post a comment to a Linear issue.
-   * @param {string} externalId - Linear issue ID
-   * @param {string} content - Markdown content
-   * @returns {Promise<object>}
-   */
   async postComment(externalId, content) {
     this._ensureInitialized();
-
     return this.withRetry('postComment', async () => {
       const result = await this.client.createComment(externalId, content);
       this.emit('comment-posted', { externalId, commentId: result.comment?.id });
@@ -152,52 +96,49 @@ class LinearSync extends IntegrationAdapter {
     });
   }
 
-  /**
-   * Create subtasks in Linear mirroring internal task decomposition.
-   * @param {string} externalId - Parent Linear issue ID
-   * @param {Array<{title: string, description: string}>} tasks
-   * @returns {Promise<Array<object>>}
-   */
   async createSubtasks(externalId, tasks) {
     this._ensureInitialized();
-
     return this.withRetry('createSubtasks', async () => {
       const issue = await this.client.getIssue(externalId);
-      const teamId = this.config.teamId || await this._getTeamIdFromIssue(issue);
-
+      const teamId = this._requireTeamId();
+      const existingTitles = new Set(
+        (issue?.children?.nodes || []).map((c) => c.title)
+      );
       const results = [];
       for (const task of tasks) {
+        if (existingTitles.has(task.title)) {
+          continue;
+        }
         const result = await this.client.createSubIssue(
-          externalId,
-          teamId,
-          task.title,
-          task.description || ''
+          externalId, teamId, task.title, task.description || ''
         );
         results.push(result);
       }
-
-      this.emit('subtasks-created', {
-        externalId,
-        count: results.length,
-      });
-
+      this.emit('subtasks-created', { externalId, count: results.length });
       return results;
     });
   }
 
-  /**
-   * Return an HTTP handler for Linear webhook events.
-   * Verifies webhook signature if webhook_secret is configured.
-   * @returns {function} (req, res) => void
-   */
   getWebhookHandler() {
     const self = this;
-
     return function webhookHandler(req, res) {
       let body = '';
-      req.on('data', (chunk) => { body += chunk; });
+      let bodySize = 0;
+      let aborted = false;
+      req.on('data', (chunk) => {
+        if (aborted) return;
+        bodySize += chunk.length;
+        if (bodySize > MAX_WEBHOOK_BODY_BYTES) {
+          aborted = true;
+          req.destroy();
+          res.writeHead(413, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Payload too large' }));
+          return;
+        }
+        body += chunk;
+      });
       req.on('end', () => {
-        // Verify signature if webhook secret is configured
+        if (aborted) return;
         if (self.config && self.config.webhookSecret) {
           const signature = req.headers['linear-signature'];
           if (!self._verifyWebhookSignature(body, signature)) {
@@ -206,7 +147,6 @@ class LinearSync extends IntegrationAdapter {
             return;
           }
         }
-
         let payload;
         try {
           payload = JSON.parse(body);
@@ -215,18 +155,13 @@ class LinearSync extends IntegrationAdapter {
           res.end(JSON.stringify({ error: 'Invalid JSON' }));
           return;
         }
-
-        // Process webhook event
         const event = self._processWebhookEvent(payload);
         self.emit('webhook', event);
-
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ received: true }));
       });
     };
   }
-
-  // --- Internal helpers ---
 
   _ensureInitialized() {
     if (!this.client) {
@@ -234,13 +169,9 @@ class LinearSync extends IntegrationAdapter {
     }
   }
 
-  /**
-   * Convert a Linear issue to PRD format.
-   */
   _issueToPrd(issue) {
     const labels = (issue.labels?.nodes || []).map((l) => l.name);
     const priority = PRIORITY_MAP[issue.priority] || 'medium';
-
     const dependencies = (issue.relations?.nodes || [])
       .filter((r) => r.type === 'blocks' || r.type === 'related')
       .map((r) => ({
@@ -249,14 +180,12 @@ class LinearSync extends IntegrationAdapter {
         title: r.relatedIssue.title,
         type: r.type,
       }));
-
     const subtasks = (issue.children?.nodes || []).map((child) => ({
       id: child.id,
       identifier: child.identifier,
       title: child.title,
       status: child.state?.name || 'unknown',
     }));
-
     return {
       source: 'linear',
       externalId: issue.id,
@@ -284,9 +213,6 @@ class LinearSync extends IntegrationAdapter {
     };
   }
 
-  /**
-   * Convert a Linear project to PRD format.
-   */
   _projectToPrd(project) {
     const issues = (project.issues?.nodes || []).map((issue) => ({
       id: issue.id,
@@ -297,7 +223,6 @@ class LinearSync extends IntegrationAdapter {
       status: issue.state?.name || 'unknown',
       labels: (issue.labels?.nodes || []).map((l) => l.name),
     }));
-
     return {
       source: 'linear',
       externalId: project.id,
@@ -316,10 +241,6 @@ class LinearSync extends IntegrationAdapter {
     };
   }
 
-  /**
-   * Extract requirement-like lines from a description.
-   * Looks for markdown list items, numbered items, or lines starting with requirement-like keywords.
-   */
   _extractRequirements(description) {
     if (!description) return [];
     const lines = description.split('\n');
@@ -333,9 +254,6 @@ class LinearSync extends IntegrationAdapter {
     return reqs;
   }
 
-  /**
-   * Resolve a status name to a Linear state ID for a given team.
-   */
   async _resolveStateId(teamId, statusName) {
     if (!this._stateCache.has(teamId)) {
       const states = await this.client.getTeamStates(teamId);
@@ -343,7 +261,7 @@ class LinearSync extends IntegrationAdapter {
     }
     const states = this._stateCache.get(teamId);
     const state = states.find(
-      (s) => s.name.toLowerCase() === statusName.toLowerCase()
+      (s) => s && s.name && s.name.toLowerCase() === statusName.toLowerCase()
     );
     if (!state) {
       throw new Error(`State "${statusName}" not found for team ${teamId}`);
@@ -351,40 +269,28 @@ class LinearSync extends IntegrationAdapter {
     return state.id;
   }
 
-  /**
-   * Extract team ID from an issue's identifier (e.g., "ENG-123" -> look up "ENG" team).
-   * Falls back to requiring teamId in config.
-   */
-  async _getTeamIdFromIssue(issue) {
-    // Linear issue identifiers are formatted as TEAM-NUMBER
-    // We need the team ID, which requires a separate query.
-    // For now, if no teamId in config, this is an error.
+  _requireTeamId() {
     if (this.config.teamId) return this.config.teamId;
     throw new Error(
-      'Cannot determine team ID from issue. Set team_id in Linear integration config.'
+      'team_id is required in Linear integration config. Set team_id in .loki/config.yaml.'
     );
   }
 
-  /**
-   * Verify Linear webhook signature using HMAC-SHA256.
-   */
   _verifyWebhookSignature(body, signature) {
     if (!signature || !this.config.webhookSecret) return false;
     const hmac = crypto.createHmac('sha256', this.config.webhookSecret);
     hmac.update(body);
     const expected = hmac.digest('hex');
-    const sigBuf = Buffer.from(signature, 'utf8');
-    const expBuf = Buffer.from(expected, 'utf8');
+    const normalizedSig = signature.toLowerCase().trim();
+    if (normalizedSig.length !== expected.length) return false;
+    const sigBuf = Buffer.from(normalizedSig, 'hex');
+    const expBuf = Buffer.from(expected, 'hex');
     if (sigBuf.length !== expBuf.length) return false;
     return crypto.timingSafeEqual(sigBuf, expBuf);
   }
 
-  /**
-   * Process a Linear webhook payload into a normalized event.
-   */
   _processWebhookEvent(payload) {
     const { action, type, data, updatedFrom } = payload;
-
     return {
       action: action || 'unknown',
       type: type || 'unknown',
@@ -396,4 +302,4 @@ class LinearSync extends IntegrationAdapter {
   }
 }
 
-module.exports = { LinearSync, RARV_STATUS_MAP, PRIORITY_MAP };
+module.exports = { LinearSync, PRIORITY_MAP, VALID_RARV_STATUSES, MAX_WEBHOOK_BODY_BYTES };

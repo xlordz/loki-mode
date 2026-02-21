@@ -37,7 +37,7 @@ function parseSimpleYaml(content) {
     const key = kvMatch[1];
     let value = kvMatch[2].trim();
 
-    if (indent === 0 || indent === 2 && currentSection === null) {
+    if (indent === 0 || (indent === 2 && currentSection === null)) {
       if (value === '' || value === '{}') {
         // Section header
         currentSection = key;

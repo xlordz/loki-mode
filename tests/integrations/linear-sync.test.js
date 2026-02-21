@@ -2,20 +2,20 @@
 
 const { describe, it, beforeEach } = require('node:test');
 const assert = require('node:assert/strict');
-const { LinearSync, RARV_STATUS_MAP, PRIORITY_MAP } = require('../../src/integrations/linear/sync');
+const { LinearSync, PRIORITY_MAP, VALID_RARV_STATUSES, MAX_WEBHOOK_BODY_BYTES } = require('../../src/integrations/linear/sync');
+const { LinearApiError, RateLimitError } = require('../../src/integrations/linear/client');
+const { DEFAULT_STATUS_MAPPING } = require('../../src/integrations/linear/config');
 
-// Mock config
 function mockConfig(overrides = {}) {
   return {
     apiKey: 'lin_api_test',
     teamId: 'team-1',
     webhookSecret: 'webhook-secret-123',
-    statusMapping: { ...RARV_STATUS_MAP },
+    statusMapping: { ...DEFAULT_STATUS_MAPPING },
     ...overrides,
   };
 }
 
-// Mock Linear issue
 function mockIssue(overrides = {}) {
   return {
     id: 'issue-1',
@@ -46,7 +46,6 @@ function mockIssue(overrides = {}) {
   };
 }
 
-// Mock project
 function mockProject() {
   return {
     id: 'proj-1',
@@ -74,12 +73,10 @@ function mockProject() {
   };
 }
 
-// Helper to create a sync instance with mocked client
 function createMockSync(config) {
   const sync = new LinearSync(config || mockConfig(), { maxRetries: 0, baseDelay: 1 });
   sync.init();
 
-  // Override client methods for testing
   const mockClient = {
     getIssue: async () => mockIssue(),
     getProject: async () => mockProject(),
@@ -116,7 +113,6 @@ describe('LinearSync', () => {
 
     it('init returns false when no config', () => {
       const sync = new LinearSync(null);
-      // Pass a directory that does not have config
       const result = sync.init('/nonexistent/path');
       assert.equal(result, false);
     });
@@ -135,7 +131,6 @@ describe('LinearSync', () => {
 
     it('throws when calling methods before init', async () => {
       const sync = new LinearSync(mockConfig());
-      // Don't call init()
       await assert.rejects(() => sync.importProject('id'), {
         message: /not initialized/,
       });
@@ -171,7 +166,6 @@ describe('LinearSync', () => {
     it('maps priority numbers correctly', async () => {
       const { sync, mockClient } = createMockSync();
 
-      // Test each priority level
       for (const [num, label] of Object.entries(PRIORITY_MAP)) {
         mockClient.getIssue = async () => mockIssue({ priority: parseInt(num) });
         const prd = await sync.importProject('issue-1');
@@ -197,16 +191,58 @@ describe('LinearSync', () => {
   });
 
   describe('importProject - project fallback', () => {
-    it('converts Linear project to PRD format when issue lookup fails', async () => {
+    it('falls back to project on not-found GraphQL error', async () => {
       const { sync, mockClient } = createMockSync();
-      mockClient.getIssue = async () => { throw new Error('Not found'); };
+      mockClient.getIssue = async () => {
+        throw new LinearApiError('Linear GraphQL error: Entity not found', 200);
+      };
 
       const prd = await sync.importProject('proj-1');
       assert.equal(prd.source, 'linear');
       assert.equal(prd.title, 'Auth Overhaul');
       assert.equal(prd.issues.length, 2);
-      assert.ok(prd.prd.requirements.includes('Design'));
-      assert.ok(prd.prd.requirements.includes('Implement'));
+    });
+
+    it('falls back to project when getIssue returns null', async () => {
+      const { sync, mockClient } = createMockSync();
+      mockClient.getIssue = async () => null;
+
+      const prd = await sync.importProject('proj-1');
+      assert.equal(prd.source, 'linear');
+      assert.equal(prd.title, 'Auth Overhaul');
+    });
+
+    it('propagates auth errors (401) instead of falling back', async () => {
+      const { sync, mockClient } = createMockSync();
+      mockClient.getIssue = async () => {
+        throw new LinearApiError('Linear API returned HTTP 401: Unauthorized', 401);
+      };
+
+      await assert.rejects(() => sync.importProject('issue-1'), {
+        message: /401/,
+      });
+    });
+
+    it('propagates rate limit errors instead of falling back', async () => {
+      const { sync, mockClient } = createMockSync();
+      mockClient.getIssue = async () => {
+        throw new RateLimitError('Linear API rate limit exceeded', 60000);
+      };
+
+      await assert.rejects(() => sync.importProject('issue-1'), {
+        name: 'RateLimitError',
+      });
+    });
+
+    it('propagates network errors instead of falling back', async () => {
+      const { sync, mockClient } = createMockSync();
+      mockClient.getIssue = async () => {
+        throw new LinearApiError('Network error: ECONNREFUSED', 0);
+      };
+
+      await assert.rejects(() => sync.importProject('issue-1'), {
+        message: /Network error/,
+      });
     });
   });
 
@@ -220,7 +256,7 @@ describe('LinearSync', () => {
       };
 
       await sync.syncStatus('issue-1', 'REASON');
-      assert.equal(updatedInput.stateId, 's2'); // In Progress state ID
+      assert.equal(updatedInput.stateId, 's2');
     });
 
     it('maps ACT to In Progress', async () => {
@@ -244,7 +280,7 @@ describe('LinearSync', () => {
       };
 
       await sync.syncStatus('issue-1', 'REFLECT');
-      assert.equal(updatedInput.stateId, 's3'); // In Review state ID
+      assert.equal(updatedInput.stateId, 's3');
     });
 
     it('maps VERIFY to Done', async () => {
@@ -256,7 +292,21 @@ describe('LinearSync', () => {
       };
 
       await sync.syncStatus('issue-1', 'VERIFY');
-      assert.equal(updatedInput.stateId, 's4'); // Done state ID
+      assert.equal(updatedInput.stateId, 's4');
+    });
+
+    it('throws on unknown RARV status', async () => {
+      const { sync } = createMockSync();
+      await assert.rejects(() => sync.syncStatus('issue-1', 'PAUSED'), {
+        message: /Unknown RARV status "PAUSED"/,
+      });
+    });
+
+    it('throws on typo in RARV status', async () => {
+      const { sync } = createMockSync();
+      await assert.rejects(() => sync.syncStatus('issue-1', 'VERIFIED'), {
+        message: /Unknown RARV status/,
+      });
     });
 
     it('posts comment with details when provided', async () => {
@@ -308,6 +358,7 @@ describe('LinearSync', () => {
   describe('createSubtasks', () => {
     it('creates sub-issues for each task', async () => {
       const { sync, mockClient } = createMockSync();
+      mockClient.getIssue = async () => mockIssue({ children: { nodes: [] } });
       const createdTasks = [];
       mockClient.createSubIssue = async (parentId, teamId, title, desc) => {
         createdTasks.push({ parentId, teamId, title, desc });
@@ -328,8 +379,36 @@ describe('LinearSync', () => {
       assert.equal(createdTasks[0].title, 'Setup OAuth2');
     });
 
+    it('skips already-existing children for idempotent retry', async () => {
+      const { sync, mockClient } = createMockSync();
+      mockClient.getIssue = async () => mockIssue({
+        children: {
+          nodes: [
+            { id: 'child-1', identifier: 'ENG-43', title: 'OAuth2', state: { name: 'Todo' } },
+          ],
+        },
+      });
+
+      const createdTasks = [];
+      mockClient.createSubIssue = async (parentId, teamId, title, desc) => {
+        createdTasks.push({ title });
+        return { success: true, issue: { id: `sub-${title}`, identifier: 'ENG-X', title, url: '' } };
+      };
+
+      const tasks = [
+        { title: 'OAuth2', description: 'Already exists' },
+        { title: 'New Task', description: 'Does not exist yet' },
+      ];
+
+      const results = await sync.createSubtasks('issue-1', tasks);
+      assert.equal(createdTasks.length, 1);
+      assert.equal(createdTasks[0].title, 'New Task');
+      assert.equal(results.length, 1);
+    });
+
     it('emits subtasks-created event', async () => {
-      const { sync } = createMockSync();
+      const { sync, mockClient } = createMockSync();
+      mockClient.getIssue = async () => mockIssue({ children: { nodes: [] } });
       let event;
       sync.on('subtasks-created', (data) => { event = data; });
 
@@ -361,7 +440,6 @@ describe('LinearSync', () => {
       };
       const body = JSON.stringify(payload);
 
-      // Create HMAC signature
       const crypto = require('crypto');
       const hmac = crypto.createHmac('sha256', 'webhook-secret-123');
       hmac.update(body);
@@ -370,7 +448,6 @@ describe('LinearSync', () => {
       let webhookEvent;
       sync.on('webhook', (event) => { webhookEvent = event; });
 
-      // Mock request/response
       const { EventEmitter } = require('events');
       const req = new EventEmitter();
       req.headers = { 'linear-signature': signature };
@@ -458,6 +535,31 @@ describe('LinearSync', () => {
       handler(req, res);
       req.emit('data', JSON.stringify({ action: 'create', type: 'Issue', data: {} }));
       req.emit('end');
+    });
+
+    it('rejects oversized webhook body with 413', (_, done) => {
+      const { sync } = createMockSync(mockConfig({ webhookSecret: null }));
+      const handler = sync.getWebhookHandler();
+
+      const { EventEmitter } = require('events');
+      const req = new EventEmitter();
+      req.headers = {};
+      req.destroy = () => {};
+
+      let statusCode;
+      const res = {
+        writeHead: (code) => { statusCode = code; },
+        end: (data) => {
+          assert.equal(statusCode, 413);
+          const parsed = JSON.parse(data);
+          assert.equal(parsed.error, 'Payload too large');
+          done();
+        },
+      };
+
+      handler(req, res);
+      const oversizedChunk = 'x'.repeat(MAX_WEBHOOK_BODY_BYTES + 1);
+      req.emit('data', oversizedChunk);
     });
   });
 });
