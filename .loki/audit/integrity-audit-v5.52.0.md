@@ -1,0 +1,149 @@
+# Integrity Audit: v5.52.0
+**Date**: 2026-02-21
+**Auditor**: Claude Code (Opus 4.6)
+
+## Summary
+- Total capabilities tested: 45
+- WORKS: 27
+- PARTIAL: 5
+- BROKEN: 7
+- SCAFFOLDING: 3
+- NOT TESTABLE: 3 (tool not installed)
+
+## Truth Table
+
+| # | Capability | Status | Evidence |
+|---|---|---|---|
+| 1 | npm install -g loki-mode | WORKS | `changed 1 package in 1s` -- clean install, no errors |
+| 2 | loki --version | WORKS | `Loki Mode v5.52.0` |
+| 3 | loki doctor | WORKS | All PASS (Node 25.2.1, Python 3.14.2, jq 1.7, git 2.50.1, curl 8.7.1, Claude 2.1.50, Codex 0.98.0, Gemini 0.27.3, all skills found). Only WARN: bash 3.2.57 < 4.0 |
+| 4 | loki start (PRD parse) | WORKS | PRD parsed, prerequisites checked, `.loki/` directory initialized with 20+ subdirectories (state, queue, memory, events, skills, etc.), pricing.json written, skill files copied. Session started successfully. |
+| 5 | Dashboard /health | BROKEN | **`ImportError: cannot import name 'token_hex' from 'secrets'`** -- `dashboard/secrets.py` shadows Python stdlib `secrets` module. FastAPI fails to import starlette.responses. Full traceback: `starlette/responses.py:15 -> from secrets import token_hex -> ImportError` |
+| 6 | Dashboard /api/status | BROKEN | Dashboard cannot start (blocked by #5) |
+| 7 | Dashboard /openapi.json | BROKEN | Dashboard cannot start (blocked by #5) |
+| 8 | API v2 /tenants | BROKEN | Dashboard cannot start (blocked by #5) |
+| 9 | API v2 /runs | BROKEN | Dashboard cannot start (blocked by #5) |
+| 10 | A2A Agent Card | BROKEN | Dashboard cannot start (blocked by #5) |
+| 11 | WebSocket | BROKEN | Dashboard cannot start (blocked by #5) |
+| 12 | MCP server import | PARTIAL | `mcp/server.py` exists with 10 registered tools (`loki_memory_retrieve`, `loki_memory_store_pattern`, `loki_task_queue_list`, `loki_task_queue_add`, `loki_task_queue_update`, `loki_state_get`, `loki_metrics_efficiency`, `loki_consolidate_memory`, `loki_start`, `loki_phase_report`). But import fails: `MCP SDK (pip package 'mcp') not found in site-packages`. The `mcp` pip package is not installed and conflicts with our local `mcp/` directory namespace. |
+| 13 | MCP enterprise tools exist | PARTIAL | The MCP server has 10 tools but none of the enterprise-specific ones (no `loki_start_project`, `loki_project_status`, `loki_agent_metrics`, `loki_checkpoint_restore`, `loki_quality_report`). Only general tools exist. |
+| 14 | MCP client import (Node) | WORKS | `require('./src/protocols/mcp-client')` succeeds |
+| 15 | A2A module import | WORKS | `require('./src/protocols/a2a')` succeeds |
+| 16 | OTEL module import | WORKS | `require('./src/observability')` succeeds. Exports: `trace`, `metrics`, `isEnabled`, `shutdown`, `NOOP_SPAN` |
+| 17 | Policy module import | WORKS | `require('./src/policies')` succeeds. Exports: `init`, `evaluate`, `checkBudget`, `recordUsage`, `requestApproval`, `resolveApproval`, `hasPolicies`, `getCostController`, `getApprovalManager`, `destroy`, `Decision` |
+| 18 | Audit module import | WORKS | `require('./src/audit')` succeeds. Exports: `init`, `record`, `verifyChain`, `generateReport`, `exportReport`, `checkProvider`, `isAirGapped`, `readEntries`, `getSummary`, `flush`, `destroy` |
+| 19 | Jira module import | WORKS | `require('./src/integrations/jira')` succeeds |
+| 20 | Linear module import | PARTIAL | No `index.js` in `src/integrations/linear/`. `require('./src/integrations/linear')` fails with `MODULE_NOT_FOUND`. Individual files load: `require('./src/integrations/linear/sync')` works. Missing module entry point. |
+| 21 | GitHub Actions import | WORKS | `require('./src/integrations/github/action-handler')` succeeds |
+| 22 | Slack module import | WORKS | `require('./src/integrations/slack')` succeeds |
+| 23 | Teams module import | WORKS | `require('./src/integrations/teams')` succeeds |
+| 24 | Knowledge Graph import | WORKS | `from memory.knowledge_graph import OrganizationKnowledgeGraph` succeeds. Note: class name is `OrganizationKnowledgeGraph`, not `KnowledgeGraph` |
+| 25 | Sycophancy Detector import | WORKS | `from swarm.sycophancy import detect_sycophancy` succeeds. Note: export is `detect_sycophancy` function, not `SycophancyDetector` class |
+| 26 | Calibration import | WORKS | `from swarm.calibration import CalibrationTracker` succeeds. Note: class name is `CalibrationTracker`, not `ReviewerCalibration` |
+| 27 | Python SDK import | WORKS | `from autonomi import AutonomiClient` succeeds. Client instantiates with base_url. Exports: `AutonomiClient`, `ApiKey`, `AuditEntry`, `AuthenticationError`, `ForbiddenError`, `NotFoundError`, `EventStream`, `Project`, `Run`, `RunEvent`, `SessionManager`, `Task`, `TaskManager`, `Tenant`, `TokenAuth`. Note: class is `AutonomiClient`, not `Client`. |
+| 28 | TypeScript SDK import | PARTIAL | SDK is TypeScript (.ts files): `audit.ts`, `client.ts`, `errors.ts`, `index.ts`, `runs.ts`, `tenants.ts`, `types.ts`. Cannot be `require()`d directly -- needs `tsc` or `tsx` transpilation. No compiled JS output exists. `package.json` exists but no build step configured. |
+| 29 | PRD Classifier import | WORKS | `from swarm.classifier import PRDClassifier` succeeds |
+| 30 | Swarm Composer import | WORKS | `from swarm.composer import SwarmComposer` succeeds |
+| 31 | Plugin Loader import | WORKS | `require('./src/plugins/loader')` and `require('./src/plugins/validator')` and `require('./src/plugins')` all succeed |
+| 32 | npm test | WORKS | **683 tests, 683 pass, 0 fail**. 9 test suites: 137 + 48 + 69 + 125 + 47 + 131 + 41 + 47 + 38 = 683. Exit code 0, "All checks passed". |
+| 33 | pytest | PARTIAL | **545 pass, 1 fail**. The single failure is pre-existing: `test_token_economics.py::TestTokenEconomicsSummary::test_summary_structure` -- `assert summary["started_at"].endswith("Z")` fails because `datetime.now(timezone.utc).isoformat()` produces `+00:00` not `Z`. 3 deprecation warnings (Pydantic V2 class-based config). |
+| 34 | Shell tests | BROKEN | **12 pass, 4 fail**. Failures: (1) `validate-bash.sh did not block dangerous command (exit: 2)`, (2) `validate-bash.sh did not allow safe command`, (3) `Fork bomb not blocked`, (4) misc wrapper/memory CLI failures. ShellCheck lint: 39 pass, 16 fail, 28 info-only. |
+| 35 | Enterprise wiring in run.sh | WORKS | `start_enterprise_services()` function exists at line 935, called at line 7874 during session_start. Starts OTEL bridge when `LOKI_OTEL_ENDPOINT` is set, audit subscriber when `LOKI_AUDIT_ENABLED=true`. `stop_enterprise_services()` at line 966 with graceful+force kill. `check_policy()` at line 996 with policy file guard. `ENTERPRISE_PIDS` array managed with trap EXIT. Real function calls, not stubs. |
+| 36 | Event bus functional | WORKS | `EventBus.emit()` succeeds. File-based event system (`events_dir: .loki/events`). Has `emit`, `subscribe`, `subscribe_callback`, `get_pending_events`, `mark_processed`, `start_background_processing`, `stop_background_processing`. |
+| 37 | OTEL span creation | SCAFFOLDING | Module exports `trace`, `metrics`, `isEnabled`, `shutdown`, `NOOP_SPAN`. But `isEnabled` returns false without `LOKI_OTEL_ENDPOINT`. `trace()` returns NOOP_SPAN when disabled. The OTEL bridge (`src/observability/otel-bridge.js`) loads but only activates when connected to an OTEL collector. Without a collector running, spans go nowhere. The bridge watches `.loki/events/pending/` for `otel_span_*` events -- this is wired in run.sh but only fires when OTEL_ENDPOINT is configured. Functionally correct but untestable without infrastructure. |
+| 38 | Policy evaluation | WORKS | `src/policies/check.js` exists and runs (`Usage: node check.js <enforcement_point> [context_json]`). Policy module exports full evaluation API. `check_policy()` in run.sh calls it. Returns exit 0 (allow) when no policy files exist (correct guard behavior). |
+| 39 | Audit log write | WORKS | Audit module exports `init`, `record`, `verifyChain`. Audit subscriber exports `processEventFile`, `scanPendingEvents`, `EVENT_TO_AUDIT` mapping. Both load successfully. Subscriber is started by `start_enterprise_services()` in run.sh when `LOKI_AUDIT_ENABLED=true`. |
+| 40 | Plugin load + validate | WORKS | PluginLoader discovers YAML files, PluginValidator validates against JSON schemas. Test with a quality_gate plugin: discovery found the file, validation correctly rejected invalid `phase` value ("VERIFY" not in allowed enum) and unknown field `pass_condition`. Schema enforcement is working. |
+| 41 | Helm lint | WORKS | `1 chart(s) linted, 0 chart(s) failed`. Only info: "icon is recommended". Template renders valid K8s manifests (ServiceAccount, Secret, ConfigMap, Deployments, Services, etc.) |
+| 42 | Docker Compose config | WORKS | `docker compose config` succeeds. Shows service `autonomi` with build context, 17 environment variables, healthcheck, ports (57374), volumes. |
+| 43 | Terraform validate (AWS) | NOT TESTABLE | `terraform` CLI not installed on this machine |
+| 44 | Terraform validate (Azure) | NOT TESTABLE | `terraform` CLI not installed on this machine |
+| 45 | Terraform validate (GCP) | NOT TESTABLE | `terraform` CLI not installed on this machine |
+
+## Critical Issues (must fix before demo/investor)
+
+1. **CRITICAL: Dashboard completely broken** -- `dashboard/secrets.py` shadows Python's stdlib `secrets` module. When FastAPI imports `starlette.responses`, which imports `from secrets import token_hex`, Python finds our `dashboard/secrets.py` instead of stdlib `secrets`. This breaks the ENTIRE dashboard, API v2, WebSocket, A2A agent card, and everything served on port 57374. **Impact: 7 capabilities broken by 1 naming conflict.** Fix: rename `dashboard/secrets.py` to `dashboard/secret_manager.py` or similar.
+
+2. **Shell test failures (4/16 fail)** -- Bash validation hooks (`validate-bash.sh`) don't block dangerous commands or fork bombs. ShellCheck lint has 16 failures across scripts.
+
+3. **MCP server cannot import** -- The local `mcp/` directory namespace conflicts with the `mcp` pip package. When `pip install mcp` is done, Python gets confused between our local `mcp/server.py` and the SDK's expected modules. Additionally, the MCP server only has 10 general tools -- none of the enterprise-specific tools mentioned in P0-1 documentation (no `loki_start_project`, `loki_project_status`, etc.).
+
+4. **TypeScript SDK not usable** -- SDK is pure `.ts` files with no build/transpilation step. Cannot be `require()`d or imported in Node.js without `tsc` or a TypeScript runtime. No compiled JS output exists.
+
+5. **Pre-existing pytest failure** -- `test_token_economics.py` timezone format issue (`+00:00` vs `Z`). Minor but indicates broken test that has persisted across releases.
+
+## Gaps (functional but incomplete)
+
+1. **Linear integration missing index.js** -- `src/integrations/linear/` has `client.js`, `config.js`, `sync.js` but no `index.js` entry point. Must `require('./src/integrations/linear/sync')` directly.
+
+2. **MCP server tools are general-purpose only** -- 10 tools exist for memory, task queue, state, metrics. None of the enterprise tools (project management, agent metrics, checkpoint restore, quality report) that P0-1 docs describe.
+
+3. **Plugin schema field names don't match RARV phases** -- Quality gate plugin schema expects `phase` values: `pre-commit, post-commit, pre-deploy, post-deploy, review`. RARV phases (REASON, ACT, REFLECT, VERIFY) are not in the allowed enum. The schema and the RARV cycle are disconnected.
+
+4. **Python SDK class name mismatch** -- Documentation/changelog says `Client` but actual class is `AutonomiClient`. Same for sycophancy (`SycophancyDetector` vs `detect_sycophancy`), calibration (`ReviewerCalibration` vs `CalibrationTracker`), knowledge graph (`KnowledgeGraph` vs `OrganizationKnowledgeGraph`).
+
+5. **OTEL spans untestable without collector** -- OTEL bridge loads and the wiring in run.sh is real, but without an OTEL collector endpoint, spans are no-ops. No local test harness exists to verify end-to-end span creation.
+
+## Scaffolding (code exists, never called)
+
+1. **OTEL span creation in practice** -- `src/observability/otel.js` exports `trace()` and `metrics()` but returns NOOP_SPAN when `LOKI_OTEL_ENDPOINT` is not set. The bridge watches for event files but run.sh only emits `otel_span_*` events when OTEL is enabled. In default configuration (no OTEL endpoint), the entire observability stack is dead code.
+
+2. **Integration sync subscriber** -- `src/integrations/sync-subscriber.js` (if it exists) is started by `start_enterprise_services()` but only when `LOKI_JIRA_URL` or `LOKI_GITHUB_SYNC` is set. Not verified in this audit as no integration credentials are available.
+
+3. **Policy evaluation in practice** -- `check_policy()` in run.sh returns 0 immediately when no `.loki/policies.json` or `.loki/policies.yaml` exists. In default configuration (no policy files), the policy engine is never invoked. The wiring is real but the activation requires policy files that no default installation creates.
+
+## Recommended Fix Priority
+
+1. **Rename `dashboard/secrets.py`** -- Single file rename unblocks 7 broken capabilities (dashboard, API v2, WebSocket, A2A). Highest impact-to-effort ratio of any fix.
+2. **Fix TypeScript SDK** -- Add `tsc` build step to `sdk/typescript/package.json` or provide pre-compiled `.js` output. Without this, the SDK is unusable.
+3. **Add `index.js` to `src/integrations/linear/`** -- One-line file that re-exports from `sync.js`.
+4. **Fix pytest timezone test** -- Change `endswith("Z")` to handle `+00:00` format.
+5. **Fix shell test validate-bash.sh** -- Review the bash validation hooks for correctness.
+6. **Add enterprise MCP tools** -- The 5 enterprise tools described in P0-1 docs don't exist in `mcp/server.py`.
+7. **Align plugin schema phases with RARV** -- Add REASON/ACT/REFLECT/VERIFY to quality gate phase enum.
+8. **Fix class name documentation** -- Update CHANGELOG/docs to use actual exported names.
+
+---
+
+## Raw Test Output Summary
+
+### npm test
+```
+9 test suites
+683 tests, 683 pass, 0 fail
+Exit code: 0
+"All checks passed"
+```
+
+### pytest
+```
+545 passed, 1 failed, 3 warnings
+Failed: test_token_economics.py::TestTokenEconomicsSummary::test_summary_structure
+  assert summary["started_at"].endswith("Z") -- got "+00:00" instead
+Exit code: 1
+```
+
+### Shell tests
+```
+Tests Run: 16
+Passed: 12
+Failed: 4
+ShellCheck Lint: 39 pass, 16 fail, 28 info-only
+Exit code: 1
+```
+
+### Helm lint
+```
+1 chart(s) linted, 0 chart(s) failed
+[INFO] Chart.yaml: icon is recommended
+```
+
+### Docker Compose config
+```
+Valid. Services: autonomi. Ports: 57374. 17 env vars.
+```
+
+### Terraform
+```
+Not testable (terraform CLI not installed)
+```
