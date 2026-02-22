@@ -216,6 +216,19 @@ council_vote() {
     local vote_dir="$COUNCIL_STATE_DIR/votes/iteration-$ITERATION_COUNT"
     mkdir -p "$vote_dir"
 
+    # Council v2: true blind review with sycophancy detection
+    if [ "${LOKI_COUNCIL_VERSION:-1}" = "2" ]; then
+        # Source council v2 if not already loaded
+        if ! type council_v2_vote &>/dev/null; then
+            source "${BASH_SOURCE[0]%/*}/council-v2.sh"
+        fi
+        # Gather evidence first (shared function)
+        local evidence_file="$vote_dir/evidence.md"
+        council_gather_evidence "$evidence_file" "$prd_path"
+        council_v2_vote "$prd_path" "$evidence_file" "$vote_dir" "${ITERATION_COUNT:-0}"
+        return $?
+    fi
+
     log_header "COMPLETION COUNCIL - Iteration $ITERATION_COUNT"
     log_info "Convening ${COUNCIL_SIZE}-member council..."
 

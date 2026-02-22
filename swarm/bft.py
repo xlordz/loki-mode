@@ -44,6 +44,7 @@ class FaultType(str, Enum):
     CONFLICTING_RESULT = "conflicting_result"  # Result differs from consensus
     EQUIVOCATION = "equivocation"  # Sent different messages to different agents
     MALFORMED_RESPONSE = "malformed_response"  # Response doesn't match expected format
+    SYCOPHANTIC_AGREEMENT = "sycophantic_agreement"  # Reviewer rubber-stamped without independent evaluation
 
 
 class ConsensusPhase(str, Enum):

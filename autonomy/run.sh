@@ -526,6 +526,9 @@ ITERATION_COUNT=0
 # Perpetual mode: never stop unless max iterations (ignores all completion signals)
 PERPETUAL_MODE=${LOKI_PERPETUAL_MODE:-false}
 
+# Enterprise background service PIDs (OTEL bridge, audit subscriber, integration sync)
+ENTERPRISE_PIDS=()
+
 # Completion Council (v5.25.0) - Multi-agent completion verification
 # Source completion council module
 COUNCIL_SCRIPT="$SCRIPT_DIR/completion-council.sh"
@@ -885,6 +888,143 @@ emit_event_json() {
     echo "$json_event" >> "$events_file"
 
     log_debug "Event: $event_type - $json_data"
+}
+
+# Emit event to .loki/events/pending/ directory (for event bus subscribers)
+# Used by OTEL bridge and other enterprise services that watch the pending dir.
+# Usage: emit_event_pending <type> [key=value ...]
+emit_event_pending() {
+    local event_type="$1"
+    shift
+    local events_dir=".loki/events/pending"
+    mkdir -p "$events_dir"
+
+    local timestamp
+    timestamp=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+    local event_id
+    event_id=$(head -c 4 /dev/urandom | od -An -tx1 | tr -d ' \n')
+
+    # Build payload JSON from key=value args
+    local payload="{"
+    local first=true
+    while [ $# -gt 0 ]; do
+        local key="${1%%=*}"
+        local value="${1#*=}"
+        if [ "$first" = true ]; then
+            first=false
+        else
+            payload+=","
+        fi
+        value=$(printf '%s' "$value" | sed 's/\\/\\\\/g; s/"/\\"/g; s/	/\\t/g')
+        payload+="\"$key\":\"$value\""
+        shift
+    done
+    payload+="}"
+
+    local event_file="$events_dir/${timestamp//:/-}_${event_id}.json"
+    printf '{"id":"%s","type":"%s","timestamp":"%s","payload":%s,"version":"1.0"}\n' \
+        "$event_id" "$event_type" "$timestamp" "$payload" > "${event_file}.tmp" && mv "${event_file}.tmp" "$event_file"
+}
+
+#===============================================================================
+# Enterprise Process Manager
+# Manages background services: OTEL bridge, audit subscriber, integration sync
+#===============================================================================
+
+# Start enterprise background services
+start_enterprise_services() {
+    log_info "Starting enterprise services..."
+
+    # OTEL Bridge (requires LOKI_OTEL_ENDPOINT and node)
+    if [ -n "${LOKI_OTEL_ENDPOINT:-}" ] && command -v node >/dev/null 2>&1; then
+        LOKI_TRACE_ID=$(node -e "console.log(require('crypto').randomBytes(16).toString('hex'))")
+        export LOKI_TRACE_ID
+        local bridge_script="${SCRIPT_DIR}/../src/observability/otel-bridge.js"
+        if [ -f "$bridge_script" ]; then
+            LOKI_OTEL_ENDPOINT="$LOKI_OTEL_ENDPOINT" \
+            LOKI_TRACE_ID="$LOKI_TRACE_ID" \
+            LOKI_DIR=".loki" \
+            node "$bridge_script" &
+            ENTERPRISE_PIDS+=($!)
+            log_info "Started OTEL bridge (PID: ${ENTERPRISE_PIDS[-1]})"
+        else
+            log_warn "OTEL bridge script not found: $bridge_script"
+        fi
+    fi
+
+    # Audit subscriber (P0.5-3)
+    if [ "${LOKI_AUDIT_ENABLED:-false}" = "true" ]; then
+        if command -v node >/dev/null 2>&1; then
+            node "${SCRIPT_DIR}/../src/audit/subscriber.js" &
+            ENTERPRISE_PIDS+=($!)
+            log_info "Started audit subscriber (PID: ${ENTERPRISE_PIDS[-1]})"
+        fi
+    fi
+}
+
+# Stop all enterprise background services
+stop_enterprise_services() {
+    if [ ${#ENTERPRISE_PIDS[@]} -eq 0 ]; then
+        return
+    fi
+
+    log_info "Stopping enterprise services (${#ENTERPRISE_PIDS[@]} processes)..."
+    for pid in "${ENTERPRISE_PIDS[@]}"; do
+        if kill -0 "$pid" 2>/dev/null; then
+            kill -TERM "$pid" 2>/dev/null || true
+            # Wait briefly for graceful shutdown
+            local wait_count=0
+            while kill -0 "$pid" 2>/dev/null && [ $wait_count -lt 10 ]; do
+                sleep 0.1
+                ((wait_count++))
+            done
+            # Force kill if still running
+            if kill -0 "$pid" 2>/dev/null; then
+                kill -9 "$pid" 2>/dev/null || true
+                log_warn "Force-killed enterprise service PID $pid"
+            else
+                log_info "Enterprise service PID $pid stopped gracefully"
+            fi
+        fi
+    done
+    ENTERPRISE_PIDS=()
+}
+
+# Policy engine check wrapper (P0.5-2)
+# Evaluates policies via Node.js CLI and returns appropriate exit codes.
+# Exit 0 = ALLOW, Exit 1 = DENY, Exit 2 = REQUIRE_APPROVAL (logged but allowed for now)
+check_policy() {
+    local enforcement_point="$1"
+    local context_json="${2:-{}}"
+
+    # Only check if policy files exist
+    if [ ! -f ".loki/policies.json" ] && [ ! -f ".loki/policies.yaml" ]; then
+        return 0
+    fi
+
+    # Requires Node.js
+    if ! command -v node >/dev/null 2>&1; then
+        return 0
+    fi
+
+    local result
+    result=$(LOKI_PROJECT_DIR="$(pwd)" node "${SCRIPT_DIR}/../src/policies/check.js" "$enforcement_point" "$context_json" 2>/dev/null)
+    local exit_code=$?
+
+    if [ $exit_code -eq 1 ]; then
+        log_error "Policy DENIED: $result"
+        audit_agent_action "policy_denied" "Policy denied execution" "enforcement=$enforcement_point"
+        emit_event_json "policy_denied" \
+            "enforcement=$enforcement_point" \
+            "result=$result"
+        return 1
+    elif [ $exit_code -eq 2 ]; then
+        log_warn "Policy requires APPROVAL: $result"
+        audit_agent_action "policy_approval_required" "Policy requires approval" "enforcement=$enforcement_point"
+        # Log but proceed (full approval flow is P1-3 scope)
+        return 0
+    fi
+    return 0
 }
 
 #===============================================================================
@@ -2949,6 +3089,13 @@ track_iteration_start() {
         "provider=${PROVIDER_NAME:-claude}" \
         "prd=${prd:-Codebase Analysis}"
 
+    # Also emit to pending dir for OTEL bridge
+    if [ -n "${LOKI_OTEL_ENDPOINT:-}" ]; then
+        emit_event_pending "iteration_start" \
+            "iteration=$iteration" \
+            "provider=${PROVIDER_NAME:-claude}"
+    fi
+
     # Create task entry (escape PRD path for safe JSON embedding)
     local prd_escaped
     prd_escaped=$(printf '%s' "${prd:-Codebase Analysis}" | sed 's/\\/\\\\/g; s/"/\\"/g; s/\t/\\t/g')
@@ -3009,6 +3156,14 @@ track_iteration_complete() {
         "status=$status_str" \
         "exitCode=$exit_code" \
         "provider=${PROVIDER_NAME:-claude}"
+
+    # Also emit to pending dir for OTEL bridge
+    if [ -n "${LOKI_OTEL_ENDPOINT:-}" ]; then
+        emit_event_pending "iteration_complete" \
+            "iteration=$iteration" \
+            "status=$status_str" \
+            "exit_code=$exit_code"
+    fi
 
     # Emit learning signals based on outcome (SYN-018)
     if [ "$exit_code" = "0" ]; then
@@ -6660,7 +6815,25 @@ run_autonomous() {
         echo "=== RARV Phase: $rarv_phase, Tier: $CURRENT_TIER ($tier_param) ===" | tee -a "$log_file" "$agent_log"
         log_info "RARV Phase: $rarv_phase -> Tier: $CURRENT_TIER ($tier_param)"
 
+        # Emit OTEL phase span (if OTEL is enabled)
+        if [ -n "${LOKI_OTEL_ENDPOINT:-}" ]; then
+            emit_event_pending "otel_span_start" \
+                "span_name=rarv.phase.$rarv_phase" \
+                "iteration=$ITERATION_COUNT" \
+                "phase=$rarv_phase" \
+                "tier=$CURRENT_TIER"
+        fi
+
         set +e
+        # Policy engine check (P0.5-2: blocks execution if policy denies)
+        local policy_context="{\"provider\":\"${PROVIDER_NAME:-claude}\",\"iteration\":$ITERATION_COUNT,\"tier\":\"$CURRENT_TIER\"}"
+        if ! check_policy "pre_execution" "$policy_context"; then
+            log_error "Execution blocked by policy engine"
+            save_state $retry "policy_blocked" 1
+            track_iteration_complete "$ITERATION_COUNT" "1"
+            continue
+        fi
+
         # Audit: record CLI invocation
         audit_agent_action "cli_invoke" "Starting iteration $ITERATION_COUNT" "provider=${PROVIDER_NAME:-claude},tier=$CURRENT_TIER"
 
@@ -6936,6 +7109,13 @@ if __name__ == "__main__":
 
         # Auto-track iteration completion (for dashboard task queue)
         track_iteration_complete "$ITERATION_COUNT" "$exit_code"
+
+        # End OTEL phase span (if OTEL is enabled)
+        if [ -n "${LOKI_OTEL_ENDPOINT:-}" ]; then
+            emit_event_pending "otel_span_end" \
+                "span_name=rarv.phase.$rarv_phase" \
+                "status=$([[ $exit_code -eq 0 ]] && echo ok || echo error)"
+        fi
 
         # PRD Checklist verification on interval (v5.44.0)
         if type checklist_should_verify &>/dev/null && checklist_should_verify; then
@@ -7690,6 +7870,16 @@ main() {
         "complexity=${DETECTED_COMPLEXITY:-standard}" \
         "parallel=${PARALLEL_MODE:-false}" 2>/dev/null || true
 
+    # Start enterprise background services (OTEL bridge, etc.)
+    start_enterprise_services
+
+    # Also emit session_start to pending dir for OTEL bridge
+    if [ -n "${LOKI_OTEL_ENDPOINT:-}" ]; then
+        emit_event_pending "session_start" \
+            "provider=${PROVIDER_NAME:-claude}" \
+            "prd=${PRD_PATH:-}"
+    fi
+
     # Run in appropriate mode
     local result=0
     if [ "$PARALLEL_MODE" = "true" ]; then
@@ -7749,6 +7939,16 @@ main() {
 
     # Create session-end checkpoint (v5.34.0)
     create_checkpoint "session end (iterations=$ITERATION_COUNT)" "session-end"
+
+    # Emit session_end to pending dir for OTEL bridge (before stopping services)
+    if [ -n "${LOKI_OTEL_ENDPOINT:-}" ]; then
+        emit_event_pending "session_end" \
+            "result=$result" \
+            "iterations=$ITERATION_COUNT"
+    fi
+
+    # Stop enterprise background services (OTEL bridge, etc.)
+    stop_enterprise_services
 
     # Log session end for audit
     audit_log "SESSION_END" "result=$result,prd=$PRD_PATH"
