@@ -113,7 +113,7 @@ See [full architecture documentation](docs/enterprise/architecture.md) for the d
 | **Enterprise** | TLS, OIDC/SSO, RBAC, OTEL, policy engine, audit trails | [Enterprise Guide](docs/enterprise/architecture.md) |
 | **Integrations** | Jira, Slack, Teams, GitHub Actions (Linear: partial) | [Integration Cookbook](docs/enterprise/integration-cookbook.md) |
 | **Deployment** | Helm, Docker Compose, Terraform configs (AWS/Azure/GCP) | [Deployment Guide](deploy/helm/README.md) |
-| **SDKs** | Python (`autonomi`), TypeScript (`@autonomi/sdk`) | [SDK Guide](docs/enterprise/sdk-guide.md) |
+| **SDKs** | Python (`loki-mode-sdk`), TypeScript (`loki-mode-sdk`) | [SDK Guide](docs/enterprise/sdk-guide.md) |
 
 ### Multi-Provider Support
 

@@ -1,7 +1,4 @@
-"""Autonomi -- Python SDK for the Loki Mode Control Plane API.
-
-Zero external dependencies. Uses only Python standard library.
-"""
+"""Loki Mode SDK - Python client for the Loki Mode autonomous development platform."""
 
 __version__ = "0.1.0"
 
@@ -20,8 +17,12 @@ from .sessions import SessionManager
 from .tasks import TaskManager
 from .events import EventStream
 
+# Convenience alias
+Client = AutonomiClient
+
 __all__ = [
     "__version__",
+    "Client",
     "AutonomiClient",
     "AutonomiError",
     "AuthenticationError",

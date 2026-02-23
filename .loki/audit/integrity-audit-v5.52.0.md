@@ -42,7 +42,7 @@
 | 24 | Knowledge Graph import | WORKS | `from memory.knowledge_graph import OrganizationKnowledgeGraph` succeeds. Note: class name is `OrganizationKnowledgeGraph`, not `KnowledgeGraph` |
 | 25 | Sycophancy Detector import | WORKS | `from swarm.sycophancy import detect_sycophancy` succeeds. Note: export is `detect_sycophancy` function, not `SycophancyDetector` class |
 | 26 | Calibration import | WORKS | `from swarm.calibration import CalibrationTracker` succeeds. Note: class name is `CalibrationTracker`, not `ReviewerCalibration` |
-| 27 | Python SDK import | WORKS | `from autonomi import AutonomiClient` succeeds. Client instantiates with base_url. Exports: `AutonomiClient`, `ApiKey`, `AuditEntry`, `AuthenticationError`, `ForbiddenError`, `NotFoundError`, `EventStream`, `Project`, `Run`, `RunEvent`, `SessionManager`, `Task`, `TaskManager`, `Tenant`, `TokenAuth`. Note: class is `AutonomiClient`, not `Client`. |
+| 27 | Python SDK import | WORKS | `from loki_mode_sdk import AutonomiClient` succeeds. Client instantiates with base_url. Exports: `AutonomiClient`, `ApiKey`, `AuditEntry`, `AuthenticationError`, `ForbiddenError`, `NotFoundError`, `EventStream`, `Project`, `Run`, `RunEvent`, `SessionManager`, `Task`, `TaskManager`, `Tenant`, `TokenAuth`. Note: class is `AutonomiClient`, not `Client`. |
 | 28 | TypeScript SDK import | WORKS | **Fixed in v5.52.1**: Added `tsc` build step, compiled 28 dist/ files (.js, .d.ts, .d.ts.map, .js.map). `require('./sdk/typescript/dist')` succeeds. |
 | 29 | PRD Classifier import | WORKS | `from swarm.classifier import PRDClassifier` succeeds |
 | 30 | Swarm Composer import | WORKS | `from swarm.composer import SwarmComposer` succeeds |

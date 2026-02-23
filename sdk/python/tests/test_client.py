@@ -1,4 +1,4 @@
-"""Tests for the Autonomi Python SDK.
+"""Tests for the Loki Mode Python SDK.
 
 All HTTP calls are mocked via unittest.mock -- no real server needed.
 """
@@ -17,15 +17,15 @@ import os
 # Ensure the package is importable
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from autonomi.client import (
+from loki_mode_sdk.client import (
     AutonomiClient,
     AutonomiError,
     AuthenticationError,
     ForbiddenError,
     NotFoundError,
 )
-from autonomi.auth import TokenAuth
-from autonomi.types import (
+from loki_mode_sdk.auth import TokenAuth
+from loki_mode_sdk.types import (
     ApiKey,
     AuditEntry,
     Project,
@@ -34,9 +34,9 @@ from autonomi.types import (
     Task,
     Tenant,
 )
-from autonomi.sessions import SessionManager
-from autonomi.tasks import TaskManager
-from autonomi.events import EventStream
+from loki_mode_sdk.sessions import SessionManager
+from loki_mode_sdk.tasks import TaskManager
+from loki_mode_sdk.events import EventStream
 
 
 def _mock_response(data, status=200):
@@ -109,7 +109,7 @@ class TestRequestMethod(unittest.TestCase):
             base_url="http://localhost:57374", token="loki_test"
         )
 
-    @patch("autonomi.client.urllib.request.urlopen")
+    @patch("loki_mode_sdk.client.urllib.request.urlopen")
     def test_get_request(self, mock_urlopen):
         mock_urlopen.return_value = _mock_response({"status": "ok"})
         result = self.client._get("/api/status")
@@ -118,7 +118,7 @@ class TestRequestMethod(unittest.TestCase):
         req = call_args[0][0]
         self.assertEqual(req.get_method(), "GET")
 
-    @patch("autonomi.client.urllib.request.urlopen")
+    @patch("loki_mode_sdk.client.urllib.request.urlopen")
     def test_post_request_with_data(self, mock_urlopen):
         mock_urlopen.return_value = _mock_response({"id": "proj-1"})
         result = self.client._post("/api/projects", data={"name": "test"})
@@ -128,7 +128,7 @@ class TestRequestMethod(unittest.TestCase):
         self.assertEqual(req.get_method(), "POST")
         self.assertEqual(json.loads(req.data), {"name": "test"})
 
-    @patch("autonomi.client.urllib.request.urlopen")
+    @patch("loki_mode_sdk.client.urllib.request.urlopen")
     def test_put_request(self, mock_urlopen):
         mock_urlopen.return_value = _mock_response({"updated": True})
         result = self.client._put("/api/tasks/1", data={"status": "done"})
@@ -137,7 +137,7 @@ class TestRequestMethod(unittest.TestCase):
         req = call_args[0][0]
         self.assertEqual(req.get_method(), "PUT")
 
-    @patch("autonomi.client.urllib.request.urlopen")
+    @patch("loki_mode_sdk.client.urllib.request.urlopen")
     def test_delete_request(self, mock_urlopen):
         resp = _mock_response(None, status=204)
         resp.read.return_value = b""
@@ -147,7 +147,7 @@ class TestRequestMethod(unittest.TestCase):
         req = call_args[0][0]
         self.assertEqual(req.get_method(), "DELETE")
 
-    @patch("autonomi.client.urllib.request.urlopen")
+    @patch("loki_mode_sdk.client.urllib.request.urlopen")
     def test_auth_headers_included(self, mock_urlopen):
         mock_urlopen.return_value = _mock_response({"ok": True})
         self.client._get("/api/status")
@@ -155,7 +155,7 @@ class TestRequestMethod(unittest.TestCase):
         req = call_args[0][0]
         self.assertEqual(req.get_header("Authorization"), "Bearer loki_test")
 
-    @patch("autonomi.client.urllib.request.urlopen")
+    @patch("loki_mode_sdk.client.urllib.request.urlopen")
     def test_query_params(self, mock_urlopen):
         mock_urlopen.return_value = _mock_response([])
         self.client._get("/api/runs", params={"status": "running"})
@@ -168,35 +168,35 @@ class TestErrorHandling(unittest.TestCase):
     def setUp(self):
         self.client = AutonomiClient(token="loki_test")
 
-    @patch("autonomi.client.urllib.request.urlopen")
+    @patch("loki_mode_sdk.client.urllib.request.urlopen")
     def test_401_raises_authentication_error(self, mock_urlopen):
         mock_urlopen.side_effect = _mock_http_error(401, "Unauthorized")
         with self.assertRaises(AuthenticationError) as ctx:
             self.client.get_status()
         self.assertEqual(ctx.exception.status_code, 401)
 
-    @patch("autonomi.client.urllib.request.urlopen")
+    @patch("loki_mode_sdk.client.urllib.request.urlopen")
     def test_403_raises_forbidden_error(self, mock_urlopen):
         mock_urlopen.side_effect = _mock_http_error(403, "Forbidden")
         with self.assertRaises(ForbiddenError) as ctx:
             self.client.get_status()
         self.assertEqual(ctx.exception.status_code, 403)
 
-    @patch("autonomi.client.urllib.request.urlopen")
+    @patch("loki_mode_sdk.client.urllib.request.urlopen")
     def test_404_raises_not_found_error(self, mock_urlopen):
         mock_urlopen.side_effect = _mock_http_error(404, "Not Found")
         with self.assertRaises(NotFoundError) as ctx:
             self.client.get_project("nonexistent")
         self.assertEqual(ctx.exception.status_code, 404)
 
-    @patch("autonomi.client.urllib.request.urlopen")
+    @patch("loki_mode_sdk.client.urllib.request.urlopen")
     def test_500_raises_autonomi_error(self, mock_urlopen):
         mock_urlopen.side_effect = _mock_http_error(500, "Internal Server Error")
         with self.assertRaises(AutonomiError) as ctx:
             self.client.get_status()
         self.assertEqual(ctx.exception.status_code, 500)
 
-    @patch("autonomi.client.urllib.request.urlopen")
+    @patch("loki_mode_sdk.client.urllib.request.urlopen")
     def test_error_includes_response_body(self, mock_urlopen):
         body = json.dumps({"detail": "Rate limit exceeded"})
         mock_urlopen.side_effect = _mock_http_error(429, "Too Many Requests", body)
@@ -210,7 +210,7 @@ class TestListProjects(unittest.TestCase):
     def setUp(self):
         self.client = AutonomiClient(token="loki_test")
 
-    @patch("autonomi.client.urllib.request.urlopen")
+    @patch("loki_mode_sdk.client.urllib.request.urlopen")
     def test_list_projects_returns_project_objects(self, mock_urlopen):
         mock_urlopen.return_value = _mock_response(
             {
@@ -227,7 +227,7 @@ class TestListProjects(unittest.TestCase):
         self.assertEqual(projects[0].name, "Alpha")
         self.assertEqual(projects[1].status, "archived")
 
-    @patch("autonomi.client.urllib.request.urlopen")
+    @patch("loki_mode_sdk.client.urllib.request.urlopen")
     def test_list_projects_handles_array_response(self, mock_urlopen):
         mock_urlopen.return_value = _mock_response(
             [{"id": "p1", "name": "Solo"}]
@@ -241,7 +241,7 @@ class TestCreateProject(unittest.TestCase):
     def setUp(self):
         self.client = AutonomiClient(token="loki_test")
 
-    @patch("autonomi.client.urllib.request.urlopen")
+    @patch("loki_mode_sdk.client.urllib.request.urlopen")
     def test_create_project(self, mock_urlopen):
         mock_urlopen.return_value = _mock_response(
             {"id": "p-new", "name": "New Project", "description": "Test desc"}
@@ -262,7 +262,7 @@ class TestListRuns(unittest.TestCase):
     def setUp(self):
         self.client = AutonomiClient(token="loki_test")
 
-    @patch("autonomi.client.urllib.request.urlopen")
+    @patch("loki_mode_sdk.client.urllib.request.urlopen")
     def test_list_runs_returns_run_objects(self, mock_urlopen):
         mock_urlopen.return_value = _mock_response(
             {
@@ -288,7 +288,7 @@ class TestListRuns(unittest.TestCase):
         self.assertEqual(runs[0].status, "running")
         self.assertEqual(runs[1].trigger, "schedule")
 
-    @patch("autonomi.client.urllib.request.urlopen")
+    @patch("loki_mode_sdk.client.urllib.request.urlopen")
     def test_list_runs_with_status_filter(self, mock_urlopen):
         mock_urlopen.return_value = _mock_response({"runs": []})
         self.client.list_runs(status="failed")
@@ -301,7 +301,7 @@ class TestCancelRun(unittest.TestCase):
     def setUp(self):
         self.client = AutonomiClient(token="loki_test")
 
-    @patch("autonomi.client.urllib.request.urlopen")
+    @patch("loki_mode_sdk.client.urllib.request.urlopen")
     def test_cancel_run(self, mock_urlopen):
         mock_urlopen.return_value = _mock_response(
             {"id": "r1", "project_id": "p1", "status": "cancelled"}
@@ -319,7 +319,7 @@ class TestQueryAudit(unittest.TestCase):
     def setUp(self):
         self.client = AutonomiClient(token="loki_test")
 
-    @patch("autonomi.client.urllib.request.urlopen")
+    @patch("loki_mode_sdk.client.urllib.request.urlopen")
     def test_query_audit_returns_entries(self, mock_urlopen):
         mock_urlopen.return_value = _mock_response(
             {
@@ -341,7 +341,7 @@ class TestQueryAudit(unittest.TestCase):
         self.assertEqual(entries[0].action, "project.create")
         self.assertTrue(entries[0].success)
 
-    @patch("autonomi.client.urllib.request.urlopen")
+    @patch("loki_mode_sdk.client.urllib.request.urlopen")
     def test_query_audit_params(self, mock_urlopen):
         mock_urlopen.return_value = _mock_response({"entries": []})
         self.client.query_audit(
@@ -427,7 +427,7 @@ class TestTaskManager(unittest.TestCase):
         self.client = AutonomiClient(token="loki_test")
         self.tasks = TaskManager(self.client)
 
-    @patch("autonomi.client.urllib.request.urlopen")
+    @patch("loki_mode_sdk.client.urllib.request.urlopen")
     def test_create_task(self, mock_urlopen):
         mock_urlopen.return_value = _mock_response(
             {"id": "t1", "project_id": "p1", "title": "Build UI", "priority": "high"}
@@ -436,7 +436,7 @@ class TestTaskManager(unittest.TestCase):
         self.assertIsInstance(task, Task)
         self.assertEqual(task.title, "Build UI")
 
-    @patch("autonomi.client.urllib.request.urlopen")
+    @patch("loki_mode_sdk.client.urllib.request.urlopen")
     def test_update_task(self, mock_urlopen):
         mock_urlopen.return_value = _mock_response(
             {"id": "t1", "project_id": "p1", "title": "Build UI", "status": "done"}
@@ -450,7 +450,7 @@ class TestSessionManager(unittest.TestCase):
         self.client = AutonomiClient(token="loki_test")
         self.sessions = SessionManager(self.client)
 
-    @patch("autonomi.client.urllib.request.urlopen")
+    @patch("loki_mode_sdk.client.urllib.request.urlopen")
     def test_list_sessions(self, mock_urlopen):
         mock_urlopen.return_value = _mock_response(
             {"sessions": [{"id": "s1", "status": "active"}]}
@@ -465,7 +465,7 @@ class TestEventStream(unittest.TestCase):
         self.client = AutonomiClient(token="loki_test")
         self.events = EventStream(self.client)
 
-    @patch("autonomi.client.urllib.request.urlopen")
+    @patch("loki_mode_sdk.client.urllib.request.urlopen")
     def test_poll_events(self, mock_urlopen):
         mock_urlopen.return_value = _mock_response(
             {
@@ -489,7 +489,7 @@ class TestApiKeys(unittest.TestCase):
     def setUp(self):
         self.client = AutonomiClient(token="loki_test")
 
-    @patch("autonomi.client.urllib.request.urlopen")
+    @patch("loki_mode_sdk.client.urllib.request.urlopen")
     def test_create_api_key(self, mock_urlopen):
         mock_urlopen.return_value = _mock_response(
             {"id": "k1", "name": "ci", "token": "loki_secret", "role": "admin"}
@@ -497,7 +497,7 @@ class TestApiKeys(unittest.TestCase):
         result = self.client.create_api_key("ci", role="admin")
         self.assertEqual(result["token"], "loki_secret")
 
-    @patch("autonomi.client.urllib.request.urlopen")
+    @patch("loki_mode_sdk.client.urllib.request.urlopen")
     def test_rotate_api_key(self, mock_urlopen):
         mock_urlopen.return_value = _mock_response(
             {"id": "k1", "new_token": "loki_rotated", "grace_until": "2026-02-22"}

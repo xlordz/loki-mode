@@ -242,10 +242,10 @@ Install the official SDKs for programmatic access:
 
 ```bash
 # Python (zero dependencies, Python 3.9+)
-pip install autonomi
+pip install loki-mode-sdk
 
 # TypeScript (zero dependencies, Node.js 18+)
-npm install @autonomi/sdk
+npm install loki-mode-sdk
 ```
 
 See [SDK Guide](../docs/enterprise/sdk-guide.md) for usage examples.

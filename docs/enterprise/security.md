@@ -41,7 +41,7 @@ curl -X DELETE http://localhost:57374/api/keys/ci-pipeline \
 
 Python:
 ```python
-from autonomi import AutonomiClient
+from loki_mode_sdk import AutonomiClient
 
 client = AutonomiClient(
     base_url="http://localhost:57374",
@@ -51,7 +51,7 @@ client = AutonomiClient(
 
 TypeScript:
 ```typescript
-import { AutonomiClient } from '@autonomi/sdk';
+import { AutonomiClient } from 'loki-mode-sdk';
 
 const client = new AutonomiClient({
   baseUrl: 'http://localhost:57374',

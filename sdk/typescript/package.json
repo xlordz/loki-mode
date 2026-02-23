@@ -1,40 +1,38 @@
 {
-  "name": "@autonomi/sdk",
+  "name": "loki-mode-sdk",
   "version": "0.1.0",
-  "description": "TypeScript/Node.js SDK for the Autonomi Control Plane API",
+  "description": "TypeScript SDK for Loki Mode - autonomous multi-agent development platform",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
-    "dist",
-    "LICENSE",
-    "README.md"
+    "dist/",
+    "README.md",
+    "LICENSE"
   ],
   "scripts": {
     "build": "tsc",
     "prepublishOnly": "npm run build",
     "test": "node --test tests/client.test.js"
   },
-  "engines": {
-    "node": ">=18"
-  },
+  "keywords": [
+    "loki-mode", "autonomous", "ai-agents", "multi-agent",
+    "developer-tools", "sdk", "devtools", "automation",
+    "claude", "anthropic"
+  ],
+  "author": "Lokesh Mure <lokesh@autonomi.dev>",
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/asklokesh/loki-mode.git",
     "directory": "sdk/typescript"
   },
-  "homepage": "https://www.autonomi.dev/",
+  "homepage": "https://github.com/asklokesh/loki-mode",
   "bugs": {
     "url": "https://github.com/asklokesh/loki-mode/issues"
   },
-  "keywords": [
-    "autonomi",
-    "loki-mode",
-    "sdk",
-    "api-client",
-    "control-plane",
-    "agents"
-  ],
+  "engines": {
+    "node": ">=18"
+  },
   "devDependencies": {
     "typescript": "^5.9.3"
   }

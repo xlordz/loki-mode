@@ -64,7 +64,7 @@ RESTful API for managing projects, runs, tasks, tenants, API keys, and audit log
 
 Official Python and TypeScript SDKs with zero external dependencies. Type-safe clients for all API endpoints with structured error handling.
 
-**Install:** `pip install autonomi` or `npm install @autonomi/sdk`
+**Install:** `pip install loki-mode-sdk` or `npm install loki-mode-sdk`
 
 ## Key Design Principles
 

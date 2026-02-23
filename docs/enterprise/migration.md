@@ -52,12 +52,12 @@ The v1 API (`/api/`) continues to work unchanged. The v2 API adds tenant isolati
 
 Official SDKs for programmatic access to the Control Plane API.
 
-**Python SDK (`autonomi`):**
+**Python SDK (`loki-mode-sdk`):**
 - Zero external dependencies (stdlib only)
 - Synchronous client using `urllib`
 - Type-safe dataclasses for all API resources
 
-**TypeScript SDK (`@autonomi/sdk`):**
+**TypeScript SDK (`loki-mode-sdk`):**
 - Zero external dependencies (uses Node.js built-in `fetch`)
 - Async/await API
 - TypeScript interfaces for all resources
@@ -220,10 +220,10 @@ export LOKI_OIDC_ISSUER="https://..."
 
 ```bash
 # Python SDK
-pip install autonomi
+pip install loki-mode-sdk
 
 # TypeScript SDK
-npm install @autonomi/sdk
+npm install loki-mode-sdk
 ```
 
 #### 5. Test Enterprise Features

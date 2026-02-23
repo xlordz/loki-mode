@@ -1,10 +1,10 @@
 /**
- * Autonomi SDK - Public API
+ * Loki Mode SDK - Public API
  *
- * @autonomi/sdk - TypeScript/Node.js SDK for the Autonomi Control Plane API.
+ * loki-mode-sdk - TypeScript/Node.js SDK for the Loki Mode Control Plane API.
  *
  * Usage:
- *   import { AutonomiClient } from '@autonomi/sdk';
+ *   import { AutonomiClient } from 'loki-mode-sdk';
  *   const client = new AutonomiClient({ baseUrl: 'http://localhost:57374', token: 'loki_xxx' });
  *   const projects = await client.listProjects();
  */

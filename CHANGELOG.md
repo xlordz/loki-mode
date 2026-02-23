@@ -88,8 +88,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Follows existing vanilla Web Components pattern (no framework)
 
 ### Added - SDKs (P1-7, P1-8)
-- Python SDK (`autonomi`): zero-dependency, stdlib-only, Python 3.9+
-- TypeScript SDK (`@autonomi/sdk`): zero-dependency, Node.js 18+ built-in modules only
+- Python SDK (`loki-mode-sdk`): zero-dependency, stdlib-only, Python 3.9+
+- TypeScript SDK (`loki-mode-sdk`): zero-dependency, Node.js 18+ built-in modules only
 
 ### Added - Enterprise Documentation (P1-9)
 - Architecture, security, performance, integration cookbook, migration guide, SDK quickstart

@@ -9,7 +9,7 @@ Official Python and TypeScript SDKs for the Autonomi Control Plane API. Both SDK
 ### Installation
 
 ```bash
-pip install autonomi
+pip install loki-mode-sdk
 ```
 
 Or install from source:
@@ -24,7 +24,7 @@ pip install -e .
 ### Quick Start
 
 ```python
-from autonomi import AutonomiClient
+from loki_mode_sdk import AutonomiClient
 
 # Create a client
 client = AutonomiClient(
@@ -115,7 +115,7 @@ client.query_audit(
 #### SessionManager
 
 ```python
-from autonomi import AutonomiClient, SessionManager
+from loki_mode_sdk import AutonomiClient, SessionManager
 
 client = AutonomiClient(base_url="http://localhost:57374", token="loki_xxx")
 sessions = SessionManager(client)
@@ -130,7 +130,7 @@ session = sessions.get_session("session-id")
 #### TaskManager
 
 ```python
-from autonomi import AutonomiClient, TaskManager
+from loki_mode_sdk import AutonomiClient, TaskManager
 
 client = AutonomiClient(base_url="http://localhost:57374", token="loki_xxx")
 tasks = TaskManager(client)
@@ -153,7 +153,7 @@ tasks.update_task(task.id, status="in_progress")
 #### EventStream
 
 ```python
-from autonomi import AutonomiClient, EventStream
+from loki_mode_sdk import AutonomiClient, EventStream
 import time
 
 client = AutonomiClient(base_url="http://localhost:57374", token="loki_xxx")
@@ -172,7 +172,7 @@ while True:
 ### Error Handling
 
 ```python
-from autonomi import (
+from loki_mode_sdk import (
     AutonomiClient,
     AutonomiError,
     AuthenticationError,
@@ -212,7 +212,7 @@ AutonomiError (base)
 ### Installation
 
 ```bash
-npm install @autonomi/sdk
+npm install loki-mode-sdk
 ```
 
 Or use from source:
@@ -227,7 +227,7 @@ npm link
 ### Quick Start
 
 ```typescript
-import { AutonomiClient } from '@autonomi/sdk';
+import { AutonomiClient } from 'loki-mode-sdk';
 
 const client = new AutonomiClient({
   baseUrl: 'http://localhost:57374',
@@ -400,7 +400,7 @@ import {
   AuthenticationError,
   ForbiddenError,
   NotFoundError,
-} from '@autonomi/sdk';
+} from 'loki-mode-sdk';
 
 const client = new AutonomiClient({
   baseUrl: 'http://localhost:57374',
@@ -471,7 +471,7 @@ Process incoming webhooks and update the Control Plane:
 ```python
 # Python -- Flask webhook handler example
 from flask import Flask, request
-from autonomi import AutonomiClient
+from loki_mode_sdk import AutonomiClient
 
 app = Flask(__name__)
 client = AutonomiClient(base_url="http://localhost:57374", token="loki_xxx")
@@ -483,7 +483,7 @@ def handle_webhook():
 
     if event_type == "task_completed":
         # Update task status in the Control Plane
-        from autonomi import TaskManager
+        from loki_mode_sdk import TaskManager
         tasks = TaskManager(client)
         tasks.update_task(payload["task_id"], status="completed")
 

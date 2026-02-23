@@ -1,39 +1,43 @@
-[build-system]
-requires = ["setuptools>=64", "wheel"]
-build-backend = "setuptools.build_meta"
-
 [project]
-name = "autonomi"
+name = "loki-mode-sdk"
 version = "0.1.0"
-description = "Python SDK for the Loki Mode Control Plane API"
+description = "Python SDK for Loki Mode - autonomous multi-agent development platform"
 readme = "README.md"
-license = "MIT"
-requires-python = ">=3.9"
-dependencies = []
+license = {text = "MIT"}
+requires-python = ">=3.10"
 authors = [
-    { name = "Loki Mode Contributors" },
+    {name = "Lokesh Mure", email = "lokesh@autonomi.dev"}
 ]
-keywords = ["autonomi", "loki-mode", "agents", "sdk", "control-plane"]
+keywords = [
+    "loki-mode", "autonomous", "ai-agents", "multi-agent",
+    "developer-tools", "sdk", "devtools", "automation"
+]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
-    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: Software Development :: Build Tools",
+]
+dependencies = [
+    "httpx>=0.24.0",
+    "pydantic>=2.0.0",
 ]
 
 [project.urls]
 Homepage = "https://github.com/asklokesh/loki-mode"
 Repository = "https://github.com/asklokesh/loki-mode"
-Issues = "https://github.com/asklokesh/loki-mode/issues"
-Documentation = "https://www.autonomi.dev/"
+Documentation = "https://github.com/asklokesh/loki-mode/wiki"
+"Bug Tracker" = "https://github.com/asklokesh/loki-mode/issues"
 
-[project.optional-dependencies]
-dev = ["pytest>=7"]
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.backends._legacy:_Backend"
 
 [tool.setuptools.packages.find]
-include = ["autonomi*"]
+include = ["loki_mode_sdk*"]

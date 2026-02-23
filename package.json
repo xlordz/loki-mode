@@ -7,11 +7,18 @@
     "loki-mode",
     "claude",
     "claude-code",
+    "codex",
+    "gemini",
     "ai",
+    "ai-agent",
     "agent",
     "autonomous",
-    "startup",
-    "multi-agent"
+    "multi-agent",
+    "prd",
+    "code-generation",
+    "testing",
+    "mcp",
+    "llm"
   ],
   "homepage": "https://www.autonomi.dev/",
   "bugs": {
@@ -59,7 +66,7 @@
     "test:dashboard": "npm run test:visual && npm run test:parity"
   },
   "engines": {
-    "node": ">=16.0.0"
+    "node": ">=18.0.0"
   },
   "os": [
     "darwin",
