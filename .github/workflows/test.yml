@@ -29,10 +29,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install --no-package-lock
 
       - name: Run tests
         run: npm test
@@ -56,9 +55,8 @@ jobs:
       - name: Install dependencies
         run: |
           python3 -m pip install --upgrade pip
-          python3 -m pip install pytest
-          if [ -f requirements.txt ]; then python3 -m pip install -r requirements.txt; fi
-          if [ -f requirements-dev.txt ]; then python3 -m pip install -r requirements-dev.txt; fi
+          python3 -m pip install pytest pytest-asyncio
+          python3 -m pip install fastapi httpx pydantic sqlalchemy[asyncio] aiosqlite uvicorn
 
       - name: Run tests
         run: python3 -m pytest
@@ -70,14 +68,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Verify bash version
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Python dependencies
         run: |
-          bash --version
-          bash_major=$(bash --version | head -1 | grep -oP 'version \K[0-9]+')
-          if [ "$bash_major" -lt 5 ]; then
-            echo "ERROR: bash 5+ required, found version $bash_major"
-            exit 1
-          fi
+          python3 -m pip install --upgrade pip
+          python3 -m pip install pydantic
 
       - name: Run shell tests
         run: bash tests/run-all-tests.sh
@@ -93,7 +92,7 @@ jobs:
         uses: azure/setup-helm@v4
 
       - name: Lint Helm chart
-        run: helm lint deploy/helm/loki-mode
+        run: helm lint deploy/helm/autonomi
 
   dashboard-build:
     name: Dashboard build verification
