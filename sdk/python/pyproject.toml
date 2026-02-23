@@ -9,8 +9,21 @@ authors = [
     {name = "Lokesh Mure", email = "lokesh@autonomi.dev"}
 ]
 keywords = [
-    "loki-mode", "autonomous", "ai-agents", "multi-agent",
-    "developer-tools", "sdk", "devtools", "automation"
+    "loki-mode", "autonomous", "sdk",
+    "claude", "claude-code", "anthropic",
+    "ai", "ai-agents", "multi-agent", "agent-orchestration",
+    "swarm-intelligence", "swarm",
+    "mcp", "model-context-protocol",
+    "llm", "large-language-model",
+    "gpt", "chatgpt",
+    "automation", "workflow", "orchestration",
+    "cli", "developer-tools", "devtools",
+    "coding-assistant", "code-generation",
+    "enterprise", "vector-database", "embeddings",
+    "machine-learning", "neural-network",
+    "hive-mind", "distributed-systems", "consensus", "self-learning",
+    "openai", "codex", "gemini", "gemini-cli",
+    "opencode", "ollama", "mistral", "openclaw",
 ]
 classifiers = [
     "Development Status :: 3 - Alpha",
