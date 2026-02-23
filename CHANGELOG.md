@@ -5,6 +5,19 @@ All notable changes to Loki Mode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.52.2] - 2026-02-23
+
+### Fixed
+- SDK package name collision: renamed Python SDK from `autonomi` to `loki-mode-sdk` (PyPI), TypeScript SDK from `@autonomi/sdk` to `loki-mode-sdk` (npm)
+- Release workflow now auto-syncs SDK versions from root VERSION file
+
+### Added
+- CI test matrix workflow (Node 18/20/22, Python 3.10-3.13, shell tests, Helm lint, dashboard build)
+- Weekly integrity audit workflow with auto-issue on failure
+- PyPI and npm SDK publishing jobs in release workflow
+- Enterprise issue template, discussion templates (Show & Tell, Q&A)
+- Show HN draft
+
 ## [5.52.1] - 2026-02-21
 
 ### Fixed
