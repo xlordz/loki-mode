@@ -5,6 +5,16 @@ All notable changes to Loki Mode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.53.0] - 2026-02-23
+
+### Changed
+- Dashboard redesign: glassmorphism effects, translucent sidebar with backdrop-filter
+- Navigation: sidebar now shows/hides sections instead of scrolling (page-based)
+- Branding: "Loki Mode / powered by Autonomi" replaces "Autonomi Dashboard"
+- Combined Overview + Tasks into single page, Logs + Memory + Learning into Insights
+- Keyboard shortcuts updated for 9-section layout
+- Refined colors, typography, and border-radius across all 19 dashboard components
+
 ## [5.52.4] - 2026-02-23
 
 ### Fixed
