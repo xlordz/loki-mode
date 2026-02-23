@@ -269,7 +269,7 @@ export class LokiTaskBoard extends LokiElement {
 
         .kanban-column {
           background: var(--loki-bg-secondary);
-          border-radius: 10px;
+          border-radius: 5px;
           padding: 12px;
           display: flex;
           flex-direction: column;
@@ -302,7 +302,7 @@ export class LokiTaskBoard extends LokiElement {
         .kanban-column-count {
           background: var(--loki-bg-tertiary);
           padding: 2px 8px;
-          border-radius: 10px;
+          border-radius: 5px;
           font-size: 11px;
           font-weight: 600;
           font-family: 'JetBrains Mono', monospace;
@@ -316,7 +316,7 @@ export class LokiTaskBoard extends LokiElement {
           gap: 8px;
           min-height: 80px;
           transition: background var(--loki-transition);
-          border-radius: 6px;
+          border-radius: 4px;
           padding: 4px;
         }
 
@@ -327,7 +327,7 @@ export class LokiTaskBoard extends LokiElement {
         .task-card {
           background: var(--loki-bg-card);
           border: 1px solid var(--loki-border);
-          border-radius: 6px;
+          border-radius: 4px;
           padding: 10px;
           cursor: pointer;
           transition: all var(--loki-transition);
@@ -414,7 +414,7 @@ export class LokiTaskBoard extends LokiElement {
         .add-task-btn {
           background: transparent;
           border: 1px dashed var(--loki-border);
-          border-radius: 6px;
+          border-radius: 4px;
           padding: 10px;
           color: var(--loki-text-muted);
           font-size: 12px;

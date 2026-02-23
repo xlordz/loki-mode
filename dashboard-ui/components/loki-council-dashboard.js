@@ -540,9 +540,9 @@ export class LokiCouncilDashboard extends LokiElement {
         font-size: 11px;
         font-weight: 500;
         padding: 2px 8px;
-        border-radius: 10px;
+        border-radius: 4px;
         text-transform: uppercase;
-        letter-spacing: 0.5px;
+        letter-spacing: 0.05em;
       }
 
       .badge-active {
@@ -559,36 +559,40 @@ export class LokiCouncilDashboard extends LokiElement {
 
       .tabs {
         display: flex;
-        gap: 2px;
-        border-bottom: 1px solid var(--loki-border);
+        gap: 4px;
+        padding: 4px;
+        background: var(--loki-bg-secondary);
+        border-radius: 5px;
+        border: 1px solid var(--loki-border);
         margin-bottom: 16px;
       }
 
       .tab {
-        padding: 8px 16px;
+        padding: 7px 14px;
         background: none;
         border: none;
         color: var(--loki-text-muted);
         cursor: pointer;
         font-size: 13px;
         font-weight: 500;
-        border-bottom: 2px solid transparent;
+        border-radius: 4px;
         transition: all 0.15s ease;
       }
 
       .tab:hover {
         color: var(--loki-text-primary);
+        background: var(--loki-bg-hover);
       }
 
       .tab.active {
-        color: var(--loki-accent);
-        border-bottom-color: var(--loki-accent);
+        color: white;
+        background: var(--loki-accent);
       }
 
       .btn {
         padding: 6px 14px;
         border: 1px solid var(--loki-border);
-        border-radius: 6px;
+        border-radius: 4px;
         background: var(--loki-bg-tertiary);
         color: var(--loki-text-primary);
         cursor: pointer;
@@ -651,7 +655,7 @@ export class LokiCouncilDashboard extends LokiElement {
       .stat-card {
         background: var(--loki-bg-card);
         border: 1px solid var(--loki-border);
-        border-radius: 8px;
+        border-radius: 5px;
         padding: 14px;
       }
 
@@ -660,7 +664,7 @@ export class LokiCouncilDashboard extends LokiElement {
         font-weight: 500;
         color: var(--loki-text-muted);
         text-transform: uppercase;
-        letter-spacing: 0.5px;
+        letter-spacing: 0.05em;
         margin-bottom: 6px;
       }
 
@@ -668,6 +672,8 @@ export class LokiCouncilDashboard extends LokiElement {
         font-size: 24px;
         font-weight: 600;
         line-height: 1.2;
+        color: var(--loki-accent);
+        font-family: 'JetBrains Mono', monospace;
       }
 
       .stat-sub {
@@ -701,7 +707,7 @@ export class LokiCouncilDashboard extends LokiElement {
         padding: 8px;
         background: var(--loki-bg-card);
         border: 1px solid var(--loki-border);
-        border-radius: 8px;
+        border-radius: 5px;
       }
 
       .bar-wrapper {
@@ -743,7 +749,7 @@ export class LokiCouncilDashboard extends LokiElement {
       .decision-card {
         background: var(--loki-bg-card);
         border: 1px solid var(--loki-border);
-        border-radius: 8px;
+        border-radius: 5px;
         padding: 12px 16px;
         border-left: 3px solid transparent;
       }
@@ -797,7 +803,7 @@ export class LokiCouncilDashboard extends LokiElement {
       .convergence-table {
         background: var(--loki-bg-card);
         border: 1px solid var(--loki-border);
-        border-radius: 8px;
+        border-radius: 5px;
         overflow: hidden;
       }
 
@@ -813,7 +819,7 @@ export class LokiCouncilDashboard extends LokiElement {
         font-size: 11px;
         font-weight: 600;
         text-transform: uppercase;
-        letter-spacing: 0.5px;
+        letter-spacing: 0.05em;
         color: var(--loki-text-muted);
         border-bottom: 1px solid var(--loki-border);
         background: var(--loki-bg-tertiary);
@@ -842,7 +848,7 @@ export class LokiCouncilDashboard extends LokiElement {
       .agent-card {
         background: var(--loki-bg-card);
         border: 1px solid var(--loki-border);
-        border-radius: 8px;
+        border-radius: 5px;
         padding: 12px 16px;
         cursor: pointer;
         transition: all 0.15s ease;
@@ -873,7 +879,7 @@ export class LokiCouncilDashboard extends LokiElement {
         font-size: 11px;
         font-weight: 500;
         padding: 2px 8px;
-        border-radius: 10px;
+        border-radius: 5px;
       }
 
       .status-alive {
@@ -915,7 +921,7 @@ export class LokiCouncilDashboard extends LokiElement {
         padding: 10px 14px;
         background: var(--loki-error-muted);
         border: 1px solid var(--loki-error-muted);
-        border-radius: 6px;
+        border-radius: 4px;
         color: var(--loki-error);
         font-size: 12px;
       }

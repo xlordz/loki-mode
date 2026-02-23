@@ -341,9 +341,9 @@ export class LokiLogStream extends LokiElement {
         }
 
         .terminal-container {
-          background: var(--loki-bg-secondary);
-          border: 1px solid var(--loki-border);
-          border-radius: 10px;
+          background: #1A0F2E;
+          border: 1px solid #2A1F3E;
+          border-radius: 5px;
           overflow: hidden;
         }
 
@@ -352,8 +352,8 @@ export class LokiLogStream extends LokiElement {
           justify-content: space-between;
           align-items: center;
           padding: 10px 14px;
-          background: var(--loki-bg-tertiary);
-          border-bottom: 1px solid var(--loki-border);
+          background: #140B24;
+          border-bottom: 1px solid #2A1F3E;
         }
 
         .terminal-title {
@@ -362,7 +362,7 @@ export class LokiLogStream extends LokiElement {
           gap: 8px;
           font-size: 12px;
           font-weight: 600;
-          color: var(--loki-text-secondary);
+          color: #C0B8D0;
         }
 
         .terminal-dots {
@@ -388,51 +388,51 @@ export class LokiLogStream extends LokiElement {
 
         .terminal-btn {
           padding: 4px 10px;
-          background: var(--loki-bg-hover);
-          border: 1px solid var(--loki-border-light);
+          background: #2A1F4A;
+          border: 1px solid #3D3060;
           border-radius: 4px;
-          color: var(--loki-text-secondary);
+          color: #C0B8D0;
           font-size: 11px;
           cursor: pointer;
           transition: all var(--loki-transition);
         }
 
         .terminal-btn:hover {
-          background: var(--loki-border-light);
-          color: var(--loki-text-primary);
+          background: #3D3060;
+          color: #F0ECF8;
         }
 
         .terminal-btn.active {
-          background: var(--loki-accent);
-          border-color: var(--loki-accent);
+          background: #7B6BF0;
+          border-color: #7B6BF0;
           color: white;
         }
 
         .filter-input {
           padding: 4px 10px;
-          background: var(--loki-bg-hover);
-          border: 1px solid var(--loki-border-light);
+          background: #2A1F4A;
+          border: 1px solid #3D3060;
           border-radius: 4px;
-          color: var(--loki-text-primary);
+          color: #F0ECF8;
           font-size: 11px;
           width: 120px;
         }
 
         .filter-input:focus {
           outline: none;
-          border-color: var(--loki-accent);
+          border-color: #7B6BF0;
         }
 
         .filter-input::placeholder {
-          color: var(--loki-text-muted);
+          color: #8B7FA8;
         }
 
         .level-select {
           padding: 4px 10px;
-          background: var(--loki-bg-hover);
-          border: 1px solid var(--loki-border-light);
+          background: #2A1F4A;
+          border: 1px solid #3D3060;
           border-radius: 4px;
-          color: var(--loki-text-secondary);
+          color: #C0B8D0;
           font-size: 11px;
           cursor: pointer;
         }
@@ -444,8 +444,8 @@ export class LokiLogStream extends LokiElement {
           font-family: 'JetBrains Mono', monospace;
           font-size: 12px;
           line-height: 1.6;
-          color: var(--loki-text-primary);
-          background: var(--loki-bg-secondary);
+          color: #F0ECF8;
+          background: #1A0F2E;
         }
 
         .log-line {

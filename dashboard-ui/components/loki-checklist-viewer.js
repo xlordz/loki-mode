@@ -164,7 +164,7 @@ export class LokiChecklistViewer extends LokiElement {
       .checklist-viewer {
         padding: 16px;
         font-family: var(--loki-font-family, system-ui, -apple-system, sans-serif);
-        color: var(--loki-text-primary, #18181b);
+        color: var(--loki-text-primary, #201515);
       }
       .checklist-header {
         display: flex;
@@ -185,7 +185,7 @@ export class LokiChecklistViewer extends LokiElement {
         display: inline-flex;
         align-items: center;
         padding: 2px 8px;
-        border-radius: 9999px;
+        border-radius: 4px;
         font-size: 12px;
         font-weight: 500;
       }
@@ -232,7 +232,7 @@ export class LokiChecklistViewer extends LokiElement {
       /* Category accordions */
       .category {
         border: 1px solid var(--loki-border, #e4e4e7);
-        border-radius: 8px;
+        border-radius: 5px;
         margin-bottom: 8px;
         overflow: hidden;
       }
@@ -278,9 +278,9 @@ export class LokiChecklistViewer extends LokiElement {
         font-size: 13px;
       }
       .item-status {
-        width: 10px;
-        height: 10px;
-        border-radius: 50%;
+        width: 12px;
+        height: 6px;
+        border-radius: 2px;
         flex-shrink: 0;
       }
       .status-verified {
@@ -300,7 +300,7 @@ export class LokiChecklistViewer extends LokiElement {
         font-size: 10px;
         font-weight: 600;
         text-transform: uppercase;
-        letter-spacing: 0.5px;
+        letter-spacing: 0.05em;
         padding: 1px 6px;
         border-radius: 4px;
         flex-shrink: 0;
@@ -347,7 +347,7 @@ export class LokiChecklistViewer extends LokiElement {
         font-size: 10px;
         font-weight: 600;
         text-transform: uppercase;
-        letter-spacing: 0.5px;
+        letter-spacing: 0.05em;
         background: #92400e;
         color: #fbbf24;
         flex-shrink: 0;
@@ -369,7 +369,7 @@ export class LokiChecklistViewer extends LokiElement {
       }
       .waiver-btn:hover {
         background: var(--loki-bg-hover, #f0f0f3);
-        color: var(--loki-text-primary, #18181b);
+        color: var(--loki-text-primary, #201515);
       }
       .waiver-btn-unwaive {
         border-color: #92400e;
@@ -384,7 +384,7 @@ export class LokiChecklistViewer extends LokiElement {
       .gate-banner {
         padding: 10px 14px;
         margin-bottom: 16px;
-        border-radius: 6px;
+        border-radius: 4px;
         font-size: 13px;
         font-weight: 600;
       }
@@ -405,7 +405,7 @@ export class LokiChecklistViewer extends LokiElement {
         padding: 8px 12px;
         background: color-mix(in srgb, var(--loki-status-error, #ef4444) 10%, transparent);
         color: var(--loki-status-error, #ef4444);
-        border-radius: 6px;
+        border-radius: 4px;
         font-size: 12px;
       }
     `;

@@ -88,89 +88,108 @@ function generateStandaloneHTML(bundleCode) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Loki Mode Dashboard - Self-contained autonomous AI system monitor">
-  <meta name="theme-color" content="#8b5cf6">
+  <meta name="theme-color" content="#553DE9">
   <title>Loki Mode Dashboard</title>
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' width='32' height='32'><path d='M16 6C8 6 2 16 2 16s6 10 14 10 14-10 14-10S24 6 16 6z' fill='none' stroke='%237c3aed' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/><circle cx='16' cy='16' r='5' fill='%237c3aed'/><circle cx='16' cy='16' r='2' fill='%23fff'/></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' width='32' height='32'><path d='M16 6C8 6 2 16 2 16s6 10 14 10 14-10 14-10S24 6 16 6z' fill='none' stroke='%23553DE9' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/><circle cx='16' cy='16' r='5' fill='%23553DE9'/><circle cx='16' cy='16' r='2' fill='%23fff'/></svg>">
   <style>
-    /* CSS Reset and Base Styles */
+    /* Loki Mode Design Language */
     :root {
-      /* Light theme (default) */
-      --loki-bg-primary: #fafafa;
-      --loki-bg-secondary: #f4f4f5;
-      --loki-bg-tertiary: #e4e4e7;
-      --loki-bg-card: #ffffff;
-      --loki-bg-hover: #f0f0f3;
-      --loki-text-primary: #18181b;
-      --loki-text-secondary: #52525b;
-      --loki-text-muted: #a1a1aa;
-      --loki-accent: #7c3aed;
-      --loki-accent-hover: #6d28d9;
-      --loki-border: #e4e4e7;
-      --loki-border-light: #d4d4d8;
-      --loki-success: #16a34a;
-      --loki-warning: #ca8a04;
-      --loki-error: #dc2626;
-      --loki-info: #2563eb;
+      /* Light theme (default - cream/editorial) */
+      --loki-bg-primary: #FAFAF7;
+      --loki-bg-secondary: #F2F0EB;
+      --loki-bg-tertiary: #E8E5DE;
+      --loki-bg-card: rgba(255, 255, 255, 0.72);
+      --loki-bg-hover: #EDEAE4;
+      --loki-text-primary: #1A1614;
+      --loki-text-secondary: #4A4640;
+      --loki-text-muted: #8A857C;
+      --loki-accent: #553DE9;
+      --loki-accent-hover: #4432c4;
+      --loki-accent-glow: rgba(85, 61, 233, 0.15);
+      --loki-border: rgba(0, 0, 0, 0.08);
+      --loki-border-light: rgba(0, 0, 0, 0.05);
+      --loki-success: #1AAF95;
+      --loki-warning: #C4922E;
+      --loki-error: #C04848;
+      --loki-info: #2F71E3;
+      --loki-glass-bg: rgba(255, 255, 255, 0.55);
+      --loki-glass-border: rgba(255, 255, 255, 0.35);
+      --loki-glass-shadow: 0 4px 24px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
       --loki-transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     @media (prefers-color-scheme: dark) {
       :root {
-        --loki-bg-primary: #09090b;
-        --loki-bg-secondary: #0c0c0f;
-        --loki-bg-tertiary: #111114;
-        --loki-bg-card: #18181b;
-        --loki-bg-hover: #1f1f23;
-        --loki-text-primary: #fafafa;
-        --loki-text-secondary: #a1a1aa;
-        --loki-text-muted: #52525b;
-        --loki-accent: #8b5cf6;
-        --loki-accent-hover: #a78bfa;
-        --loki-border: rgba(255, 255, 255, 0.06);
-        --loki-border-light: rgba(255, 255, 255, 0.1);
-        --loki-success: #22c55e;
-        --loki-warning: #eab308;
-        --loki-error: #ef4444;
-        --loki-info: #3b82f6;
+        --loki-bg-primary: #0F0B1A;
+        --loki-bg-secondary: #150F24;
+        --loki-bg-tertiary: #1E1533;
+        --loki-bg-card: rgba(30, 21, 51, 0.72);
+        --loki-bg-hover: #251C3D;
+        --loki-text-primary: #F0ECF8;
+        --loki-text-secondary: #B8B0C8;
+        --loki-text-muted: #7B6FA0;
+        --loki-accent: #7B6BF0;
+        --loki-accent-hover: #9488F5;
+        --loki-accent-glow: rgba(123, 107, 240, 0.2);
+        --loki-border: rgba(255, 255, 255, 0.08);
+        --loki-border-light: rgba(255, 255, 255, 0.04);
+        --loki-success: #2ED8B6;
+        --loki-warning: #E8B84A;
+        --loki-error: #E07070;
+        --loki-info: #5A9CF5;
+        --loki-glass-bg: rgba(20, 14, 38, 0.65);
+        --loki-glass-border: rgba(255, 255, 255, 0.08);
+        --loki-glass-shadow: 0 4px 24px rgba(0, 0, 0, 0.25), 0 1px 2px rgba(0, 0, 0, 0.12);
       }
     }
 
     [data-loki-theme="light"] {
-      --loki-bg-primary: #fafafa;
-      --loki-bg-secondary: #f4f4f5;
-      --loki-bg-tertiary: #e4e4e7;
-      --loki-bg-card: #ffffff;
-      --loki-bg-hover: #f0f0f3;
-      --loki-text-primary: #18181b;
-      --loki-text-secondary: #52525b;
-      --loki-text-muted: #a1a1aa;
-      --loki-accent: #7c3aed;
-      --loki-accent-hover: #6d28d9;
-      --loki-border: #e4e4e7;
-      --loki-border-light: #d4d4d8;
-      --loki-success: #16a34a;
-      --loki-warning: #ca8a04;
-      --loki-error: #dc2626;
-      --loki-info: #2563eb;
+      --loki-bg-primary: #FAFAF7;
+      --loki-bg-secondary: #F2F0EB;
+      --loki-bg-tertiary: #E8E5DE;
+      --loki-bg-card: rgba(255, 255, 255, 0.72);
+      --loki-bg-hover: #EDEAE4;
+      --loki-text-primary: #1A1614;
+      --loki-text-secondary: #4A4640;
+      --loki-text-muted: #8A857C;
+      --loki-accent: #553DE9;
+      --loki-accent-hover: #4432c4;
+      --loki-accent-glow: rgba(85, 61, 233, 0.15);
+      --loki-border: rgba(0, 0, 0, 0.08);
+      --loki-border-light: rgba(0, 0, 0, 0.05);
+      --loki-success: #1AAF95;
+      --loki-warning: #C4922E;
+      --loki-error: #C04848;
+      --loki-info: #2F71E3;
+      --loki-glass-bg: rgba(255, 255, 255, 0.55);
+      --loki-glass-border: rgba(255, 255, 255, 0.35);
+      --loki-glass-shadow: 0 4px 24px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
     }
 
     [data-loki-theme="dark"] {
-      --loki-bg-primary: #09090b;
-      --loki-bg-secondary: #0c0c0f;
-      --loki-bg-tertiary: #111114;
-      --loki-bg-card: #18181b;
-      --loki-bg-hover: #1f1f23;
-      --loki-text-primary: #fafafa;
-      --loki-text-secondary: #a1a1aa;
-      --loki-text-muted: #52525b;
-      --loki-accent: #8b5cf6;
-      --loki-accent-hover: #a78bfa;
-      --loki-border: rgba(255, 255, 255, 0.06);
-      --loki-border-light: rgba(255, 255, 255, 0.1);
-      --loki-success: #22c55e;
-      --loki-warning: #eab308;
-      --loki-error: #ef4444;
-      --loki-info: #3b82f6;
+      --loki-bg-primary: #0F0B1A;
+      --loki-bg-secondary: #150F24;
+      --loki-bg-tertiary: #1E1533;
+      --loki-bg-card: rgba(30, 21, 51, 0.72);
+      --loki-bg-hover: #251C3D;
+      --loki-text-primary: #F0ECF8;
+      --loki-text-secondary: #B8B0C8;
+      --loki-text-muted: #7B6FA0;
+      --loki-accent: #7B6BF0;
+      --loki-accent-hover: #9488F5;
+      --loki-accent-glow: rgba(123, 107, 240, 0.2);
+      --loki-border: rgba(255, 255, 255, 0.08);
+      --loki-border-light: rgba(255, 255, 255, 0.04);
+      --loki-success: #2ED8B6;
+      --loki-warning: #E8B84A;
+      --loki-error: #E07070;
+      --loki-info: #5A9CF5;
+      --loki-glass-bg: rgba(20, 14, 38, 0.65);
+      --loki-glass-border: rgba(255, 255, 255, 0.08);
+      --loki-glass-shadow: 0 4px 24px rgba(0, 0, 0, 0.25), 0 1px 2px rgba(0, 0, 0, 0.12);
     }
 
     * {
@@ -179,8 +198,13 @@ function generateStandaloneHTML(bundleCode) {
       box-sizing: border-box;
     }
 
+    ::selection {
+      background: rgba(85, 61, 233, 0.18);
+      color: var(--loki-text-primary);
+    }
+
     body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
       background: var(--loki-bg-primary);
       color: var(--loki-text-primary);
       min-height: 100vh;
@@ -188,6 +212,7 @@ function generateStandaloneHTML(bundleCode) {
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
       transition: background var(--loki-transition), color var(--loki-transition);
+      font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
     }
 
     /* Dashboard Layout */
@@ -212,39 +237,40 @@ function generateStandaloneHTML(bundleCode) {
       }
     }
 
-    /* Sidebar */
+    /* Sidebar - glass effect */
     .sidebar {
       display: flex;
       flex-direction: column;
-      background: var(--loki-bg-card);
-      border-right: 1px solid var(--loki-border);
+      background: var(--loki-glass-bg);
+      backdrop-filter: blur(16px) saturate(1.4);
+      -webkit-backdrop-filter: blur(16px) saturate(1.4);
+      border-right: 1px solid var(--loki-glass-border);
       overflow-y: auto;
     }
 
     .sidebar-logo {
       display: flex;
-      align-items: center;
-      gap: 10px;
+      flex-direction: column;
+      gap: 2px;
       padding: 20px 16px 16px;
     }
 
-    .logo-icon {
-      width: 28px;
-      height: 28px;
-      background: linear-gradient(135deg, #8b5cf6, #6d28d9);
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 700;
-      font-size: 12px;
-      color: white;
+    .logo-brand {
+      font-family: 'DM Serif Display', Georgia, serif;
+      font-size: 22px;
+      font-weight: 400;
+      color: var(--loki-text-primary);
+      letter-spacing: -0.02em;
+      line-height: 1.1;
     }
 
-    .logo-text {
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--loki-text-primary);
+    .logo-subtitle {
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 9px;
+      color: var(--loki-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 500;
     }
 
     /* Navigation */
@@ -260,7 +286,7 @@ function generateStandaloneHTML(bundleCode) {
       display: flex;
       align-items: center;
       gap: 10px;
-      padding: 10px 12px;
+      padding: 9px 12px;
       border-radius: 8px;
       font-size: 13px;
       font-weight: 500;
@@ -281,8 +307,9 @@ function generateStandaloneHTML(bundleCode) {
 
     .nav-link.active {
       color: var(--loki-accent);
-      background: rgba(124, 58, 237, 0.08);
-      border-color: rgba(124, 58, 237, 0.12);
+      background: var(--loki-accent-glow);
+      border-color: rgba(85, 61, 233, 0.12);
+      box-shadow: 0 0 0 1px var(--loki-accent-glow);
     }
 
     .nav-link svg {
@@ -326,7 +353,7 @@ function generateStandaloneHTML(bundleCode) {
 
     .api-url-input {
       padding: 5px 8px;
-      background: var(--loki-bg-card);
+      background: var(--loki-bg-primary);
       border: 1px solid var(--loki-border);
       border-radius: 6px;
       font-size: 11px;
@@ -339,33 +366,46 @@ function generateStandaloneHTML(bundleCode) {
     .api-url-input:focus {
       outline: none;
       border-color: var(--loki-accent);
+      box-shadow: 0 0 0 3px var(--loki-accent-glow);
     }
 
     /* Main Content */
     .main-content {
-      padding: 24px 28px;
+      padding: 28px 32px;
       overflow-y: auto;
       height: 100vh;
-      scroll-behavior: smooth;
     }
 
-    /* Section pages */
+    /* Section pages - show/hide navigation */
     .section-page {
+      display: none;
       padding-bottom: 32px;
+      animation: fadeIn 0.2s ease-out;
+    }
+
+    .section-page.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
     .section-page-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 20px;
+      margin-bottom: 24px;
       padding-top: 4px;
     }
 
     .section-page-title {
-      font-size: 20px;
-      font-weight: 600;
+      font-family: 'DM Serif Display', Georgia, serif;
+      font-size: 1.8rem;
+      font-weight: 400;
       color: var(--loki-text-primary);
+      letter-spacing: -0.02em;
     }
 
     /* Overview handled by <loki-overview> shadow DOM */
@@ -377,7 +417,7 @@ function generateStandaloneHTML(bundleCode) {
       left: 0;
       right: 0;
       background: var(--loki-warning);
-      color: #18181b;
+      color: #201515;
       padding: 8px 16px;
       text-align: center;
       font-size: 13px;
@@ -452,15 +492,17 @@ function generateStandaloneHTML(bundleCode) {
     }
 
     .shortcuts-dialog {
-      background: var(--loki-bg-card);
-      border: 1px solid var(--loki-border);
+      background: var(--loki-glass-bg);
+      backdrop-filter: blur(20px) saturate(1.4);
+      -webkit-backdrop-filter: blur(20px) saturate(1.4);
+      border: 1px solid var(--loki-glass-border);
       border-radius: 12px;
       padding: 24px;
       max-width: 480px;
       width: 90%;
       max-height: 80vh;
       overflow-y: auto;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      box-shadow: var(--loki-glass-shadow);
     }
 
     .shortcuts-header {
@@ -498,9 +540,9 @@ function generateStandaloneHTML(bundleCode) {
 
     .shortcuts-group-title {
       font-size: 11px;
-      font-weight: 600;
+      font-weight: 500;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.05em;
       color: var(--loki-text-muted);
       margin-bottom: 8px;
     }
@@ -522,7 +564,7 @@ function generateStandaloneHTML(bundleCode) {
       padding: 2px 8px;
       background: var(--loki-bg-tertiary);
       border: 1px solid var(--loki-border);
-      border-radius: 4px;
+      border-radius: 6px;
       font-size: 12px;
       font-family: 'JetBrains Mono', monospace;
       color: var(--loki-text-primary);
@@ -554,8 +596,8 @@ function generateStandaloneHTML(bundleCode) {
             <line x1="3" y1="18" x2="21" y2="18"/>
           </svg>
         </button>
-        <div class="logo-icon">L</div>
-        <span class="logo-text">Loki Mode</span>
+        <span class="logo-brand">Loki Mode</span>
+        <span class="logo-subtitle">powered by Autonomi</span>
       </div>
 
       <nav class="nav-links">
@@ -563,21 +605,9 @@ function generateStandaloneHTML(bundleCode) {
           <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
           Overview
         </button>
-        <button class="nav-link" data-section="tasks" id="nav-tasks">
-          <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-          Tasks
-        </button>
-        <button class="nav-link" data-section="logs" id="nav-logs">
-          <svg viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
-          Logs
-        </button>
-        <button class="nav-link" data-section="memory" id="nav-memory">
-          <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
-          Memory
-        </button>
-        <button class="nav-link" data-section="learning" id="nav-learning">
-          <svg viewBox="0 0 24 24"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
-          Learning
+        <button class="nav-link" data-section="insights" id="nav-insights">
+          <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          Insights
         </button>
         <button class="nav-link" data-section="prd-checklist" id="nav-prd-checklist">
           <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
@@ -626,41 +656,36 @@ function generateStandaloneHTML(bundleCode) {
 
     <!-- Main Content -->
     <main class="main-content" id="main-content">
-      <!-- Overview (default) -->
-      <div class="section-page" id="page-overview">
+      <!-- Overview + Tasks (combined) -->
+      <div class="section-page active" id="page-overview">
         <loki-overview id="overview"></loki-overview>
+        <div style="margin-top: 28px;">
+          <div class="section-page-header">
+            <h2 class="section-page-title">Tasks</h2>
+          </div>
+          <loki-task-board id="task-board"></loki-task-board>
+        </div>
       </div>
 
-      <!-- Task Board -->
-      <div class="section-page" id="page-tasks">
+      <!-- Insights: Logs + Memory + Learning (combined) -->
+      <div class="section-page" id="page-insights">
         <div class="section-page-header">
-          <h2 class="section-page-title">Tasks</h2>
+          <h2 class="section-page-title">Insights</h2>
         </div>
-        <loki-task-board id="task-board"></loki-task-board>
-      </div>
-
-      <!-- Log Stream -->
-      <div class="section-page" id="page-logs">
-        <div class="section-page-header">
-          <h2 class="section-page-title">Logs</h2>
+        <div style="display: grid; gap: 24px;">
+          <div>
+            <h3 style="font-family: 'DM Serif Display', Georgia, serif; font-size: 1.15rem; font-weight: 400; color: var(--loki-text-primary); margin-bottom: 12px;">Logs</h3>
+            <loki-log-stream id="log-stream" auto-scroll max-lines="500"></loki-log-stream>
+          </div>
+          <div>
+            <h3 style="font-family: 'DM Serif Display', Georgia, serif; font-size: 1.15rem; font-weight: 400; color: var(--loki-text-primary); margin-bottom: 12px;">Memory</h3>
+            <loki-memory-browser id="memory-browser" tab="summary"></loki-memory-browser>
+          </div>
+          <div>
+            <h3 style="font-family: 'DM Serif Display', Georgia, serif; font-size: 1.15rem; font-weight: 400; color: var(--loki-text-primary); margin-bottom: 12px;">Learning Metrics</h3>
+            <loki-learning-dashboard id="learning-dashboard" time-range="7d"></loki-learning-dashboard>
+          </div>
         </div>
-        <loki-log-stream id="log-stream" auto-scroll max-lines="500"></loki-log-stream>
-      </div>
-
-      <!-- Memory Browser -->
-      <div class="section-page" id="page-memory">
-        <div class="section-page-header">
-          <h2 class="section-page-title">Memory</h2>
-        </div>
-        <loki-memory-browser id="memory-browser" tab="summary"></loki-memory-browser>
-      </div>
-
-      <!-- Learning Dashboard -->
-      <div class="section-page" id="page-learning">
-        <div class="section-page-header">
-          <h2 class="section-page-title">Learning Metrics</h2>
-        </div>
-        <loki-learning-dashboard id="learning-dashboard" time-range="7d"></loki-learning-dashboard>
       </div>
 
       <!-- PRD Checklist -->
@@ -731,14 +756,14 @@ function generateStandaloneHTML(bundleCode) {
       <div class="shortcuts-group">
         <div class="shortcuts-group-title">Navigation</div>
         <div class="shortcut-row"><span class="shortcut-desc">Overview</span><span class="shortcut-keys"><kbd class="shortcut-key">1</kbd></span></div>
-        <div class="shortcut-row"><span class="shortcut-desc">Tasks</span><span class="shortcut-keys"><kbd class="shortcut-key">2</kbd></span></div>
-        <div class="shortcut-row"><span class="shortcut-desc">Logs</span><span class="shortcut-keys"><kbd class="shortcut-key">3</kbd></span></div>
-        <div class="shortcut-row"><span class="shortcut-desc">Memory</span><span class="shortcut-keys"><kbd class="shortcut-key">4</kbd></span></div>
-        <div class="shortcut-row"><span class="shortcut-desc">Learning</span><span class="shortcut-keys"><kbd class="shortcut-key">5</kbd></span></div>
-        <div class="shortcut-row"><span class="shortcut-desc">App Runner</span><span class="shortcut-keys"><kbd class="shortcut-key">7</kbd></span></div>
-        <div class="shortcut-row"><span class="shortcut-desc">Council</span><span class="shortcut-keys"><kbd class="shortcut-key">8</kbd></span></div>
-        <div class="shortcut-row"><span class="shortcut-desc">Cost</span><span class="shortcut-keys"><kbd class="shortcut-key">9</kbd></span></div>
-        <div class="shortcut-row"><span class="shortcut-desc">Checkpoints</span><span class="shortcut-keys"><kbd class="shortcut-key">0</kbd></span></div>
+        <div class="shortcut-row"><span class="shortcut-desc">Insights</span><span class="shortcut-keys"><kbd class="shortcut-key">2</kbd></span></div>
+        <div class="shortcut-row"><span class="shortcut-desc">PRD Checklist</span><span class="shortcut-keys"><kbd class="shortcut-key">3</kbd></span></div>
+        <div class="shortcut-row"><span class="shortcut-desc">App Runner</span><span class="shortcut-keys"><kbd class="shortcut-key">4</kbd></span></div>
+        <div class="shortcut-row"><span class="shortcut-desc">Council</span><span class="shortcut-keys"><kbd class="shortcut-key">5</kbd></span></div>
+        <div class="shortcut-row"><span class="shortcut-desc">Cost</span><span class="shortcut-keys"><kbd class="shortcut-key">6</kbd></span></div>
+        <div class="shortcut-row"><span class="shortcut-desc">Checkpoints</span><span class="shortcut-keys"><kbd class="shortcut-key">7</kbd></span></div>
+        <div class="shortcut-row"><span class="shortcut-desc">Context</span><span class="shortcut-keys"><kbd class="shortcut-key">8</kbd></span></div>
+        <div class="shortcut-row"><span class="shortcut-desc">Notifications</span><span class="shortcut-keys"><kbd class="shortcut-key">9</kbd></span></div>
       </div>
       <div class="shortcuts-group">
         <div class="shortcuts-group-title">Session</div>
@@ -863,13 +888,19 @@ document.addEventListener('DOMContentLoaded', function() {
   var mainContent = document.getElementById('main-content');
 
   function switchSection(sectionId) {
+    // Hide all section pages, show only the active one
+    var allPages = document.querySelectorAll('.section-page');
+    allPages.forEach(function(page) { page.classList.remove('active'); });
     var pageEl = document.getElementById('page-' + sectionId);
     if (pageEl) {
-      pageEl.scrollIntoView({ behavior: 'smooth' });
+      pageEl.classList.add('active');
     }
+    // Update nav active state
     navLinks.forEach(function(link) { link.classList.remove('active'); });
     var navEl = document.querySelector('.nav-link[data-section="' + sectionId + '"]');
     if (navEl) navEl.classList.add('active');
+    // Scroll main content to top on section switch
+    mainContent.scrollTop = 0;
     localStorage.setItem('loki-active-section', sectionId);
   }
 
@@ -883,26 +914,14 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
 
-  // IntersectionObserver to track active section on scroll
-  var sectionPages = document.querySelectorAll('.section-page');
-  var observer = new IntersectionObserver(function(entries) {
-    entries.forEach(function(entry) {
-      if (entry.isIntersecting && entry.intersectionRatio > 0.3) {
-        var sectionId = entry.target.id.replace('page-', '');
-        navLinks.forEach(function(link) { link.classList.remove('active'); });
-        var navEl = document.querySelector('.nav-link[data-section="' + sectionId + '"]');
-        if (navEl) navEl.classList.add('active');
-      }
-    });
-  }, { root: mainContent, threshold: 0.3 });
-
-  sectionPages.forEach(function(page) { observer.observe(page); });
+  // Show the default section (overview) on load
+  switchSection('overview');
 
   // Keyboard shortcuts: Cmd/Ctrl + 1-7
   document.addEventListener('keydown', function(e) {
     if ((e.metaKey || e.ctrlKey) && ((e.key >= '1' && e.key <= '9') || e.key === '0')) {
       e.preventDefault();
-      var sections = ['overview', 'tasks', 'logs', 'memory', 'learning', 'prd-checklist', 'app-runner', 'council', 'cost', 'checkpoint', 'context', 'notifications'];
+      var sections = ['overview', 'insights', 'prd-checklist', 'app-runner', 'council', 'cost', 'checkpoint', 'context', 'notifications'];
       var idx = e.key === '0' ? 9 : parseInt(e.key) - 1;
       if (idx < sections.length) switchSection(sections[idx]);
     }
@@ -943,7 +962,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Skip if modifier keys are held (let browser defaults work)
     if (e.metaKey || e.ctrlKey || e.altKey) return;
 
-    var sections = ['overview', 'tasks', 'logs', 'memory', 'learning', 'prd-checklist', 'app-runner', 'council', 'cost', 'checkpoint', 'context', 'notifications'];
+    var sections = ['overview', 'insights', 'prd-checklist', 'app-runner', 'council', 'cost', 'checkpoint', 'context', 'notifications'];
 
     switch (e.key) {
       // Section navigation: 1-9, 0
@@ -1022,10 +1041,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
 
-  // Restore last section from localStorage
+  // Restore last section from localStorage (overrides default overview)
   var savedSection = localStorage.getItem('loki-active-section');
   if (savedSection) {
-    setTimeout(function() { switchSection(savedSection); }, 100);
+    switchSection(savedSection);
   }
 
   // Add initial log entry and verify connection

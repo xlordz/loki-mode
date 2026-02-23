@@ -369,7 +369,7 @@ export class LokiCheckpointViewer extends LokiElement {
         font-size: 11px;
         font-weight: 600;
         padding: 2px 8px;
-        border-radius: 10px;
+        border-radius: 5px;
         background: var(--loki-accent-muted);
         color: var(--loki-accent);
       }
@@ -377,7 +377,7 @@ export class LokiCheckpointViewer extends LokiElement {
       .btn {
         padding: 6px 14px;
         border: 1px solid var(--loki-border);
-        border-radius: 6px;
+        border-radius: 4px;
         background: var(--loki-bg-tertiary);
         color: var(--loki-text-primary);
         cursor: pointer;
@@ -428,7 +428,7 @@ export class LokiCheckpointViewer extends LokiElement {
         padding: 12px;
         background: var(--loki-bg-card);
         border: 1px solid var(--loki-border);
-        border-radius: 8px;
+        border-radius: 5px;
       }
 
       .form-input {
@@ -436,7 +436,7 @@ export class LokiCheckpointViewer extends LokiElement {
         padding: 8px 12px;
         background: var(--loki-bg-primary);
         border: 1px solid var(--loki-border);
-        border-radius: 6px;
+        border-radius: 4px;
         color: var(--loki-text-primary);
         font-size: 13px;
         font-family: inherit;
@@ -466,7 +466,7 @@ export class LokiCheckpointViewer extends LokiElement {
       .checkpoint-card {
         background: var(--loki-bg-card);
         border: 1px solid var(--loki-border);
-        border-radius: 8px;
+        border-radius: 5px;
         padding: 12px 16px;
         transition: all 0.15s ease;
       }
@@ -558,7 +558,7 @@ export class LokiCheckpointViewer extends LokiElement {
         padding: 10px 14px;
         background: var(--loki-red-muted);
         border: 1px solid var(--loki-red-muted);
-        border-radius: 6px;
+        border-radius: 4px;
         color: var(--loki-red);
         font-size: 12px;
       }

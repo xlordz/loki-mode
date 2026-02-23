@@ -340,7 +340,7 @@ export class LokiOverview extends LokiElement {
         .overview-container {
           background: var(--loki-bg-card);
           border: 1px solid var(--loki-border);
-          border-radius: 10px;
+          border-radius: 5px;
           padding: 16px;
           transition: all var(--loki-transition);
         }
@@ -363,7 +363,7 @@ export class LokiOverview extends LokiElement {
           font-size: 12px;
           font-weight: 600;
           text-transform: uppercase;
-          letter-spacing: 0.5px;
+          letter-spacing: 0.05em;
           color: var(--loki-text-muted);
         }
 
@@ -374,8 +374,9 @@ export class LokiOverview extends LokiElement {
         }
 
         .overview-card {
-          background: var(--loki-bg-tertiary);
-          border-radius: 8px;
+          background: var(--loki-bg-secondary);
+          border: 1px solid var(--loki-border);
+          border-radius: 5px;
           padding: 12px 14px;
           transition: background var(--loki-transition);
         }
@@ -388,7 +389,7 @@ export class LokiOverview extends LokiElement {
           font-size: 10px;
           font-weight: 600;
           text-transform: uppercase;
-          letter-spacing: 0.5px;
+          letter-spacing: 0.05em;
           color: var(--loki-text-muted);
           margin-bottom: 6px;
         }
@@ -397,7 +398,7 @@ export class LokiOverview extends LokiElement {
           font-size: 18px;
           font-weight: 600;
           font-family: 'JetBrains Mono', monospace;
-          color: var(--loki-text-primary);
+          color: var(--loki-accent);
           display: flex;
           align-items: center;
           gap: 8px;
@@ -409,9 +410,9 @@ export class LokiOverview extends LokiElement {
         }
 
         .status-dot {
-          width: 10px;
-          height: 10px;
-          border-radius: 50%;
+          width: 12px;
+          height: 6px;
+          border-radius: 2px;
           flex-shrink: 0;
         }
 

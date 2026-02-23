@@ -183,7 +183,7 @@ export class LokiAuditViewer extends LokiElement {
       .audit-viewer {
         padding: 16px;
         font-family: var(--loki-font-family, 'Inter', -apple-system, sans-serif);
-        color: var(--loki-text-primary, #fafafa);
+        color: var(--loki-text-primary, #201515);
       }
 
       .header {
@@ -207,10 +207,10 @@ export class LokiAuditViewer extends LokiElement {
 
       .btn {
         padding: 6px 14px;
-        border: 1px solid var(--loki-border, rgba(255, 255, 255, 0.06));
-        border-radius: 6px;
-        background: var(--loki-bg-tertiary, #111114);
-        color: var(--loki-text-primary, #fafafa);
+        border: 1px solid var(--loki-border, #ECEAE3);
+        border-radius: 4px;
+        background: var(--loki-bg-tertiary, #ECEAE3);
+        color: var(--loki-text-primary, #201515);
         cursor: pointer;
         font-size: 12px;
         font-weight: 500;
@@ -218,8 +218,8 @@ export class LokiAuditViewer extends LokiElement {
       }
 
       .btn:hover {
-        background: var(--loki-accent, #8b5cf6);
-        border-color: var(--loki-accent, #8b5cf6);
+        background: var(--loki-accent, #553DE9);
+        border-color: var(--loki-accent, #553DE9);
         color: white;
       }
 
@@ -229,8 +229,8 @@ export class LokiAuditViewer extends LokiElement {
       }
 
       .btn-primary {
-        background: var(--loki-accent, #8b5cf6);
-        border-color: var(--loki-accent, #8b5cf6);
+        background: var(--loki-accent, #553DE9);
+        border-color: var(--loki-accent, #553DE9);
         color: white;
       }
 
@@ -240,9 +240,9 @@ export class LokiAuditViewer extends LokiElement {
         gap: 10px;
         margin-bottom: 16px;
         padding: 12px;
-        background: var(--loki-bg-card, #18181b);
-        border: 1px solid var(--loki-border, rgba(255, 255, 255, 0.06));
-        border-radius: 8px;
+        background: var(--loki-bg-card, #ffffff);
+        border: 1px solid var(--loki-border, #ECEAE3);
+        border-radius: 5px;
       }
 
       .filter-group {
@@ -255,29 +255,29 @@ export class LokiAuditViewer extends LokiElement {
         font-size: 10px;
         font-weight: 600;
         text-transform: uppercase;
-        letter-spacing: 0.5px;
-        color: var(--loki-text-muted, #52525b);
+        letter-spacing: 0.05em;
+        color: var(--loki-text-muted, #939084);
       }
 
       .filter-input {
         padding: 5px 10px;
-        border: 1px solid var(--loki-border, rgba(255, 255, 255, 0.06));
+        border: 1px solid var(--loki-border, #ECEAE3);
         border-radius: 4px;
-        background: var(--loki-bg-tertiary, #111114);
-        color: var(--loki-text-primary, #fafafa);
+        background: var(--loki-bg-tertiary, #ECEAE3);
+        color: var(--loki-text-primary, #201515);
         font-size: 12px;
         min-width: 140px;
       }
 
       .filter-input:focus {
         outline: none;
-        border-color: var(--loki-accent, #8b5cf6);
+        border-color: var(--loki-accent, #553DE9);
       }
 
       .verify-result {
         margin-bottom: 12px;
         padding: 10px 14px;
-        border-radius: 6px;
+        border-radius: 4px;
         font-size: 12px;
         font-weight: 500;
         display: flex;
@@ -298,9 +298,9 @@ export class LokiAuditViewer extends LokiElement {
       }
 
       .audit-table-wrapper {
-        background: var(--loki-bg-card, #18181b);
-        border: 1px solid var(--loki-border, rgba(255, 255, 255, 0.06));
-        border-radius: 8px;
+        background: var(--loki-bg-card, #ffffff);
+        border: 1px solid var(--loki-border, #ECEAE3);
+        border-radius: 5px;
         overflow: auto;
       }
 
@@ -316,16 +316,16 @@ export class LokiAuditViewer extends LokiElement {
         font-size: 11px;
         font-weight: 600;
         text-transform: uppercase;
-        letter-spacing: 0.5px;
-        color: var(--loki-text-muted, #52525b);
-        border-bottom: 1px solid var(--loki-border, rgba(255, 255, 255, 0.06));
-        background: var(--loki-bg-tertiary, #111114);
+        letter-spacing: 0.05em;
+        color: var(--loki-text-muted, #939084);
+        border-bottom: 1px solid var(--loki-border, #ECEAE3);
+        background: var(--loki-bg-tertiary, #ECEAE3);
         white-space: nowrap;
       }
 
       td {
         padding: 8px 14px;
-        border-bottom: 1px solid var(--loki-border, rgba(255, 255, 255, 0.06));
+        border-bottom: 1px solid var(--loki-border, #ECEAE3);
         white-space: nowrap;
       }
 
@@ -342,7 +342,7 @@ export class LokiAuditViewer extends LokiElement {
         font-size: 10px;
         font-weight: 600;
         padding: 2px 8px;
-        border-radius: 10px;
+        border-radius: 5px;
         text-transform: uppercase;
       }
 
@@ -364,7 +364,7 @@ export class LokiAuditViewer extends LokiElement {
       .empty-state {
         text-align: center;
         padding: 40px;
-        color: var(--loki-text-muted, #52525b);
+        color: var(--loki-text-muted, #939084);
         font-size: 13px;
       }
 
@@ -373,20 +373,20 @@ export class LokiAuditViewer extends LokiElement {
         padding: 8px 12px;
         background: var(--loki-red-muted, rgba(239, 68, 68, 0.15));
         color: var(--loki-red, #ef4444);
-        border-radius: 6px;
+        border-radius: 4px;
         font-size: 12px;
       }
 
       .loading {
         text-align: center;
         padding: 24px;
-        color: var(--loki-text-muted, #52525b);
+        color: var(--loki-text-muted, #939084);
         font-size: 13px;
       }
 
       .entry-count {
         font-size: 12px;
-        color: var(--loki-text-muted, #52525b);
+        color: var(--loki-text-muted, #939084);
         margin-bottom: 8px;
       }
     `;

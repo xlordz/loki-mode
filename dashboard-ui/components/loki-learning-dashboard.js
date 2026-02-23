@@ -676,7 +676,7 @@ export class LokiLearningDashboard extends LokiElement {
         .learning-dashboard {
           background: var(--loki-bg-card);
           border: 1px solid var(--loki-border);
-          border-radius: 10px;
+          border-radius: 5px;
           overflow: hidden;
         }
 
@@ -773,7 +773,7 @@ export class LokiLearningDashboard extends LokiElement {
 
         .summary-card {
           background: var(--loki-bg-secondary);
-          border-radius: 8px;
+          border-radius: 5px;
           padding: 14px;
         }
 
@@ -889,7 +889,7 @@ export class LokiLearningDashboard extends LokiElement {
         /* Trend Chart */
         .trend-chart {
           background: var(--loki-bg-secondary);
-          border-radius: 8px;
+          border-radius: 5px;
           padding: 14px;
           margin-bottom: 20px;
         }
@@ -931,7 +931,7 @@ export class LokiLearningDashboard extends LokiElement {
           color: var(--loki-text-muted);
           font-size: 12px;
           background: var(--loki-bg-secondary);
-          border-radius: 8px;
+          border-radius: 5px;
           margin-bottom: 20px;
         }
 
@@ -945,7 +945,7 @@ export class LokiLearningDashboard extends LokiElement {
 
         .top-list {
           background: var(--loki-bg-secondary);
-          border-radius: 8px;
+          border-radius: 5px;
           overflow: hidden;
         }
 
@@ -967,7 +967,7 @@ export class LokiLearningDashboard extends LokiElement {
           font-size: 10px;
           padding: 2px 6px;
           background: var(--loki-bg-card);
-          border-radius: 10px;
+          border-radius: 5px;
           color: var(--loki-text-muted);
         }
 
@@ -1078,7 +1078,7 @@ export class LokiLearningDashboard extends LokiElement {
         /* Recent Signals */
         .recent-signals {
           background: var(--loki-bg-secondary);
-          border-radius: 8px;
+          border-radius: 5px;
           overflow: hidden;
         }
 
@@ -1100,7 +1100,7 @@ export class LokiLearningDashboard extends LokiElement {
           font-size: 10px;
           padding: 2px 6px;
           background: var(--loki-bg-card);
-          border-radius: 10px;
+          border-radius: 5px;
           color: var(--loki-text-muted);
         }
 

@@ -18,132 +18,132 @@
  * Themes: light, dark, high-contrast, vscode-light, vscode-dark
  */
 export const THEMES = {
-  // Standard light theme
+  // Standard light theme (Autonomi cream/editorial)
   light: {
     // Background layers
-    '--loki-bg-primary': '#fafafa',
-    '--loki-bg-secondary': '#f4f4f5',
-    '--loki-bg-tertiary': '#e4e4e7',
+    '--loki-bg-primary': '#FFFEFB',
+    '--loki-bg-secondary': '#F8F4F0',
+    '--loki-bg-tertiary': '#ECEAE3',
     '--loki-bg-card': '#ffffff',
-    '--loki-bg-hover': '#f0f0f3',
-    '--loki-bg-active': '#e8e8ec',
-    '--loki-bg-overlay': 'rgba(0, 0, 0, 0.5)',
+    '--loki-bg-hover': '#F3EFE9',
+    '--loki-bg-active': '#E6E2DA',
+    '--loki-bg-overlay': 'rgba(32, 21, 21, 0.5)',
 
-    // Accent colors (purple/violet)
-    '--loki-accent': '#7c3aed',
-    '--loki-accent-hover': '#6d28d9',
-    '--loki-accent-active': '#5b21b6',
-    '--loki-accent-light': '#8b5cf6',
-    '--loki-accent-muted': 'rgba(124, 58, 237, 0.12)',
+    // Accent colors (violet)
+    '--loki-accent': '#553DE9',
+    '--loki-accent-hover': '#4432c4',
+    '--loki-accent-active': '#3828a0',
+    '--loki-accent-light': '#7B6BF0',
+    '--loki-accent-muted': 'rgba(85, 61, 233, 0.10)',
 
     // Text hierarchy
-    '--loki-text-primary': '#18181b',
-    '--loki-text-secondary': '#52525b',
-    '--loki-text-muted': '#a1a1aa',
-    '--loki-text-disabled': '#d4d4d8',
+    '--loki-text-primary': '#201515',
+    '--loki-text-secondary': '#36342E',
+    '--loki-text-muted': '#939084',
+    '--loki-text-disabled': '#C5C0B1',
     '--loki-text-inverse': '#ffffff',
 
-    // Border colors
-    '--loki-border': '#e4e4e7',
-    '--loki-border-light': '#d4d4d8',
-    '--loki-border-focus': '#7c3aed',
+    // Border colors (warm)
+    '--loki-border': '#ECEAE3',
+    '--loki-border-light': '#C5C0B1',
+    '--loki-border-focus': '#553DE9',
 
     // Status colors - semantic
-    '--loki-success': '#16a34a',
-    '--loki-success-muted': 'rgba(22, 163, 74, 0.12)',
-    '--loki-warning': '#ca8a04',
-    '--loki-warning-muted': 'rgba(202, 138, 4, 0.12)',
-    '--loki-error': '#dc2626',
-    '--loki-error-muted': 'rgba(220, 38, 38, 0.12)',
-    '--loki-info': '#2563eb',
-    '--loki-info-muted': 'rgba(37, 99, 235, 0.12)',
+    '--loki-success': '#1FC5A8',
+    '--loki-success-muted': 'rgba(31, 197, 168, 0.12)',
+    '--loki-warning': '#D4A03C',
+    '--loki-warning-muted': 'rgba(212, 160, 60, 0.12)',
+    '--loki-error': '#C45B5B',
+    '--loki-error-muted': 'rgba(196, 91, 91, 0.12)',
+    '--loki-info': '#2F71E3',
+    '--loki-info-muted': 'rgba(47, 113, 227, 0.12)',
 
     // Legacy aliases (for backwards compatibility)
-    '--loki-green': '#16a34a',
-    '--loki-green-muted': 'rgba(22, 163, 74, 0.12)',
-    '--loki-yellow': '#ca8a04',
-    '--loki-yellow-muted': 'rgba(202, 138, 4, 0.12)',
-    '--loki-red': '#dc2626',
-    '--loki-red-muted': 'rgba(220, 38, 38, 0.12)',
-    '--loki-blue': '#2563eb',
-    '--loki-blue-muted': 'rgba(37, 99, 235, 0.12)',
-    '--loki-purple': '#9333ea',
-    '--loki-purple-muted': 'rgba(147, 51, 234, 0.12)',
+    '--loki-green': '#1FC5A8',
+    '--loki-green-muted': 'rgba(31, 197, 168, 0.12)',
+    '--loki-yellow': '#D4A03C',
+    '--loki-yellow-muted': 'rgba(212, 160, 60, 0.12)',
+    '--loki-red': '#C45B5B',
+    '--loki-red-muted': 'rgba(196, 91, 91, 0.12)',
+    '--loki-blue': '#2F71E3',
+    '--loki-blue-muted': 'rgba(47, 113, 227, 0.12)',
+    '--loki-purple': '#553DE9',
+    '--loki-purple-muted': 'rgba(85, 61, 233, 0.10)',
 
     // Model-specific colors
     '--loki-opus': '#d97706',
-    '--loki-sonnet': '#4f46e5',
-    '--loki-haiku': '#059669',
+    '--loki-sonnet': '#553DE9',
+    '--loki-haiku': '#1FC5A8',
 
     // Shadow definitions
-    '--loki-shadow-sm': '0 1px 2px rgba(0, 0, 0, 0.05)',
-    '--loki-shadow-md': '0 4px 6px rgba(0, 0, 0, 0.07)',
-    '--loki-shadow-lg': '0 10px 15px rgba(0, 0, 0, 0.1)',
-    '--loki-shadow-focus': '0 0 0 3px rgba(124, 58, 237, 0.3)',
+    '--loki-shadow-sm': '0 1px 2px rgba(32, 21, 21, 0.04)',
+    '--loki-shadow-md': '0 4px 6px rgba(32, 21, 21, 0.06)',
+    '--loki-shadow-lg': '0 10px 15px rgba(32, 21, 21, 0.08)',
+    '--loki-shadow-focus': '0 0 0 3px rgba(85, 61, 233, 0.25)',
   },
 
-  // Standard dark theme (Vercel/Linear inspired)
+  // Standard dark theme (Autonomi midnight/Agent View)
   dark: {
-    // Background layers (deep dark)
-    '--loki-bg-primary': '#09090b',
-    '--loki-bg-secondary': '#0c0c0f',
-    '--loki-bg-tertiary': '#111114',
-    '--loki-bg-card': '#18181b',
-    '--loki-bg-hover': '#1f1f23',
-    '--loki-bg-active': '#27272a',
-    '--loki-bg-overlay': 'rgba(0, 0, 0, 0.8)',
+    // Background layers (deep midnight purple)
+    '--loki-bg-primary': '#1A0F2E',
+    '--loki-bg-secondary': '#140B24',
+    '--loki-bg-tertiary': '#251842',
+    '--loki-bg-card': '#1F1338',
+    '--loki-bg-hover': '#2A1F4A',
+    '--loki-bg-active': '#352A55',
+    '--loki-bg-overlay': 'rgba(20, 11, 36, 0.85)',
 
-    // Accent colors (purple/violet)
-    '--loki-accent': '#8b5cf6',
-    '--loki-accent-hover': '#a78bfa',
-    '--loki-accent-active': '#7c3aed',
-    '--loki-accent-light': '#a78bfa',
-    '--loki-accent-muted': 'rgba(139, 92, 246, 0.15)',
+    // Accent colors (violet, brighter for dark bg)
+    '--loki-accent': '#7B6BF0',
+    '--loki-accent-hover': '#9488F5',
+    '--loki-accent-active': '#6258D0',
+    '--loki-accent-light': '#9488F5',
+    '--loki-accent-muted': 'rgba(123, 107, 240, 0.18)',
 
     // Text hierarchy
-    '--loki-text-primary': '#fafafa',
-    '--loki-text-secondary': '#a1a1aa',
-    '--loki-text-muted': '#52525b',
-    '--loki-text-disabled': '#3f3f46',
-    '--loki-text-inverse': '#09090b',
+    '--loki-text-primary': '#F0ECF8',
+    '--loki-text-secondary': '#C0B8D0',
+    '--loki-text-muted': '#8B7FA8',
+    '--loki-text-disabled': '#5A4E78',
+    '--loki-text-inverse': '#1A0F2E',
 
-    // Border colors (very subtle)
-    '--loki-border': 'rgba(255, 255, 255, 0.06)',
-    '--loki-border-light': 'rgba(255, 255, 255, 0.1)',
-    '--loki-border-focus': '#8b5cf6',
+    // Border colors
+    '--loki-border': '#2A1F3E',
+    '--loki-border-light': '#3D3060',
+    '--loki-border-focus': '#7B6BF0',
 
     // Status colors - semantic
-    '--loki-success': '#22c55e',
-    '--loki-success-muted': 'rgba(34, 197, 94, 0.15)',
-    '--loki-warning': '#eab308',
-    '--loki-warning-muted': 'rgba(234, 179, 8, 0.15)',
-    '--loki-error': '#ef4444',
-    '--loki-error-muted': 'rgba(239, 68, 68, 0.15)',
-    '--loki-info': '#3b82f6',
-    '--loki-info-muted': 'rgba(59, 130, 246, 0.15)',
+    '--loki-success': '#2ED8B6',
+    '--loki-success-muted': 'rgba(46, 216, 182, 0.18)',
+    '--loki-warning': '#E8B84A',
+    '--loki-warning-muted': 'rgba(232, 184, 74, 0.18)',
+    '--loki-error': '#E07070',
+    '--loki-error-muted': 'rgba(224, 112, 112, 0.18)',
+    '--loki-info': '#5A9CF5',
+    '--loki-info-muted': 'rgba(90, 156, 245, 0.18)',
 
     // Legacy aliases
-    '--loki-green': '#22c55e',
-    '--loki-green-muted': 'rgba(34, 197, 94, 0.15)',
-    '--loki-yellow': '#eab308',
-    '--loki-yellow-muted': 'rgba(234, 179, 8, 0.15)',
-    '--loki-red': '#ef4444',
-    '--loki-red-muted': 'rgba(239, 68, 68, 0.15)',
-    '--loki-blue': '#3b82f6',
-    '--loki-blue-muted': 'rgba(59, 130, 246, 0.15)',
-    '--loki-purple': '#a78bfa',
-    '--loki-purple-muted': 'rgba(167, 139, 250, 0.15)',
+    '--loki-green': '#2ED8B6',
+    '--loki-green-muted': 'rgba(46, 216, 182, 0.18)',
+    '--loki-yellow': '#E8B84A',
+    '--loki-yellow-muted': 'rgba(232, 184, 74, 0.18)',
+    '--loki-red': '#E07070',
+    '--loki-red-muted': 'rgba(224, 112, 112, 0.18)',
+    '--loki-blue': '#5A9CF5',
+    '--loki-blue-muted': 'rgba(90, 156, 245, 0.18)',
+    '--loki-purple': '#9488F5',
+    '--loki-purple-muted': 'rgba(148, 136, 245, 0.18)',
 
     // Model colors
     '--loki-opus': '#f59e0b',
-    '--loki-sonnet': '#818cf8',
-    '--loki-haiku': '#34d399',
+    '--loki-sonnet': '#7B6BF0',
+    '--loki-haiku': '#2ED8B6',
 
-    // Shadows (subtle glows)
+    // Shadows (subtle glows on dark)
     '--loki-shadow-sm': '0 1px 2px rgba(0, 0, 0, 0.4)',
     '--loki-shadow-md': '0 4px 12px rgba(0, 0, 0, 0.5)',
     '--loki-shadow-lg': '0 10px 25px rgba(0, 0, 0, 0.6)',
-    '--loki-shadow-focus': '0 0 0 3px rgba(139, 92, 246, 0.25)',
+    '--loki-shadow-focus': '0 0 0 3px rgba(123, 107, 240, 0.30)',
   },
 
   // High contrast theme (accessibility)
@@ -345,10 +345,10 @@ export const SPACING = {
  */
 export const RADIUS = {
   none: '0',
-  sm: '4px',
-  md: '6px',
-  lg: '8px',
-  xl: '10px',
+  sm: '2px',
+  md: '4px',
+  lg: '5px',
+  xl: '5px',
   full: '9999px',
 };
 
@@ -357,7 +357,8 @@ export const RADIUS = {
  */
 export const TYPOGRAPHY = {
   fontFamily: {
-    sans: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    sans: "'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
+    serif: "'DM Serif Display', Georgia, 'Times New Roman', serif",
     mono: "'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, monospace",
   },
   fontSize: {
@@ -575,6 +576,7 @@ export function generateTokensCSS() {
 
     /* Typography */
     --loki-font-sans: ${TYPOGRAPHY.fontFamily.sans};
+    --loki-font-serif: ${TYPOGRAPHY.fontFamily.serif};
     --loki-font-mono: ${TYPOGRAPHY.fontFamily.mono};
     --loki-text-xs: ${TYPOGRAPHY.fontSize.xs};
     --loki-text-sm: ${TYPOGRAPHY.fontSize.sm};
@@ -717,11 +719,11 @@ export const BASE_STYLES = `
     font-size: var(--loki-text-lg);
   }
 
-  /* Status indicators */
+  /* Status indicators (rectangle style) */
   .status-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: var(--loki-radius-full);
+    width: 12px;
+    height: 6px;
+    border-radius: 2px;
     flex-shrink: 0;
   }
 

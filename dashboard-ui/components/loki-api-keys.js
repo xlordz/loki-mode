@@ -190,7 +190,7 @@ export class LokiApiKeys extends LokiElement {
       .api-keys {
         padding: 16px;
         font-family: var(--loki-font-family, 'Inter', -apple-system, sans-serif);
-        color: var(--loki-text-primary, #fafafa);
+        color: var(--loki-text-primary, #201515);
       }
 
       .header {
@@ -208,10 +208,10 @@ export class LokiApiKeys extends LokiElement {
 
       .btn {
         padding: 6px 14px;
-        border: 1px solid var(--loki-border, rgba(255, 255, 255, 0.06));
-        border-radius: 6px;
-        background: var(--loki-bg-tertiary, #111114);
-        color: var(--loki-text-primary, #fafafa);
+        border: 1px solid var(--loki-border, #ECEAE3);
+        border-radius: 4px;
+        background: var(--loki-bg-tertiary, #ECEAE3);
+        color: var(--loki-text-primary, #201515);
         cursor: pointer;
         font-size: 12px;
         font-weight: 500;
@@ -220,7 +220,7 @@ export class LokiApiKeys extends LokiElement {
 
       .btn:hover {
         background: var(--loki-bg-hover, #1f1f23);
-        border-color: var(--loki-border-light, rgba(255, 255, 255, 0.1));
+        border-color: var(--loki-border-light, #C5C0B1);
       }
 
       .btn-sm {
@@ -229,8 +229,8 @@ export class LokiApiKeys extends LokiElement {
       }
 
       .btn-primary {
-        background: var(--loki-accent, #8b5cf6);
-        border-color: var(--loki-accent, #8b5cf6);
+        background: var(--loki-accent, #553DE9);
+        border-color: var(--loki-accent, #553DE9);
         color: white;
       }
 
@@ -262,7 +262,7 @@ export class LokiApiKeys extends LokiElement {
         padding: 14px;
         background: var(--loki-green-muted, rgba(34, 197, 94, 0.15));
         border: 1px solid var(--loki-green, #22c55e);
-        border-radius: 8px;
+        border-radius: 5px;
       }
 
       .new-token-label {
@@ -274,7 +274,7 @@ export class LokiApiKeys extends LokiElement {
 
       .new-token-warning {
         font-size: 11px;
-        color: var(--loki-text-secondary, #a1a1aa);
+        color: var(--loki-text-secondary, #36342E);
         margin-bottom: 8px;
       }
 
@@ -282,8 +282,8 @@ export class LokiApiKeys extends LokiElement {
         font-family: 'JetBrains Mono', monospace;
         font-size: 13px;
         padding: 8px 12px;
-        background: var(--loki-bg-tertiary, #111114);
-        border: 1px solid var(--loki-border, rgba(255, 255, 255, 0.06));
+        background: var(--loki-bg-tertiary, #ECEAE3);
+        border: 1px solid var(--loki-border, #ECEAE3);
         border-radius: 4px;
         word-break: break-all;
         user-select: all;
@@ -293,7 +293,7 @@ export class LokiApiKeys extends LokiElement {
       .new-token-dismiss {
         font-size: 11px;
         cursor: pointer;
-        color: var(--loki-text-muted, #52525b);
+        color: var(--loki-text-muted, #939084);
         background: none;
         border: none;
         text-decoration: underline;
@@ -303,9 +303,9 @@ export class LokiApiKeys extends LokiElement {
       .create-form {
         margin-bottom: 16px;
         padding: 14px;
-        background: var(--loki-bg-card, #18181b);
-        border: 1px solid var(--loki-border, rgba(255, 255, 255, 0.06));
-        border-radius: 8px;
+        background: var(--loki-bg-card, #ffffff);
+        border: 1px solid var(--loki-border, #ECEAE3);
+        border-radius: 5px;
       }
 
       .form-title {
@@ -333,22 +333,22 @@ export class LokiApiKeys extends LokiElement {
         font-size: 10px;
         font-weight: 600;
         text-transform: uppercase;
-        letter-spacing: 0.5px;
-        color: var(--loki-text-muted, #52525b);
+        letter-spacing: 0.05em;
+        color: var(--loki-text-muted, #939084);
       }
 
       .form-input, .form-select {
         padding: 6px 10px;
-        border: 1px solid var(--loki-border, rgba(255, 255, 255, 0.06));
+        border: 1px solid var(--loki-border, #ECEAE3);
         border-radius: 4px;
-        background: var(--loki-bg-tertiary, #111114);
-        color: var(--loki-text-primary, #fafafa);
+        background: var(--loki-bg-tertiary, #ECEAE3);
+        color: var(--loki-text-primary, #201515);
         font-size: 12px;
       }
 
       .form-input:focus, .form-select:focus {
         outline: none;
-        border-color: var(--loki-accent, #8b5cf6);
+        border-color: var(--loki-accent, #553DE9);
       }
 
       .form-actions {
@@ -367,23 +367,23 @@ export class LokiApiKeys extends LokiElement {
       .rotate-input {
         width: 60px;
         padding: 3px 6px;
-        border: 1px solid var(--loki-border, rgba(255, 255, 255, 0.06));
+        border: 1px solid var(--loki-border, #ECEAE3);
         border-radius: 4px;
-        background: var(--loki-bg-tertiary, #111114);
-        color: var(--loki-text-primary, #fafafa);
+        background: var(--loki-bg-tertiary, #ECEAE3);
+        color: var(--loki-text-primary, #201515);
         font-size: 11px;
       }
 
       .rotate-label {
         font-size: 11px;
-        color: var(--loki-text-muted, #52525b);
+        color: var(--loki-text-muted, #939084);
       }
 
       /* Table */
       .keys-table-wrapper {
-        background: var(--loki-bg-card, #18181b);
-        border: 1px solid var(--loki-border, rgba(255, 255, 255, 0.06));
-        border-radius: 8px;
+        background: var(--loki-bg-card, #ffffff);
+        border: 1px solid var(--loki-border, #ECEAE3);
+        border-radius: 5px;
         overflow: auto;
       }
 
@@ -399,16 +399,16 @@ export class LokiApiKeys extends LokiElement {
         font-size: 11px;
         font-weight: 600;
         text-transform: uppercase;
-        letter-spacing: 0.5px;
-        color: var(--loki-text-muted, #52525b);
-        border-bottom: 1px solid var(--loki-border, rgba(255, 255, 255, 0.06));
-        background: var(--loki-bg-tertiary, #111114);
+        letter-spacing: 0.05em;
+        color: var(--loki-text-muted, #939084);
+        border-bottom: 1px solid var(--loki-border, #ECEAE3);
+        background: var(--loki-bg-tertiary, #ECEAE3);
         white-space: nowrap;
       }
 
       td {
         padding: 8px 14px;
-        border-bottom: 1px solid var(--loki-border, rgba(255, 255, 255, 0.06));
+        border-bottom: 1px solid var(--loki-border, #ECEAE3);
         vertical-align: top;
       }
 
@@ -429,10 +429,10 @@ export class LokiApiKeys extends LokiElement {
         font-size: 10px;
         font-weight: 600;
         padding: 2px 8px;
-        border-radius: 10px;
+        border-radius: 5px;
         text-transform: uppercase;
         background: var(--loki-accent-muted, rgba(139, 92, 246, 0.15));
-        color: var(--loki-accent, #8b5cf6);
+        color: var(--loki-accent, #553DE9);
       }
 
       .key-status-active {
@@ -444,7 +444,7 @@ export class LokiApiKeys extends LokiElement {
       }
 
       .key-status-revoked {
-        color: var(--loki-text-muted, #52525b);
+        color: var(--loki-text-muted, #939084);
       }
 
       .actions-cell {
@@ -469,7 +469,7 @@ export class LokiApiKeys extends LokiElement {
       .empty-state {
         text-align: center;
         padding: 40px;
-        color: var(--loki-text-muted, #52525b);
+        color: var(--loki-text-muted, #939084);
         font-size: 13px;
       }
 
@@ -478,14 +478,14 @@ export class LokiApiKeys extends LokiElement {
         padding: 8px 12px;
         background: var(--loki-red-muted, rgba(239, 68, 68, 0.15));
         color: var(--loki-red, #ef4444);
-        border-radius: 6px;
+        border-radius: 4px;
         font-size: 12px;
       }
 
       .loading {
         text-align: center;
         padding: 24px;
-        color: var(--loki-text-muted, #52525b);
+        color: var(--loki-text-muted, #939084);
         font-size: 13px;
       }
     `;

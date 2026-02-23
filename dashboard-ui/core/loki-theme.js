@@ -40,85 +40,85 @@ export {
  */
 export const THEME_VARIABLES = {
   light: {
-    // Background colors
-    '--loki-bg-primary': '#fafafa',
-    '--loki-bg-secondary': '#f4f4f5',
-    '--loki-bg-tertiary': '#e4e4e7',
+    // Background colors (Autonomi cream/editorial)
+    '--loki-bg-primary': '#FFFEFB',
+    '--loki-bg-secondary': '#F8F4F0',
+    '--loki-bg-tertiary': '#ECEAE3',
     '--loki-bg-card': '#ffffff',
-    '--loki-bg-hover': '#f0f0f3',
+    '--loki-bg-hover': '#F3EFE9',
 
-    // Accent colors (purple/violet)
-    '--loki-accent': '#7c3aed',
-    '--loki-accent-light': '#8b5cf6',
-    '--loki-accent-muted': 'rgba(124, 58, 237, 0.12)',
+    // Accent colors (violet)
+    '--loki-accent': '#553DE9',
+    '--loki-accent-light': '#7B6BF0',
+    '--loki-accent-muted': 'rgba(85, 61, 233, 0.10)',
 
     // Text colors
-    '--loki-text-primary': '#18181b',
-    '--loki-text-secondary': '#52525b',
-    '--loki-text-muted': '#a1a1aa',
+    '--loki-text-primary': '#201515',
+    '--loki-text-secondary': '#36342E',
+    '--loki-text-muted': '#939084',
 
-    // Border colors
-    '--loki-border': '#e4e4e7',
-    '--loki-border-light': '#d4d4d8',
+    // Border colors (warm)
+    '--loki-border': '#ECEAE3',
+    '--loki-border-light': '#C5C0B1',
 
     // Status colors
-    '--loki-green': '#16a34a',
-    '--loki-green-muted': 'rgba(22, 163, 74, 0.12)',
-    '--loki-yellow': '#ca8a04',
-    '--loki-yellow-muted': 'rgba(202, 138, 4, 0.12)',
-    '--loki-red': '#dc2626',
-    '--loki-red-muted': 'rgba(220, 38, 38, 0.12)',
-    '--loki-blue': '#2563eb',
-    '--loki-blue-muted': 'rgba(37, 99, 235, 0.12)',
-    '--loki-purple': '#9333ea',
-    '--loki-purple-muted': 'rgba(147, 51, 234, 0.12)',
+    '--loki-green': '#1FC5A8',
+    '--loki-green-muted': 'rgba(31, 197, 168, 0.12)',
+    '--loki-yellow': '#D4A03C',
+    '--loki-yellow-muted': 'rgba(212, 160, 60, 0.12)',
+    '--loki-red': '#C45B5B',
+    '--loki-red-muted': 'rgba(196, 91, 91, 0.12)',
+    '--loki-blue': '#2F71E3',
+    '--loki-blue-muted': 'rgba(47, 113, 227, 0.12)',
+    '--loki-purple': '#553DE9',
+    '--loki-purple-muted': 'rgba(85, 61, 233, 0.10)',
 
     // Model colors
     '--loki-opus': '#d97706',
-    '--loki-sonnet': '#4f46e5',
-    '--loki-haiku': '#059669',
+    '--loki-sonnet': '#553DE9',
+    '--loki-haiku': '#1FC5A8',
 
     // Transition
     '--loki-transition': '0.2s cubic-bezier(0.4, 0, 0.2, 1)',
   },
   dark: {
-    // Background colors (deep dark, Vercel/Linear)
-    '--loki-bg-primary': '#09090b',
-    '--loki-bg-secondary': '#0c0c0f',
-    '--loki-bg-tertiary': '#111114',
-    '--loki-bg-card': '#18181b',
-    '--loki-bg-hover': '#1f1f23',
+    // Background colors (Autonomi midnight/Agent View)
+    '--loki-bg-primary': '#1A0F2E',
+    '--loki-bg-secondary': '#140B24',
+    '--loki-bg-tertiary': '#251842',
+    '--loki-bg-card': '#1F1338',
+    '--loki-bg-hover': '#2A1F4A',
 
-    // Accent colors (purple/violet)
-    '--loki-accent': '#8b5cf6',
-    '--loki-accent-light': '#a78bfa',
-    '--loki-accent-muted': 'rgba(139, 92, 246, 0.15)',
+    // Accent colors (violet, brighter for dark bg)
+    '--loki-accent': '#7B6BF0',
+    '--loki-accent-light': '#9488F5',
+    '--loki-accent-muted': 'rgba(123, 107, 240, 0.18)',
 
     // Text colors
-    '--loki-text-primary': '#fafafa',
-    '--loki-text-secondary': '#a1a1aa',
-    '--loki-text-muted': '#52525b',
+    '--loki-text-primary': '#F0ECF8',
+    '--loki-text-secondary': '#C0B8D0',
+    '--loki-text-muted': '#8B7FA8',
 
     // Border colors
-    '--loki-border': 'rgba(255, 255, 255, 0.06)',
-    '--loki-border-light': 'rgba(255, 255, 255, 0.1)',
+    '--loki-border': '#2A1F3E',
+    '--loki-border-light': '#3D3060',
 
     // Status colors
-    '--loki-green': '#22c55e',
-    '--loki-green-muted': 'rgba(34, 197, 94, 0.15)',
-    '--loki-yellow': '#eab308',
-    '--loki-yellow-muted': 'rgba(234, 179, 8, 0.15)',
-    '--loki-red': '#ef4444',
-    '--loki-red-muted': 'rgba(239, 68, 68, 0.15)',
-    '--loki-blue': '#3b82f6',
-    '--loki-blue-muted': 'rgba(59, 130, 246, 0.15)',
-    '--loki-purple': '#a78bfa',
-    '--loki-purple-muted': 'rgba(167, 139, 250, 0.15)',
+    '--loki-green': '#2ED8B6',
+    '--loki-green-muted': 'rgba(46, 216, 182, 0.18)',
+    '--loki-yellow': '#E8B84A',
+    '--loki-yellow-muted': 'rgba(232, 184, 74, 0.18)',
+    '--loki-red': '#E07070',
+    '--loki-red-muted': 'rgba(224, 112, 112, 0.18)',
+    '--loki-blue': '#5A9CF5',
+    '--loki-blue-muted': 'rgba(90, 156, 245, 0.18)',
+    '--loki-purple': '#9488F5',
+    '--loki-purple-muted': 'rgba(148, 136, 245, 0.18)',
 
     // Model colors
     '--loki-opus': '#f59e0b',
-    '--loki-sonnet': '#818cf8',
-    '--loki-haiku': '#34d399',
+    '--loki-sonnet': '#7B6BF0',
+    '--loki-haiku': '#2ED8B6',
 
     // Transition
     '--loki-transition': '0.2s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -132,7 +132,7 @@ export const THEME_VARIABLES = {
  */
 export const COMMON_STYLES = `
   :host {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
     box-sizing: border-box;
@@ -149,7 +149,7 @@ export const COMMON_STYLES = `
   /* Button base styles */
   .btn {
     padding: 8px 14px;
-    border-radius: 6px;
+    border-radius: 4px;
     font-size: 13px;
     font-weight: 500;
     cursor: pointer;
@@ -179,11 +179,11 @@ export const COMMON_STYLES = `
     background: var(--loki-bg-hover);
   }
 
-  /* Status dot */
+  /* Status indicator (rectangle) */
   .status-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
+    width: 12px;
+    height: 6px;
+    border-radius: 2px;
   }
 
   .status-dot.active {
@@ -204,7 +204,7 @@ export const COMMON_STYLES = `
   .card {
     background: var(--loki-bg-card);
     border: 1px solid var(--loki-border);
-    border-radius: 10px;
+    border-radius: 5px;
     padding: 16px;
     transition: all var(--loki-transition);
   }

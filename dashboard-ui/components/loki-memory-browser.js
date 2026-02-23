@@ -526,7 +526,7 @@ export class LokiMemoryBrowser extends LokiElement {
         .memory-browser {
           background: var(--loki-bg-card);
           border: 1px solid var(--loki-border);
-          border-radius: 10px;
+          border-radius: 5px;
           overflow: hidden;
         }
 
@@ -546,12 +546,15 @@ export class LokiMemoryBrowser extends LokiElement {
 
         .tabs {
           display: flex;
-          border-bottom: 1px solid var(--loki-border);
+          gap: 4px;
+          padding: 4px;
           background: var(--loki-bg-secondary);
+          border-radius: 5px;
+          border: 1px solid var(--loki-border);
         }
 
         .tab {
-          padding: 10px 16px;
+          padding: 7px 14px;
           font-size: 12px;
           font-weight: 500;
           color: var(--loki-text-secondary);
@@ -562,8 +565,7 @@ export class LokiMemoryBrowser extends LokiElement {
           align-items: center;
           gap: 6px;
           transition: all var(--loki-transition);
-          border-bottom: 2px solid transparent;
-          margin-bottom: -1px;
+          border-radius: 4px;
         }
 
         .tab:hover {
@@ -572,8 +574,8 @@ export class LokiMemoryBrowser extends LokiElement {
         }
 
         .tab.active {
-          color: var(--loki-accent);
-          border-bottom-color: var(--loki-accent);
+          color: white;
+          background: var(--loki-accent);
         }
 
         .tab svg {
@@ -616,7 +618,7 @@ export class LokiMemoryBrowser extends LokiElement {
 
         .summary-card {
           background: var(--loki-bg-secondary);
-          border-radius: 8px;
+          border-radius: 5px;
           padding: 14px;
         }
 
@@ -712,7 +714,7 @@ export class LokiMemoryBrowser extends LokiElement {
         .item-card {
           background: var(--loki-bg-secondary);
           border: 1px solid var(--loki-border);
-          border-radius: 6px;
+          border-radius: 4px;
           padding: 12px;
           cursor: pointer;
           transition: all var(--loki-transition);
@@ -848,7 +850,7 @@ export class LokiMemoryBrowser extends LokiElement {
         .detail-content {
           background: var(--loki-bg-tertiary);
           padding: 10px;
-          border-radius: 6px;
+          border-radius: 4px;
           font-size: 12px;
           color: var(--loki-text-primary);
         }
@@ -873,7 +875,7 @@ export class LokiMemoryBrowser extends LokiElement {
 
         .action-log {
           background: var(--loki-bg-tertiary);
-          border-radius: 6px;
+          border-radius: 4px;
           padding: 8px;
           max-height: 200px;
           overflow-y: auto;

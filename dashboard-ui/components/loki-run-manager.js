@@ -16,8 +16,8 @@ const RUN_STATUS_CONFIG = {
   completed: { color: 'var(--loki-blue, #3b82f6)',       bg: 'var(--loki-blue-muted, rgba(59, 130, 246, 0.15))',  label: 'Completed' },
   failed:    { color: 'var(--loki-red, #ef4444)',        bg: 'var(--loki-red-muted, rgba(239, 68, 68, 0.15))',    label: 'Failed' },
   cancelled: { color: 'var(--loki-yellow, #eab308)',     bg: 'var(--loki-yellow-muted, rgba(234, 179, 8, 0.15))', label: 'Cancelled' },
-  pending:   { color: 'var(--loki-text-muted, #52525b)', bg: 'var(--loki-bg-tertiary, #111114)',                   label: 'Pending' },
-  queued:    { color: 'var(--loki-text-muted, #52525b)', bg: 'var(--loki-bg-tertiary, #111114)',                   label: 'Queued' },
+  pending:   { color: 'var(--loki-text-muted, #939084)', bg: 'var(--loki-bg-tertiary, #ECEAE3)',                   label: 'Pending' },
+  queued:    { color: 'var(--loki-text-muted, #939084)', bg: 'var(--loki-bg-tertiary, #ECEAE3)',                   label: 'Queued' },
 };
 
 /**
@@ -221,7 +221,7 @@ export class LokiRunManager extends LokiElement {
       .run-manager {
         padding: 16px;
         font-family: var(--loki-font-family, 'Inter', -apple-system, sans-serif);
-        color: var(--loki-text-primary, #fafafa);
+        color: var(--loki-text-primary, #201515);
       }
 
       .header {
@@ -239,10 +239,10 @@ export class LokiRunManager extends LokiElement {
 
       .btn {
         padding: 4px 10px;
-        border: 1px solid var(--loki-border, rgba(255, 255, 255, 0.06));
+        border: 1px solid var(--loki-border, #ECEAE3);
         border-radius: 5px;
-        background: var(--loki-bg-tertiary, #111114);
-        color: var(--loki-text-primary, #fafafa);
+        background: var(--loki-bg-tertiary, #ECEAE3);
+        color: var(--loki-text-primary, #201515);
         cursor: pointer;
         font-size: 11px;
         font-weight: 500;
@@ -251,7 +251,7 @@ export class LokiRunManager extends LokiElement {
 
       .btn:hover {
         background: var(--loki-bg-hover, #1f1f23);
-        border-color: var(--loki-border-light, rgba(255, 255, 255, 0.1));
+        border-color: var(--loki-border-light, #C5C0B1);
       }
 
       .btn-cancel {
@@ -264,8 +264,8 @@ export class LokiRunManager extends LokiElement {
       }
 
       .btn-replay {
-        border-color: var(--loki-accent, #8b5cf6);
-        color: var(--loki-accent, #8b5cf6);
+        border-color: var(--loki-accent, #553DE9);
+        color: var(--loki-accent, #553DE9);
       }
 
       .btn-replay:hover {
@@ -278,9 +278,9 @@ export class LokiRunManager extends LokiElement {
       }
 
       .runs-table-wrapper {
-        background: var(--loki-bg-card, #18181b);
-        border: 1px solid var(--loki-border, rgba(255, 255, 255, 0.06));
-        border-radius: 8px;
+        background: var(--loki-bg-card, #ffffff);
+        border: 1px solid var(--loki-border, #ECEAE3);
+        border-radius: 5px;
         overflow: auto;
       }
 
@@ -296,16 +296,16 @@ export class LokiRunManager extends LokiElement {
         font-size: 11px;
         font-weight: 600;
         text-transform: uppercase;
-        letter-spacing: 0.5px;
-        color: var(--loki-text-muted, #52525b);
-        border-bottom: 1px solid var(--loki-border, rgba(255, 255, 255, 0.06));
-        background: var(--loki-bg-tertiary, #111114);
+        letter-spacing: 0.05em;
+        color: var(--loki-text-muted, #939084);
+        border-bottom: 1px solid var(--loki-border, #ECEAE3);
+        background: var(--loki-bg-tertiary, #ECEAE3);
         white-space: nowrap;
       }
 
       td {
         padding: 8px 14px;
-        border-bottom: 1px solid var(--loki-border, rgba(255, 255, 255, 0.06));
+        border-bottom: 1px solid var(--loki-border, #ECEAE3);
         white-space: nowrap;
       }
 
@@ -320,7 +320,7 @@ export class LokiRunManager extends LokiElement {
       .run-id {
         font-family: 'JetBrains Mono', monospace;
         font-weight: 600;
-        color: var(--loki-accent, #8b5cf6);
+        color: var(--loki-accent, #553DE9);
         font-size: 12px;
       }
 
@@ -329,7 +329,7 @@ export class LokiRunManager extends LokiElement {
         font-size: 10px;
         font-weight: 600;
         padding: 2px 8px;
-        border-radius: 10px;
+        border-radius: 5px;
         text-transform: uppercase;
       }
 
@@ -341,7 +341,7 @@ export class LokiRunManager extends LokiElement {
       .empty-state {
         text-align: center;
         padding: 40px;
-        color: var(--loki-text-muted, #52525b);
+        color: var(--loki-text-muted, #939084);
         font-size: 13px;
       }
 
@@ -350,20 +350,20 @@ export class LokiRunManager extends LokiElement {
         padding: 8px 12px;
         background: var(--loki-red-muted, rgba(239, 68, 68, 0.15));
         color: var(--loki-red, #ef4444);
-        border-radius: 6px;
+        border-radius: 4px;
         font-size: 12px;
       }
 
       .loading {
         text-align: center;
         padding: 24px;
-        color: var(--loki-text-muted, #52525b);
+        color: var(--loki-text-muted, #939084);
         font-size: 13px;
       }
 
       .run-count {
         font-size: 12px;
-        color: var(--loki-text-muted, #52525b);
+        color: var(--loki-text-muted, #939084);
         margin-bottom: 8px;
       }
     `;

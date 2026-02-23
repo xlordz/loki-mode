@@ -4,43 +4,54 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Loki Mode Dashboard UI Components Demo">
-    <meta name="theme-color" content="#8b5cf6">
-    <title>Loki Mode - Dashboard UI Components</title>
+    <meta name="theme-color" content="#553DE9">
+    <title>Loki Mode - Dashboard</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
-        /* Vercel/Linear Design Language */
+        /* Autonomi Design Language */
         :root {
-            --bg-primary: #fafafa;
-            --bg-secondary: #f4f4f5;
-            --bg-tertiary: #e4e4e7;
+            --bg-primary: #FFFEFB;
+            --bg-secondary: #F8F4F0;
+            --bg-tertiary: #ECEAE3;
             --bg-card: #ffffff;
-            --bg-hover: #f0f0f3;
-            --accent: #7c3aed;
-            --accent-light: #8b5cf6;
-            --text-primary: #18181b;
-            --text-secondary: #52525b;
-            --text-muted: #a1a1aa;
-            --border: #e4e4e7;
-            --border-light: #d4d4d8;
+            --bg-hover: #F3EFE9;
+            --accent: #553DE9;
+            --accent-hover: #4432c4;
+            --accent-light: #7B6BF0;
+            --text-primary: #201515;
+            --text-secondary: #36342E;
+            --text-muted: #939084;
+            --border: #ECEAE3;
+            --border-light: #C5C0B1;
+            --success: #1FC5A8;
+            --warning: #D4A03C;
+            --error: #C45B5B;
+            --info: #2F71E3;
             --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        [data-theme="dark"] {
-            --bg-primary: #09090b;
-            --bg-secondary: #0c0c0f;
-            --bg-tertiary: #111114;
-            --bg-card: #18181b;
-            --bg-hover: #1f1f23;
-            --accent: #8b5cf6;
-            --accent-light: #a78bfa;
-            --text-primary: #fafafa;
-            --text-secondary: #a1a1aa;
-            --text-muted: #52525b;
-            --border: rgba(255, 255, 255, 0.06);
-            --border-light: rgba(255, 255, 255, 0.1);
+        [data-theme="dark"],
+        [data-loki-theme="dark"] {
+            --bg-primary: #1A0F2E;
+            --bg-secondary: #140B24;
+            --bg-tertiary: #251842;
+            --bg-card: #1F1338;
+            --bg-hover: #2A1F4A;
+            --accent: #7B6BF0;
+            --accent-hover: #9488F5;
+            --accent-light: #9488F5;
+            --text-primary: #F0ECF8;
+            --text-secondary: #C0B8D0;
+            --text-muted: #8B7FA8;
+            --border: #2A1F3E;
+            --border-light: #3D3060;
+            --success: #2ED8B6;
+            --warning: #E8B84A;
+            --error: #E07070;
+            --info: #5A9CF5;
         }
 
         * {
@@ -49,13 +60,19 @@
             box-sizing: border-box;
         }
 
+        ::selection {
+            background: rgba(85, 61, 233, 0.18);
+            color: var(--text-primary);
+        }
+
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
             background: var(--bg-primary);
             color: var(--text-primary);
             min-height: 100vh;
             line-height: 1.5;
             -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
             transition: background var(--transition), color var(--transition);
         }
 
@@ -77,31 +94,24 @@
 
         .logo {
             display: flex;
-            align-items: center;
+            align-items: baseline;
             gap: 12px;
         }
 
-        .logo-icon {
-            width: 40px;
-            height: 40px;
-            background: linear-gradient(135deg, var(--accent), var(--accent-light));
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: 18px;
-            color: white;
-        }
-
-        .logo-text h1 {
+        .logo-brand {
+            font-family: 'DM Serif Display', Georgia, serif;
             font-size: 20px;
-            font-weight: 600;
+            font-weight: 400;
+            color: var(--text-primary);
+            letter-spacing: -0.01em;
         }
 
-        .logo-text p {
-            font-size: 12px;
+        .logo-subtitle {
+            font-family: 'Inter', system-ui, sans-serif;
+            font-size: 11px;
             color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
         }
 
         .header-actions {
@@ -110,54 +120,91 @@
             align-items: center;
         }
 
+        /* Pill theme toggle */
         .theme-toggle {
             display: flex;
             align-items: center;
-            gap: 8px;
-            padding: 8px 12px;
             background: var(--bg-secondary);
-            border-radius: 8px;
-            font-size: 12px;
-            color: var(--text-secondary);
-            cursor: pointer;
+            border-radius: 9999px;
             border: 1px solid var(--border);
+            padding: 2px;
+            cursor: pointer;
             transition: all var(--transition);
         }
 
-        .theme-toggle:hover {
-            background: var(--bg-tertiary);
+        .theme-toggle-option {
+            padding: 5px 14px;
+            font-size: 11px;
+            font-weight: 500;
+            border-radius: 9999px;
+            color: var(--text-muted);
+            transition: all var(--transition);
+            border: none;
+            background: none;
+            cursor: pointer;
+        }
+
+        .theme-toggle-option.active {
+            background: var(--accent);
+            color: white;
         }
 
         /* Section */
         .section {
-            margin-bottom: 40px;
+            margin-bottom: 48px;
         }
 
         .section-header {
             display: flex;
             justify-content: space-between;
-            align-items: center;
+            align-items: flex-start;
             margin-bottom: 16px;
         }
 
-        .section-title {
-            font-size: 16px;
-            font-weight: 600;
+        .section-label {
             display: flex;
             align-items: center;
             gap: 8px;
+            margin-bottom: 6px;
+        }
+
+        .section-label-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--accent);
+            border-radius: 2px;
+            flex-shrink: 0;
+        }
+
+        .section-label-text {
+            font-size: 11px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+        }
+
+        .section-title {
+            font-family: 'DM Serif Display', Georgia, serif;
+            font-size: 1.75rem;
+            font-weight: 400;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--text-primary);
         }
 
         .section-description {
             font-size: 13px;
             color: var(--text-secondary);
             margin-bottom: 16px;
+            line-height: 1.6;
         }
 
         .code-block {
             background: var(--bg-secondary);
             border: 1px solid var(--border);
-            border-radius: 8px;
+            border-radius: 5px;
             padding: 12px 16px;
             font-family: 'JetBrains Mono', monospace;
             font-size: 12px;
@@ -193,7 +240,7 @@
         .component-wrapper {
             background: var(--bg-card);
             border: 1px solid var(--border);
-            border-radius: 12px;
+            border-radius: 5px;
             padding: 20px;
         }
 
@@ -201,7 +248,7 @@
             font-size: 11px;
             font-weight: 500;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.05em;
             color: var(--text-muted);
             margin-bottom: 12px;
         }
@@ -213,8 +260,9 @@
             align-items: center;
             padding: 12px 16px;
             background: var(--bg-secondary);
-            border-radius: 8px;
-            margin-bottom: 24px;
+            border-radius: 5px;
+            margin-bottom: 32px;
+            border: 1px solid var(--border);
         }
 
         .api-config label {
@@ -228,7 +276,7 @@
             padding: 8px 12px;
             background: var(--bg-card);
             border: 1px solid var(--border);
-            border-radius: 6px;
+            border-radius: 4px;
             font-size: 13px;
             color: var(--text-primary);
             font-family: 'JetBrains Mono', monospace;
@@ -237,6 +285,7 @@
         .api-config input:focus {
             outline: none;
             border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(85, 61, 233, 0.12);
         }
 
         .api-config button {
@@ -244,7 +293,7 @@
             background: var(--accent);
             color: white;
             border: none;
-            border-radius: 6px;
+            border-radius: 4px;
             font-size: 12px;
             font-weight: 500;
             cursor: pointer;
@@ -252,25 +301,25 @@
         }
 
         .api-config button:hover {
-            background: var(--accent-light);
+            background: var(--accent-hover);
         }
 
-        /* Event log */
+        /* Event log - always dark */
         .event-log {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border);
-            border-radius: 8px;
+            background: #1A0F2E;
+            border: 1px solid #2A1F3E;
+            border-radius: 5px;
             padding: 12px;
             max-height: 200px;
             overflow-y: auto;
             font-family: 'JetBrains Mono', monospace;
             font-size: 11px;
-            color: var(--text-secondary);
+            color: #C0B8D0;
         }
 
         .event-log-entry {
             padding: 4px 0;
-            border-bottom: 1px solid var(--border);
+            border-bottom: 1px solid #2A1F3E;
         }
 
         .event-log-entry:last-child {
@@ -278,20 +327,20 @@
         }
 
         .event-log-time {
-            color: var(--text-muted);
+            color: #8B7FA8;
         }
 
         .event-log-type {
-            color: var(--accent);
+            color: #7B6BF0;
             margin-left: 8px;
         }
 
         .event-log-data {
-            color: var(--text-primary);
+            color: #F0ECF8;
             margin-left: 8px;
         }
 
-        /* Documentation */
+        /* Documentation link */
         .docs-link {
             display: inline-flex;
             align-items: center;
@@ -299,7 +348,7 @@
             padding: 6px 12px;
             background: var(--bg-secondary);
             border: 1px solid var(--border);
-            border-radius: 6px;
+            border-radius: 4px;
             font-size: 12px;
             color: var(--text-secondary);
             text-decoration: none;
@@ -310,6 +359,12 @@
             background: var(--bg-tertiary);
             color: var(--text-primary);
         }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg-primary); }
+        ::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
     </style>
 </head>
 <body>
@@ -317,11 +372,8 @@
         <!-- Header -->
         <header class="header">
             <div class="logo">
-                <div class="logo-icon">L</div>
-                <div class="logo-text">
-                    <h1>Loki Mode Dashboard UI</h1>
-                    <p>Reusable Web Components</p>
-                </div>
+                <span class="logo-brand">Autonomi</span>
+                <span class="logo-subtitle">Loki Mode Dashboard</span>
             </div>
             <div class="header-actions">
                 <a href="https://github.com/asklokesh/claudeskill-loki-mode" class="docs-link" target="_blank">
@@ -330,11 +382,10 @@
                     </svg>
                     GitHub
                 </a>
-                <button class="theme-toggle" id="theme-toggle" title="Toggle theme (T)">
-                    <svg id="theme-icon-sun" width="14" height="14" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-                    <svg id="theme-icon-moon" width="14" height="14" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" style="display:none"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
-                    <span id="theme-label">Light</span>
-                </button>
+                <div class="theme-toggle" id="theme-toggle" title="Toggle theme (T)">
+                    <button class="theme-toggle-option active" id="theme-opt-light" data-theme="light">Light</button>
+                    <button class="theme-toggle-option" id="theme-opt-dark" data-theme="dark">Dark</button>
+                </div>
             </div>
         </header>
 
@@ -348,15 +399,13 @@
         <!-- Task Board Section -->
         <section class="section">
             <div class="section-header">
-                <h2 class="section-title">
-                    <svg width="18" height="18" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none">
-                        <rect x="3" y="3" width="7" height="7" rx="1"/>
-                        <rect x="14" y="3" width="7" height="7" rx="1"/>
-                        <rect x="3" y="14" width="7" height="7" rx="1"/>
-                        <rect x="14" y="14" width="7" height="7" rx="1"/>
-                    </svg>
-                    Task Board
-                </h2>
+                <div>
+                    <div class="section-label">
+                        <span class="section-label-dot"></span>
+                        <span class="section-label-text">Tasks</span>
+                    </div>
+                    <h2 class="section-title">Task Board</h2>
+                </div>
             </div>
             <p class="section-description">
                 Kanban-style task board with drag-and-drop support. Syncs with the Loki Mode API and supports local tasks.
@@ -372,13 +421,13 @@
             <!-- Session Control Section -->
             <section class="section">
                 <div class="section-header">
-                    <h2 class="section-title">
-                        <svg width="18" height="18" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none">
-                            <circle cx="12" cy="12" r="10"/>
-                            <polygon points="10 8 16 12 10 16 10 8"/>
-                        </svg>
-                        Session Control
-                    </h2>
+                    <div>
+                        <div class="section-label">
+                            <span class="section-label-dot"></span>
+                            <span class="section-label-text">Session</span>
+                        </div>
+                        <h2 class="section-title">Session Control</h2>
+                    </div>
                 </div>
                 <p class="section-description">
                     Control panel for managing Loki Mode sessions with status display and action buttons.
@@ -399,13 +448,13 @@
             <!-- Log Stream Section -->
             <section class="section">
                 <div class="section-header">
-                    <h2 class="section-title">
-                        <svg width="18" height="18" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none">
-                            <polyline points="4 17 10 11 4 5"/>
-                            <line x1="12" y1="19" x2="20" y2="19"/>
-                        </svg>
-                        Log Stream
-                    </h2>
+                    <div>
+                        <div class="section-label">
+                            <span class="section-label-dot"></span>
+                            <span class="section-label-text">Logs</span>
+                        </div>
+                        <h2 class="section-title">Log Stream</h2>
+                    </div>
                 </div>
                 <p class="section-description">
                     Real-time log viewer with filtering, auto-scroll, and download capabilities.
@@ -420,13 +469,13 @@
         <!-- Memory Browser Section -->
         <section class="section">
             <div class="section-header">
-                <h2 class="section-title">
-                    <svg width="18" height="18" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none">
-                        <path d="M4 19.5A2.5 2.5 0 016.5 17H20"/>
-                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/>
-                    </svg>
-                    Memory Browser
-                </h2>
+                <div>
+                    <div class="section-label">
+                        <span class="section-label-dot"></span>
+                        <span class="section-label-text">Memory</span>
+                    </div>
+                    <h2 class="section-title">Memory Browser</h2>
+                </div>
             </div>
             <p class="section-description">
                 Browse and explore the Loki Mode memory system including episodic, semantic, and procedural memories.
@@ -440,14 +489,13 @@
         <!-- Learning Dashboard Section -->
         <section class="section">
             <div class="section-header">
-                <h2 class="section-title">
-                    <svg width="18" height="18" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none">
-                        <path d="M12 20V10"/>
-                        <path d="M18 20V4"/>
-                        <path d="M6 20v-4"/>
-                    </svg>
-                    Learning Dashboard
-                </h2>
+                <div>
+                    <div class="section-label">
+                        <span class="section-label-dot"></span>
+                        <span class="section-label-text">Learning</span>
+                    </div>
+                    <h2 class="section-title">Learning Dashboard</h2>
+                </div>
             </div>
             <p class="section-description">
                 Visualize learning metrics from cross-tool learning signals including preferences, error patterns, success patterns, and tool efficiency.
@@ -461,15 +509,13 @@
         <!-- Completion Council Section -->
         <section class="section">
             <div class="section-header">
-                <h2 class="section-title">
-                    <svg width="18" height="18" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none">
-                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                        <circle cx="9" cy="7" r="4"/>
-                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                    </svg>
-                    Completion Council
-                </h2>
+                <div>
+                    <div class="section-label">
+                        <span class="section-label-dot"></span>
+                        <span class="section-label-text">Council</span>
+                    </div>
+                    <h2 class="section-title">Completion Council</h2>
+                </div>
             </div>
             <p class="section-description">
                 Multi-agent completion verification. Council members vote on project completion with convergence tracking, circuit breaker, and anti-sycophancy checks.
@@ -483,12 +529,13 @@
         <!-- Events Section -->
         <section class="section">
             <div class="section-header">
-                <h2 class="section-title">
-                    <svg width="18" height="18" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none">
-                        <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
-                    </svg>
-                    Component Events
-                </h2>
+                <div>
+                    <div class="section-label">
+                        <span class="section-label-dot"></span>
+                        <span class="section-label-text">Events</span>
+                    </div>
+                    <h2 class="section-title">Component Events</h2>
+                </div>
             </div>
             <p class="section-description">
                 Events emitted by the components. Useful for integrating with your application.
@@ -514,24 +561,28 @@
         import './components/loki-learning-dashboard.js';
         import './components/loki-council-dashboard.js';
 
-        // Initialize theme
+        // Initialize theme - default to light
         LokiTheme.init();
 
-        const themeToggleBtn = document.getElementById('theme-toggle');
-        const themeLabel = document.getElementById('theme-label');
-        const sunIcon = document.getElementById('theme-icon-sun');
-        const moonIcon = document.getElementById('theme-icon-moon');
+        const optLight = document.getElementById('theme-opt-light');
+        const optDark = document.getElementById('theme-opt-dark');
 
         function updateThemeUI() {
             const theme = LokiTheme.getTheme();
             const isDark = theme.includes('dark') || theme === 'high-contrast';
-            themeLabel.textContent = isDark ? 'Light' : 'Dark';
-            if (sunIcon) sunIcon.style.display = isDark ? 'inline' : 'none';
-            if (moonIcon) moonIcon.style.display = isDark ? 'none' : 'inline';
+            // Also set data-theme on html for shell CSS
+            document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+            optLight.classList.toggle('active', !isDark);
+            optDark.classList.toggle('active', isDark);
         }
 
-        themeToggleBtn.addEventListener('click', () => {
-            LokiTheme.toggle();
+        optLight.addEventListener('click', () => {
+            LokiTheme.setTheme('light');
+            updateThemeUI();
+        });
+
+        optDark.addEventListener('click', () => {
+            LokiTheme.setTheme('dark');
             updateThemeUI();
         });
 

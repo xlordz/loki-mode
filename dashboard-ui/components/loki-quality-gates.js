@@ -171,7 +171,7 @@ export class LokiQualityGates extends LokiElement {
       .quality-gates {
         padding: 16px;
         font-family: var(--loki-font-family, 'Inter', -apple-system, sans-serif);
-        color: var(--loki-text-primary, #fafafa);
+        color: var(--loki-text-primary, #201515);
       }
 
       .header {
@@ -201,9 +201,9 @@ export class LokiQualityGates extends LokiElement {
       }
 
       .summary-dot {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
+        width: 12px;
+        height: 6px;
+        border-radius: 2px;
       }
 
       .gates-grid {
@@ -213,16 +213,16 @@ export class LokiQualityGates extends LokiElement {
       }
 
       .gate-card {
-        background: var(--loki-bg-card, #18181b);
-        border: 1px solid var(--loki-border, rgba(255, 255, 255, 0.06));
-        border-radius: 8px;
+        background: var(--loki-bg-card, #ffffff);
+        border: 1px solid var(--loki-border, #ECEAE3);
+        border-radius: 5px;
         padding: 14px;
         border-left: 3px solid transparent;
         transition: all 0.15s ease;
       }
 
       .gate-card:hover {
-        border-color: var(--loki-border-light, rgba(255, 255, 255, 0.1));
+        border-color: var(--loki-border-light, #C5C0B1);
       }
 
       .gate-card.status-pass {
@@ -254,20 +254,20 @@ export class LokiQualityGates extends LokiElement {
         font-size: 10px;
         font-weight: 600;
         padding: 2px 8px;
-        border-radius: 10px;
+        border-radius: 5px;
         text-transform: uppercase;
-        letter-spacing: 0.5px;
+        letter-spacing: 0.05em;
         flex-shrink: 0;
       }
 
       .gate-meta {
         font-size: 11px;
-        color: var(--loki-text-muted, #52525b);
+        color: var(--loki-text-muted, #939084);
       }
 
       .gate-description {
         font-size: 12px;
-        color: var(--loki-text-secondary, #a1a1aa);
+        color: var(--loki-text-secondary, #36342E);
         margin-top: 6px;
         line-height: 1.4;
       }
@@ -275,7 +275,7 @@ export class LokiQualityGates extends LokiElement {
       .empty-state {
         text-align: center;
         padding: 40px;
-        color: var(--loki-text-muted, #52525b);
+        color: var(--loki-text-muted, #939084);
         font-size: 13px;
       }
 
@@ -284,14 +284,14 @@ export class LokiQualityGates extends LokiElement {
         padding: 8px 12px;
         background: var(--loki-red-muted, rgba(239, 68, 68, 0.15));
         color: var(--loki-red, #ef4444);
-        border-radius: 6px;
+        border-radius: 4px;
         font-size: 12px;
       }
 
       .loading {
         text-align: center;
         padding: 24px;
-        color: var(--loki-text-muted, #52525b);
+        color: var(--loki-text-muted, #939084);
         font-size: 13px;
       }
     `;

@@ -389,7 +389,7 @@ export class LokiContextTracker extends LokiElement {
           gap: 2px;
           margin-bottom: 16px;
           background: var(--loki-bg-tertiary);
-          border-radius: 8px;
+          border-radius: 5px;
           padding: 2px;
         }
 
@@ -400,7 +400,7 @@ export class LokiContextTracker extends LokiElement {
           background: none;
           color: var(--loki-text-muted);
           cursor: pointer;
-          border-radius: 6px;
+          border-radius: 4px;
           font-size: 12px;
           font-weight: 500;
           transition: all 0.2s;
@@ -412,9 +412,8 @@ export class LokiContextTracker extends LokiElement {
         }
 
         .tab.active {
-          background: var(--loki-bg-card);
-          color: var(--loki-text-primary);
-          box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+          background: var(--loki-accent);
+          color: white;
         }
 
         /* Summary Cards */
@@ -427,7 +426,7 @@ export class LokiContextTracker extends LokiElement {
         .summary-card {
           background: var(--loki-bg-card);
           border: 1px solid var(--loki-border);
-          border-radius: 10px;
+          border-radius: 5px;
           padding: 14px 16px;
           transition: all var(--loki-transition);
         }
@@ -440,7 +439,7 @@ export class LokiContextTracker extends LokiElement {
           font-size: 10px;
           font-weight: 600;
           text-transform: uppercase;
-          letter-spacing: 0.5px;
+          letter-spacing: 0.05em;
           color: var(--loki-text-muted);
           margin-bottom: 6px;
         }
@@ -449,7 +448,7 @@ export class LokiContextTracker extends LokiElement {
           font-size: 22px;
           font-weight: 600;
           font-family: 'JetBrains Mono', monospace;
-          color: var(--loki-text-primary);
+          color: var(--loki-accent);
           line-height: 1.2;
         }
 
@@ -483,7 +482,7 @@ export class LokiContextTracker extends LokiElement {
           font-size: 12px;
           font-weight: 600;
           text-transform: uppercase;
-          letter-spacing: 0.5px;
+          letter-spacing: 0.05em;
           color: var(--loki-text-muted);
         }
 
@@ -512,7 +511,7 @@ export class LokiContextTracker extends LokiElement {
         .cache-info {
           background: var(--loki-bg-card);
           border: 1px solid var(--loki-border);
-          border-radius: 10px;
+          border-radius: 5px;
           padding: 16px;
         }
 
@@ -556,7 +555,7 @@ export class LokiContextTracker extends LokiElement {
           font-size: 10px;
           font-weight: 600;
           text-transform: uppercase;
-          letter-spacing: 0.5px;
+          letter-spacing: 0.05em;
           color: var(--loki-text-muted);
           border-bottom: 1px solid var(--loki-border);
           margin-bottom: 4px;
@@ -568,7 +567,7 @@ export class LokiContextTracker extends LokiElement {
           gap: 8px;
           align-items: center;
           padding: 6px 8px;
-          border-radius: 6px;
+          border-radius: 4px;
           transition: background 0.15s;
         }
 
@@ -636,7 +635,7 @@ export class LokiContextTracker extends LokiElement {
           font-size: 10px;
           font-weight: 600;
           text-transform: uppercase;
-          letter-spacing: 0.5px;
+          letter-spacing: 0.05em;
           color: var(--loki-yellow);
           white-space: nowrap;
         }
@@ -656,7 +655,7 @@ export class LokiContextTracker extends LokiElement {
           padding: 10px 12px;
           background: var(--loki-bg-card);
           border: 1px solid var(--loki-border);
-          border-radius: 8px;
+          border-radius: 5px;
         }
 
         .legend-item {
@@ -685,7 +684,7 @@ export class LokiContextTracker extends LokiElement {
           gap: 8px;
           align-items: center;
           padding: 6px 8px;
-          border-radius: 6px;
+          border-radius: 4px;
           transition: background 0.15s;
         }
 

@@ -250,7 +250,7 @@ export class LokiSessionControl extends LokiElement {
 
         .control-panel {
           background: var(--loki-bg-tertiary);
-          border-radius: 10px;
+          border-radius: 5px;
           padding: 14px;
           display: flex;
           flex-direction: column;
@@ -267,7 +267,7 @@ export class LokiSessionControl extends LokiElement {
           font-size: 10px;
           font-weight: 600;
           text-transform: uppercase;
-          letter-spacing: 0.5px;
+          letter-spacing: 0.05em;
           color: var(--loki-text-muted);
           margin-bottom: 4px;
         }
@@ -292,9 +292,9 @@ export class LokiSessionControl extends LokiElement {
         }
 
         .status-dot {
-          width: 8px;
-          height: 8px;
-          border-radius: 50%;
+          width: 12px;
+          height: 6px;
+          border-radius: 2px;
         }
 
         .status-dot.active {
@@ -321,7 +321,7 @@ export class LokiSessionControl extends LokiElement {
         .control-btn {
           flex: 1;
           padding: 6px 10px;
-          border-radius: 6px;
+          border-radius: 4px;
           border: 1px solid var(--loki-border);
           background: var(--loki-bg-card);
           color: var(--loki-text-secondary);
@@ -381,16 +381,16 @@ export class LokiSessionControl extends LokiElement {
           gap: 6px;
           padding: 6px 12px;
           background: var(--loki-bg-tertiary);
-          border-radius: 6px;
+          border-radius: 4px;
           font-size: 11px;
           color: var(--loki-text-muted);
           margin-top: 4px;
         }
 
         .connection-dot {
-          width: 6px;
-          height: 6px;
-          border-radius: 50%;
+          width: 10px;
+          height: 5px;
+          border-radius: 2px;
           background: var(--loki-red);
         }
 
@@ -415,7 +415,7 @@ export class LokiSessionControl extends LokiElement {
           font-size: 16px;
           font-weight: 600;
           font-family: 'JetBrains Mono', monospace;
-          color: var(--loki-text-primary);
+          color: var(--loki-accent);
         }
 
         .stat-label {

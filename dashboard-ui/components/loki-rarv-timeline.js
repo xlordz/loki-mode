@@ -182,7 +182,7 @@ export class LokiRarvTimeline extends LokiElement {
       .timeline-container {
         padding: 16px;
         font-family: var(--loki-font-family, 'Inter', -apple-system, sans-serif);
-        color: var(--loki-text-primary, #fafafa);
+        color: var(--loki-text-primary, #201515);
       }
 
       .header {
@@ -200,7 +200,7 @@ export class LokiRarvTimeline extends LokiElement {
 
       .run-label {
         font-size: 12px;
-        color: var(--loki-text-muted, #52525b);
+        color: var(--loki-text-muted, #939084);
         font-family: 'JetBrains Mono', monospace;
       }
 
@@ -208,9 +208,9 @@ export class LokiRarvTimeline extends LokiElement {
         display: flex;
         width: 100%;
         height: 32px;
-        border-radius: 6px;
+        border-radius: 4px;
         overflow: hidden;
-        background: var(--loki-bg-tertiary, #111114);
+        background: var(--loki-bg-tertiary, #ECEAE3);
         margin-bottom: 12px;
       }
 
@@ -261,13 +261,13 @@ export class LokiRarvTimeline extends LokiElement {
 
       .legend-label {
         font-weight: 500;
-        color: var(--loki-text-secondary, #a1a1aa);
+        color: var(--loki-text-secondary, #36342E);
       }
 
       .legend-duration {
         font-family: 'JetBrains Mono', monospace;
         font-size: 11px;
-        color: var(--loki-text-muted, #52525b);
+        color: var(--loki-text-muted, #939084);
       }
 
       .phase-current-tag {
@@ -275,7 +275,7 @@ export class LokiRarvTimeline extends LokiElement {
         padding: 1px 5px;
         border-radius: 3px;
         background: var(--loki-accent-muted, rgba(139, 92, 246, 0.15));
-        color: var(--loki-accent, #8b5cf6);
+        color: var(--loki-accent, #553DE9);
         font-weight: 500;
         margin-left: 4px;
       }
@@ -283,7 +283,7 @@ export class LokiRarvTimeline extends LokiElement {
       .empty-state {
         text-align: center;
         padding: 32px;
-        color: var(--loki-text-muted, #52525b);
+        color: var(--loki-text-muted, #939084);
         font-size: 13px;
       }
 
@@ -292,14 +292,14 @@ export class LokiRarvTimeline extends LokiElement {
         padding: 8px 12px;
         background: var(--loki-red-muted, rgba(239, 68, 68, 0.15));
         color: var(--loki-red, #ef4444);
-        border-radius: 6px;
+        border-radius: 4px;
         font-size: 12px;
       }
 
       .loading {
         text-align: center;
         padding: 24px;
-        color: var(--loki-text-muted, #52525b);
+        color: var(--loki-text-muted, #939084);
         font-size: 13px;
       }
     `;

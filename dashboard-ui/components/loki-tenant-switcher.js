@@ -140,7 +140,7 @@ export class LokiTenantSwitcher extends LokiElement {
 
       .tenant-switcher {
         font-family: var(--loki-font-family, 'Inter', -apple-system, sans-serif);
-        color: var(--loki-text-primary, #fafafa);
+        color: var(--loki-text-primary, #201515);
         position: relative;
       }
 
@@ -149,24 +149,24 @@ export class LokiTenantSwitcher extends LokiElement {
         align-items: center;
         gap: 8px;
         padding: 6px 12px;
-        background: var(--loki-bg-card, #18181b);
-        border: 1px solid var(--loki-border, rgba(255, 255, 255, 0.06));
-        border-radius: 6px;
+        background: var(--loki-bg-card, #ffffff);
+        border: 1px solid var(--loki-border, #ECEAE3);
+        border-radius: 4px;
         cursor: pointer;
         font-size: 13px;
         font-weight: 500;
-        color: var(--loki-text-primary, #fafafa);
+        color: var(--loki-text-primary, #201515);
         transition: all 0.15s ease;
         min-width: 180px;
         justify-content: space-between;
       }
 
       .trigger:hover {
-        border-color: var(--loki-border-light, rgba(255, 255, 255, 0.1));
+        border-color: var(--loki-border-light, #C5C0B1);
       }
 
       .trigger.open {
-        border-color: var(--loki-accent, #8b5cf6);
+        border-color: var(--loki-accent, #553DE9);
       }
 
       .trigger-label {
@@ -178,7 +178,7 @@ export class LokiTenantSwitcher extends LokiElement {
       .trigger-icon {
         flex-shrink: 0;
         font-size: 10px;
-        color: var(--loki-text-muted, #52525b);
+        color: var(--loki-text-muted, #939084);
         transition: transform 0.15s ease;
       }
 
@@ -192,9 +192,9 @@ export class LokiTenantSwitcher extends LokiElement {
         left: 0;
         right: 0;
         min-width: 220px;
-        background: var(--loki-bg-card, #18181b);
-        border: 1px solid var(--loki-border, rgba(255, 255, 255, 0.06));
-        border-radius: 8px;
+        background: var(--loki-bg-card, #ffffff);
+        border: 1px solid var(--loki-border, #ECEAE3);
+        border-radius: 5px;
         box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
         z-index: 100;
         overflow: hidden;
@@ -208,7 +208,7 @@ export class LokiTenantSwitcher extends LokiElement {
         font-size: 13px;
         cursor: pointer;
         transition: background 0.1s ease;
-        color: var(--loki-text-primary, #fafafa);
+        color: var(--loki-text-primary, #201515);
         border: none;
         background: none;
         width: 100%;
@@ -221,17 +221,17 @@ export class LokiTenantSwitcher extends LokiElement {
 
       .dropdown-item.selected {
         background: var(--loki-accent-muted, rgba(139, 92, 246, 0.15));
-        color: var(--loki-accent, #8b5cf6);
+        color: var(--loki-accent, #553DE9);
       }
 
       .dropdown-item.all-tenants {
-        border-bottom: 1px solid var(--loki-border, rgba(255, 255, 255, 0.06));
+        border-bottom: 1px solid var(--loki-border, #ECEAE3);
         font-weight: 500;
       }
 
       .tenant-slug {
         font-size: 11px;
-        color: var(--loki-text-muted, #52525b);
+        color: var(--loki-text-muted, #939084);
         font-family: 'JetBrains Mono', monospace;
       }
 
@@ -250,7 +250,7 @@ export class LokiTenantSwitcher extends LokiElement {
 
       .check-mark {
         margin-left: auto;
-        color: var(--loki-accent, #8b5cf6);
+        color: var(--loki-accent, #553DE9);
         font-size: 14px;
         flex-shrink: 0;
       }
@@ -263,7 +263,7 @@ export class LokiTenantSwitcher extends LokiElement {
 
       .loading-text {
         padding: 8px 14px;
-        color: var(--loki-text-muted, #52525b);
+        color: var(--loki-text-muted, #939084);
         font-size: 12px;
       }
     `;

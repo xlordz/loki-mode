@@ -337,7 +337,7 @@ export class LokiCostDashboard extends LokiElement {
         .summary-card {
           background: var(--loki-bg-card);
           border: 1px solid var(--loki-border);
-          border-radius: 10px;
+          border-radius: 5px;
           padding: 14px 16px;
           transition: all var(--loki-transition);
         }
@@ -350,7 +350,7 @@ export class LokiCostDashboard extends LokiElement {
           font-size: 10px;
           font-weight: 600;
           text-transform: uppercase;
-          letter-spacing: 0.5px;
+          letter-spacing: 0.05em;
           color: var(--loki-text-muted);
           margin-bottom: 6px;
         }
@@ -359,7 +359,7 @@ export class LokiCostDashboard extends LokiElement {
           font-size: 22px;
           font-weight: 600;
           font-family: 'JetBrains Mono', monospace;
-          color: var(--loki-text-primary);
+          color: var(--loki-accent);
           line-height: 1.2;
         }
 
@@ -393,7 +393,7 @@ export class LokiCostDashboard extends LokiElement {
           font-size: 12px;
           font-weight: 600;
           text-transform: uppercase;
-          letter-spacing: 0.5px;
+          letter-spacing: 0.05em;
           color: var(--loki-text-muted);
         }
 
@@ -401,7 +401,7 @@ export class LokiCostDashboard extends LokiElement {
         .data-table-container {
           background: var(--loki-bg-card);
           border: 1px solid var(--loki-border);
-          border-radius: 10px;
+          border-radius: 5px;
           padding: 16px;
           overflow-x: auto;
         }
@@ -418,7 +418,7 @@ export class LokiCostDashboard extends LokiElement {
           font-size: 10px;
           font-weight: 600;
           text-transform: uppercase;
-          letter-spacing: 0.5px;
+          letter-spacing: 0.05em;
           color: var(--loki-text-muted);
           border-bottom: 1px solid var(--loki-border);
         }
@@ -464,7 +464,7 @@ export class LokiCostDashboard extends LokiElement {
         .budget-section {
           background: var(--loki-bg-card);
           border: 1px solid var(--loki-border);
-          border-radius: 10px;
+          border-radius: 5px;
           padding: 16px;
         }
 
@@ -526,7 +526,7 @@ export class LokiCostDashboard extends LokiElement {
         .pricing-ref {
           background: var(--loki-bg-card);
           border: 1px solid var(--loki-border);
-          border-radius: 10px;
+          border-radius: 5px;
           padding: 16px;
         }
 
@@ -539,7 +539,7 @@ export class LokiCostDashboard extends LokiElement {
 
         .pricing-item {
           background: var(--loki-bg-tertiary);
-          border-radius: 8px;
+          border-radius: 5px;
           padding: 10px 12px;
         }
 

@@ -321,7 +321,7 @@ export class LokiNotificationCenter extends LokiElement {
           gap: 2px;
           margin-bottom: 16px;
           background: var(--loki-bg-tertiary);
-          border-radius: 8px;
+          border-radius: 5px;
           padding: 2px;
         }
 
@@ -332,7 +332,7 @@ export class LokiNotificationCenter extends LokiElement {
           background: none;
           color: var(--loki-text-muted);
           cursor: pointer;
-          border-radius: 6px;
+          border-radius: 4px;
           font-size: 12px;
           font-weight: 500;
           transition: all 0.2s;
@@ -344,9 +344,8 @@ export class LokiNotificationCenter extends LokiElement {
         }
 
         .tab.active {
-          background: var(--loki-bg-card);
-          color: var(--loki-text-primary);
-          box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+          background: var(--loki-accent);
+          color: white;
         }
 
         /* Summary bar */
@@ -367,7 +366,7 @@ export class LokiNotificationCenter extends LokiElement {
         .summary-card {
           background: var(--loki-bg-card);
           border: 1px solid var(--loki-border);
-          border-radius: 10px;
+          border-radius: 5px;
           padding: 14px 16px;
           transition: all var(--loki-transition);
         }
@@ -380,7 +379,7 @@ export class LokiNotificationCenter extends LokiElement {
           font-size: 10px;
           font-weight: 600;
           text-transform: uppercase;
-          letter-spacing: 0.5px;
+          letter-spacing: 0.05em;
           color: var(--loki-text-muted);
           margin-bottom: 6px;
         }
@@ -389,7 +388,7 @@ export class LokiNotificationCenter extends LokiElement {
           font-size: 22px;
           font-weight: 600;
           font-family: 'JetBrains Mono', monospace;
-          color: var(--loki-text-primary);
+          color: var(--loki-accent);
           line-height: 1.2;
         }
 
@@ -398,7 +397,7 @@ export class LokiNotificationCenter extends LokiElement {
           padding: 8px 16px;
           background: var(--loki-bg-card);
           border: 1px solid var(--loki-border);
-          border-radius: 8px;
+          border-radius: 5px;
           color: var(--loki-text-primary);
           font-size: 12px;
           font-weight: 500;
@@ -418,7 +417,7 @@ export class LokiNotificationCenter extends LokiElement {
         .notif-list {
           background: var(--loki-bg-card);
           border: 1px solid var(--loki-border);
-          border-radius: 10px;
+          border-radius: 5px;
           overflow: hidden;
         }
 
@@ -444,9 +443,9 @@ export class LokiNotificationCenter extends LokiElement {
         }
 
         .severity-dot {
-          width: 8px;
-          height: 8px;
-          border-radius: 50%;
+          width: 12px;
+          height: 6px;
+          border-radius: 2px;
           flex-shrink: 0;
         }
 
@@ -471,7 +470,7 @@ export class LokiNotificationCenter extends LokiElement {
           color: var(--loki-text-muted);
           background: var(--loki-bg-tertiary);
           padding: 2px 8px;
-          border-radius: 10px;
+          border-radius: 5px;
           white-space: nowrap;
         }
 
@@ -479,7 +478,7 @@ export class LokiNotificationCenter extends LokiElement {
           padding: 4px 10px;
           background: none;
           border: 1px solid var(--loki-border);
-          border-radius: 6px;
+          border-radius: 4px;
           color: var(--loki-text-secondary);
           font-size: 11px;
           cursor: pointer;
@@ -497,7 +496,7 @@ export class LokiNotificationCenter extends LokiElement {
         .trigger-list {
           background: var(--loki-bg-card);
           border: 1px solid var(--loki-border);
-          border-radius: 10px;
+          border-radius: 5px;
           overflow: hidden;
         }
 
@@ -530,7 +529,7 @@ export class LokiNotificationCenter extends LokiElement {
           text-transform: uppercase;
           letter-spacing: 0.3px;
           padding: 3px 8px;
-          border-radius: 10px;
+          border-radius: 5px;
           white-space: nowrap;
         }
 
@@ -568,7 +567,7 @@ export class LokiNotificationCenter extends LokiElement {
           position: absolute;
           inset: 0;
           background: var(--loki-bg-tertiary);
-          border-radius: 10px;
+          border-radius: 5px;
           cursor: pointer;
           transition: 0.2s;
         }
@@ -602,7 +601,7 @@ export class LokiNotificationCenter extends LokiElement {
           font-size: 13px;
           background: var(--loki-bg-card);
           border: 1px solid var(--loki-border);
-          border-radius: 10px;
+          border-radius: 5px;
         }
 
         /* Offline notice */

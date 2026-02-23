@@ -189,7 +189,7 @@ export class LokiAppStatus extends LokiElement {
       .app-status {
         padding: 16px;
         font-family: var(--loki-font-family, system-ui, -apple-system, sans-serif);
-        color: var(--loki-text-primary, #18181b);
+        color: var(--loki-text-primary, #201515);
       }
       .header {
         display: flex;
@@ -208,11 +208,11 @@ export class LokiAppStatus extends LokiElement {
         margin: 0;
       }
 
-      /* Status dot */
+      /* Status indicator */
       .status-dot {
-        width: 10px;
-        height: 10px;
-        border-radius: 50%;
+        width: 12px;
+        height: 6px;
+        border-radius: 2px;
         flex-shrink: 0;
       }
       .status-dot.pulse {
@@ -228,7 +228,7 @@ export class LokiAppStatus extends LokiElement {
         align-items: center;
         gap: 6px;
         padding: 2px 10px;
-        border-radius: 9999px;
+        border-radius: 4px;
         font-size: 12px;
         font-weight: 500;
       }
@@ -237,7 +237,7 @@ export class LokiAppStatus extends LokiElement {
       .status-card {
         background: var(--loki-bg-card, #ffffff);
         border: 1px solid var(--loki-border, #e4e4e7);
-        border-radius: 8px;
+        border-radius: 5px;
         padding: 14px;
         margin-bottom: 12px;
       }
@@ -255,7 +255,7 @@ export class LokiAppStatus extends LokiElement {
         font-weight: 500;
       }
       .status-value a {
-        color: var(--loki-accent, #7c3aed);
+        color: var(--loki-accent, #553DE9);
         text-decoration: none;
       }
       .status-value a:hover {
@@ -275,7 +275,7 @@ export class LokiAppStatus extends LokiElement {
       .log-area {
         background: var(--loki-bg-tertiary, #1a1a2e);
         border: 1px solid var(--loki-border, #e4e4e7);
-        border-radius: 6px;
+        border-radius: 4px;
         padding: 10px;
         max-height: 300px;
         overflow-y: auto;
@@ -298,13 +298,13 @@ export class LokiAppStatus extends LokiElement {
       }
       .btn {
         padding: 5px 14px;
-        border-radius: 6px;
+        border-radius: 4px;
         font-size: 12px;
         font-weight: 500;
         cursor: pointer;
         border: 1px solid var(--loki-border, #e4e4e7);
         background: var(--loki-bg-secondary, #f4f4f5);
-        color: var(--loki-text-primary, #18181b);
+        color: var(--loki-text-primary, #201515);
         transition: background 0.15s;
       }
       .btn:hover {
@@ -343,7 +343,7 @@ export class LokiAppStatus extends LokiElement {
         padding: 8px 12px;
         background: color-mix(in srgb, var(--loki-status-error, #ef4444) 10%, transparent);
         color: var(--loki-status-error, #ef4444);
-        border-radius: 6px;
+        border-radius: 4px;
         font-size: 12px;
       }
     `;
