@@ -5,6 +5,20 @@ All notable changes to Loki Mode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.55.0] - 2026-02-24
+
+### Added
+- `loki migrate` command - enterprise code transformation engine
+- 4-phase migration pipeline: Understand > Guardrail > Migrate > Verify
+- MigrationPipeline with phase gates, thread-safe state management, atomic writes
+- 5 migration-specific agent definitions (archaeologist, characterization tester, seam detector, planner, reviewer)
+- 8 REST API endpoints under /api/migration/ with auth and rate limiting
+- Dashboard migration view with phase progress and feature tracking
+- Migration manifest, feature list, migration plan, and seams as JSON artifacts
+
+### Fixed
+- Weekly integrity audit workflow skipping all checks (#45)
+
 ## [5.54.0] - 2026-02-24
 
 ### Added
