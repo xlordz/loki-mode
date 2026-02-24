@@ -1,6 +1,6 @@
 {
   "name": "loki-mode-sdk",
-  "version": "0.1.0",
+  "version": "5.55.0",
   "description": "TypeScript SDK for Loki Mode - autonomous multi-agent development platform",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

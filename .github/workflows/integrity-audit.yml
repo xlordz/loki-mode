@@ -20,22 +20,26 @@ jobs:
           fetch-depth: 0
 
       - name: Setup Node.js 20
+        if: always()
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
       - name: Setup Python 3.12
+        if: always()
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
       - name: Install npm dependencies
+        if: always()
         run: npm install
 
       - name: Install Python dependencies
+        if: always()
         run: |
           python3 -m pip install --upgrade pip
-          python3 -m pip install pytest pydantic
+          python3 -m pip install pytest pydantic fastapi uvicorn httpx sqlalchemy[asyncio] aiosqlite
 
       - name: Run npm tests
         id: npm_tests
@@ -64,7 +68,7 @@ jobs:
       - name: Helm lint
         id: helm_lint
         if: always()
-        run: helm lint deploy/helm/loki-mode
+        run: helm lint deploy/helm/autonomi
 
       - name: Node module import checks
         id: node_imports
