@@ -646,6 +646,10 @@ function generateStandaloneHTML(bundleCode) {
           <svg viewBox="0 0 24 24"><path d="M4 14h6v6H4z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M14 4h6v6h-6z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M17 10v4h-4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M7 14v-4h4" fill="none" stroke="currentColor" stroke-width="2"/></svg>
           Migration
         </button>
+        <button class="nav-link" data-section="analytics" id="nav-analytics">
+          <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="20" x2="12" y2="4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="6" y1="20" x2="6" y2="14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          Analytics
+        </button>
       </nav>
 
       <div class="sidebar-footer">
@@ -771,6 +775,14 @@ function generateStandaloneHTML(bundleCode) {
         </div>
         <loki-migration-dashboard id="migration-dashboard"></loki-migration-dashboard>
       </div>
+
+      <!-- Analytics -->
+      <div class="section-page" id="page-analytics">
+        <div class="section-page-header">
+          <h2 class="section-page-title">Analytics</h2>
+        </div>
+        <loki-analytics id="analytics-dashboard"></loki-analytics>
+      </div>
     </main>
   </div>
 
@@ -794,6 +806,7 @@ function generateStandaloneHTML(bundleCode) {
         <div class="shortcut-row"><span class="shortcut-desc">Context</span><span class="shortcut-keys"><kbd class="shortcut-key">9</kbd></span></div>
         <div class="shortcut-row"><span class="shortcut-desc">Notifications</span><span class="shortcut-keys"><kbd class="shortcut-key">0</kbd></span></div>
         <div class="shortcut-row"><span class="shortcut-desc">Migration</span><span class="shortcut-keys"><kbd class="shortcut-key">m</kbd></span></div>
+        <div class="shortcut-row"><span class="shortcut-desc">Analytics</span><span class="shortcut-keys"><kbd class="shortcut-key">a</kbd></span></div>
       </div>
       <div class="shortcuts-group">
         <div class="shortcuts-group-title">Session</div>
@@ -871,7 +884,8 @@ document.addEventListener('DOMContentLoaded', function() {
       'session-diff',
       'prompt-optimizer',
       'quality-score',
-      'migration-dashboard'
+      'migration-dashboard',
+      'analytics-dashboard'
     ];
     components.forEach(function(id) {
       var el = document.getElementById(id);
@@ -955,7 +969,7 @@ document.addEventListener('DOMContentLoaded', function() {
   document.addEventListener('keydown', function(e) {
     if ((e.metaKey || e.ctrlKey) && ((e.key >= '1' && e.key <= '9') || e.key === '0')) {
       e.preventDefault();
-      var sections = ['overview', 'insights', 'prd-checklist', 'app-runner', 'council', 'quality', 'cost', 'checkpoint', 'context', 'notifications', 'migration'];
+      var sections = ['overview', 'insights', 'prd-checklist', 'app-runner', 'council', 'quality', 'cost', 'checkpoint', 'context', 'notifications', 'migration', 'analytics'];
       var idx = e.key === '0' ? 9 : parseInt(e.key) - 1;
       if (idx < sections.length) switchSection(sections[idx]);
     }
@@ -1013,6 +1027,12 @@ document.addEventListener('DOMContentLoaded', function() {
       case 'm':
         e.preventDefault();
         switchSection('migration');
+        break;
+
+      // Analytics page
+      case 'a':
+        e.preventDefault();
+        switchSection('analytics');
         break;
 
       // Help overlay

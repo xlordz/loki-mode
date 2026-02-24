@@ -82,6 +82,7 @@ export { LokiSessionDiff } from './components/loki-session-diff.js';
 export { LokiPromptOptimizer } from './components/loki-prompt-optimizer.js';
 export { LokiQualityScore } from './components/loki-quality-score.js';
 export { LokiMigrationDashboard } from './components/loki-migration-dashboard.js';
+export { LokiAnalytics } from './components/loki-analytics.js';
 
 // Version
 export const VERSION = '1.3.0';
@@ -135,6 +136,7 @@ const componentModules = [
   './components/loki-prompt-optimizer.js',
   './components/loki-quality-score.js',
   './components/loki-migration-dashboard.js',
+  './components/loki-analytics.js',
 ];
 
 // Components are registered via customElements.define in their respective files
