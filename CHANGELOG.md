@@ -5,6 +5,17 @@ All notable changes to Loki Mode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.55.1] - 2026-02-24
+
+### Fixed
+- Secret scan grep pipeline failing under `set -euo pipefail` in `loki migrate`
+- Integrity audit workflow: helm chart path `loki-mode` -> `autonomi`
+- Integrity audit workflow: setup/install steps missing `if: always()` causing cascading skips
+- Integrity audit workflow: missing `pytest-asyncio` and dashboard Python deps
+- Integrity audit workflow: shell tests missing `continue-on-error` (matches test.yml)
+- Wiki sync workflow: outdated Claude model `claude-sonnet-4-5` -> `claude-sonnet-4-6`
+- SDK versions stuck at 0.1.0 synced to 5.55.0
+
 ## [5.55.0] - 2026-02-24
 
 ### Added
