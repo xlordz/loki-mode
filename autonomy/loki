@@ -5139,7 +5139,12 @@ print(json.dumps({'id': manifest.id, 'dir': str(pipeline.migration_dir)}))
     local secrets_found=0
     if command -v grep &>/dev/null; then
         local secret_patterns="(password|secret|api_key|apikey|token|private_key|AWS_SECRET|DB_PASS)\\s*[=:]\\s*['\"][^'\"]+['\"]"
-        secrets_found=$(grep -rEli "$secret_patterns" "$codebase_path" --include='*.js' --include='*.ts' --include='*.py' --include='*.rb' --include='*.go' --include='*.java' --include='*.env' --include='*.yml' --include='*.yaml' --include='*.json' --include='*.toml' --include='*.cfg' --include='*.ini' 2>/dev/null | wc -l | tr -d ' ')
+        secrets_found=$(grep -rEli "$secret_patterns" "$codebase_path" --include='*.js' --include='*.ts' --include='*.py' --include='*.rb' --include='*.go' --include='*.java' --include='*.env' --include='*.yml' --include='*.yaml' --include='*.json' --include='*.toml' --include='*.cfg' --include='*.ini' 2>/dev/null || true)
+        if [ -n "$secrets_found" ]; then
+            secrets_found=$(echo "$secrets_found" | wc -l | tr -d ' ')
+        else
+            secrets_found=0
+        fi
     fi
 
     if [ "$secrets_found" -gt 0 ]; then
